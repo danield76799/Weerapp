@@ -38,7 +38,9 @@ class WeatherService {
 
   Future<String?> getApiKey() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_apiKeyPref);
+    final userKey = prefs.getString(_apiKeyPref);
+    // Built-in default key — user can override in settings
+    return userKey ?? '81896c1223f157476c08c45883b32e13';
   }
 
   Future<bool> hasApiKey() async {
