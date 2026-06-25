@@ -1,0 +1,98 @@
+name: Main Deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: main_deploy
+  cancel-in-progress: false
+
+jobs:
+  build_android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.1'
+          channel: 'stable'
+          cache: true
+
+      - name: Setup Android NDK r27 (16KB page size support)
+        uses: nttld/setup-ndk@v1
+        id: setup_ndk
+        with:
+          ndk-version: r27
+          add-to-path: false
+
+      - name: Configure NDK
+        run: |
+          echo "ANDROID_NDK_HOME=${{ steps.setup_ndk.outputs.ndk-path }}" >> $GITHUB_ENV
+          echo "ANDROID_NDK_ROOT=${{ steps.setup_ndk.outputs.ndk-path }}" >> $GITHUB_ENV
+          echo "ndk.dir=${{ steps.setup_ndk.outputs.ndk-path }}" >> android/local.properties
+
+      - name: Verify Flutter
+        run: flutter --version
+
+      - name: Clean Flutter build
+        run: flutter clean
+
+      - name: Install Flutter dependencies
+        run: flutter pub get
+
+      - name: Setup signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > android/app/upload-keystore.jks
+            echo "storePassword=$KEYSTORE_PASSWORD" > android/key.properties
+            echo "keyPassword=$KEY_PASSWORD" >> android/key.properties
+            echo "keyAlias=$KEY_ALIAS" >> android/key.properties
+            echo "storeFile=upload-keystore.jks" >> android/key.properties
+            echo "Signing configured"
+          else
+            echo "No signing secrets — using debug signing"
+          fi
+
+      - name: Build AAB
+        run: |
+          flutter build appbundle --release
+          mkdir -p output
+          cp build/app/outputs/bundle/release/app-release.aab output/plusly-release.aab || cp build/app/outputs/bundle/release/app-release.aab output/weerapp-release.aab
+
+      - name: Build APKs
+        run: |
+          flutter build apk --release --split-per-abi
+          cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk output/ || true
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk output/ || true
+
+      - name: List build outputs
+        run: |
+          ls -la output/ || echo "No output directory"
+          find build/app/outputs -name "*.aab" -o -name "*.apk" | head -10
+
+      - name: Upload AAB
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: weerapp-aab-playstore
+          path: output/*.aab
+          retention-days: 30
+
+      - name: Upload APK (arm64)
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: weerapp-arm64-v8a-apk
+          path: build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+          retention-days: 30

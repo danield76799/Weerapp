@@ -1,0 +1,51 @@
+name: weerapp
+description: "Weer Laren - 14-daagse weersverwachting met UV, notificaties en offline caching."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # Networking
+  dio: ^5.9.0
+  http: ^1.6.0
+
+  # State management
+  provider: ^6.0.2
+
+  # Location
+  geolocator: ^14.0.0
+  geocoding: ^4.0.0
+
+  # Storage / caching
+  shared_preferences: ^2.2.0
+  path_provider: ^2.1.2
+
+  # Date formatting
+  intl: ^0.20.2
+
+  # Notifications
+  flutter_local_notifications: ^20.1.0
+  timezone: ^0.10.0
+  flutter_timezone: ^4.0.0
+
+  # Weather icons / utils
+  flutter_svg: ^2.0.9
+
+  # External link
+  url_launcher: ^6.3.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/
