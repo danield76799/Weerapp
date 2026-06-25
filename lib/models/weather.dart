@@ -1,12 +1,13 @@
-/// Weer data models voor OpenWeather One Call API 3.0
+/// Weer data models voor Open-Meteo API
+
 class CurrentWeather {
   final double temperature;
   final double feelsLike;
   final int humidity;
   final double windSpeed;
+  final double? windGusts;
   final int weatherCode;
   final String weatherDescription;
-  final String iconCode;
   final DateTime timestamp;
   final double uvIndex;
   final int pressure;
@@ -14,63 +15,73 @@ class CurrentWeather {
   final double? precipitation;
   final DateTime sunrise;
   final DateTime sunset;
+  final double? dewPoint;
+  final int? visibility;
+  final double? sunshineDuration;
 
   CurrentWeather({
     required this.temperature,
     required this.feelsLike,
     required this.humidity,
     required this.windSpeed,
+    this.windGusts,
     required this.weatherCode,
     required this.weatherDescription,
-    required this.iconCode,
     required this.timestamp,
     required this.uvIndex,
     required this.pressure,
     required this.clouds,
-    required this.precipitation,
+    this.precipitation,
     required this.sunrise,
     required this.sunset,
+    this.dewPoint,
+    this.visibility,
+    this.sunshineDuration,
   });
+
+  double get dayLengthHours => sunset.difference(sunrise).inMinutes / 60.0;
+  double? get sunshineHours => sunshineDuration != null ? sunshineDuration! / 3600.0 : null;
 
   factory CurrentWeather.fromJson(Map<String, dynamic> json) {
     return CurrentWeather(
-      temperature: (json['temp'] as num).toDouble(),
+      temperature: (json['temperature'] as num).toDouble(),
       feelsLike: (json['feels_like'] as num).toDouble(),
-      humidity: json['humidity'] as int,
+      humidity: (json['humidity'] as int?) ?? 0,
       windSpeed: (json['wind_speed'] as num).toDouble(),
-      weatherCode: json['weather'][0]['id'] as int,
-      weatherDescription: json['weather'][0]['description'] as String,
-      iconCode: json['weather'][0]['icon'] as String,
-      timestamp: DateTime.fromMillisecondsSinceEpoch((json['dt'] as int) * 1000),
-      uvIndex: (json['uvi'] as num).toDouble(),
-      pressure: json['pressure'] as int,
-      clouds: json['clouds'] as int,
-      precipitation: (json['rain']?['1h'] as num?)?.toDouble() ??
-          (json['snow']?['1h'] as num?)?.toDouble(),
-      sunrise: DateTime.fromMillisecondsSinceEpoch((json['sunrise'] as int) * 1000),
-      sunset: DateTime.fromMillisecondsSinceEpoch((json['sunset'] as int) * 1000),
+      windGusts: (json['wind_gusts'] as num?)?.toDouble(),
+      weatherCode: (json['weather_code'] as num?)?.toInt() ?? 0,
+      weatherDescription: (json['weather_description'] as String?) ?? '',
+      timestamp: json['timestamp'] is String ? DateTime.parse(json['timestamp']) : DateTime.now(),
+      uvIndex: (json['uv_index'] as num?)?.toDouble() ?? 0,
+      pressure: (json['pressure'] as int?) ?? 1013,
+      clouds: (json['clouds'] as int?) ?? 0,
+      precipitation: (json['precipitation'] as num?)?.toDouble(),
+      sunrise: json['sunrise'] is String ? DateTime.parse(json['sunrise']) : DateTime.now(),
+      sunset: json['sunset'] is String ? DateTime.parse(json['sunset']) : DateTime.now(),
+      dewPoint: (json['dew_point'] as num?)?.toDouble(),
+      visibility: (json['visibility'] as num?)?.toInt(),
+      sunshineDuration: (json['sunshine_duration'] as num?)?.toDouble(),
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'temp': temperature,
+        'temperature': temperature,
         'feels_like': feelsLike,
         'humidity': humidity,
         'wind_speed': windSpeed,
-        'weather': [
-          {
-            'id': weatherCode,
-            'description': weatherDescription,
-            'icon': iconCode,
-          }
-        ],
-        'dt': timestamp.millisecondsSinceEpoch ~/ 1000,
-        'uvi': uvIndex,
+        'wind_gusts': windGusts,
+        'weather_code': weatherCode,
+        'weather_description': weatherDescription,
+        'timestamp': timestamp.toIso8601String(),
+        'uv_index': uvIndex,
         'pressure': pressure,
         'clouds': clouds,
-        'rain': precipitation != null ? {'1h': precipitation} : null,
-        'sunrise': sunrise.millisecondsSinceEpoch ~/ 1000,
-        'sunset': sunset.millisecondsSinceEpoch ~/ 1000,
+        'precipitation': precipitation,
+        'sunrise': sunrise.toIso8601String(),
+        'sunset': sunset.toIso8601String(),
+        'dew_point': dewPoint,
+        'visibility': visibility,
+        'sunshine_duration': sunshineDuration,
       };
 }
 
@@ -82,14 +93,15 @@ class DailyForecast {
   final double tempNight;
   final int weatherCode;
   final String weatherDescription;
-  final String iconCode;
   final double precipitationProbability;
   final double precipitationAmount;
   final double windSpeed;
+  final double? windGustsMax;
   final double uvIndex;
   final int humidity;
   final DateTime sunrise;
   final DateTime sunset;
+  final double? sunshineDuration;
 
   DailyForecast({
     required this.date,
@@ -99,59 +111,58 @@ class DailyForecast {
     required this.tempNight,
     required this.weatherCode,
     required this.weatherDescription,
-    required this.iconCode,
     required this.precipitationProbability,
     required this.precipitationAmount,
     required this.windSpeed,
+    this.windGustsMax,
     required this.uvIndex,
     required this.humidity,
     required this.sunrise,
     required this.sunset,
+    this.sunshineDuration,
   });
+
+  double get dayLengthHours => sunset.difference(sunrise).inMinutes / 60.0;
+  double? get sunshineHours => sunshineDuration != null ? sunshineDuration! / 3600.0 : null;
 
   factory DailyForecast.fromJson(Map<String, dynamic> json) {
     return DailyForecast(
-      date: DateTime.fromMillisecondsSinceEpoch((json['dt'] as int) * 1000),
-      tempMin: (json['temp']['min'] as num).toDouble(),
-      tempMax: (json['temp']['max'] as num).toDouble(),
-      tempDay: (json['temp']['day'] as num).toDouble(),
-      tempNight: (json['temp']['night'] as num).toDouble(),
-      weatherCode: json['weather'][0]['id'] as int,
-      weatherDescription: json['weather'][0]['description'] as String,
-      iconCode: json['weather'][0]['icon'] as String,
-      precipitationProbability: ((json['pop'] as num?) ?? 0).toDouble(),
-      precipitationAmount: ((json['rain'] as num?) ?? 0).toDouble() +
-          ((json['snow'] as num?) ?? 0).toDouble(),
-      windSpeed: (json['wind_speed'] as num).toDouble(),
-      uvIndex: (json['uvi'] as num).toDouble(),
-      humidity: json['humidity'] as int,
-      sunrise: DateTime.fromMillisecondsSinceEpoch((json['sunrise'] as int) * 1000),
-      sunset: DateTime.fromMillisecondsSinceEpoch((json['sunset'] as int) * 1000),
+      date: json['date'] is String ? DateTime.parse(json['date']) : DateTime.now(),
+      tempMin: (json['temp_min'] as num?)?.toDouble() ?? 0,
+      tempMax: (json['temp_max'] as num?)?.toDouble() ?? 0,
+      tempDay: (json['temp_day'] as num?)?.toDouble() ?? 0,
+      tempNight: (json['temp_night'] as num?)?.toDouble() ?? 0,
+      weatherCode: (json['weather_code'] as num?)?.toInt() ?? 0,
+      weatherDescription: (json['weather_description'] as String?) ?? '',
+      precipitationProbability: (json['precipitation_probability'] as num?)?.toDouble() ?? 0,
+      precipitationAmount: (json['precipitation_amount'] as num?)?.toDouble() ?? 0,
+      windSpeed: (json['wind_speed'] as num?)?.toDouble() ?? 0,
+      windGustsMax: (json['wind_gusts_max'] as num?)?.toDouble(),
+      uvIndex: (json['uv_index'] as num?)?.toDouble() ?? 0,
+      humidity: (json['humidity'] as int?) ?? 0,
+      sunrise: json['sunrise'] is String ? DateTime.parse(json['sunrise']) : DateTime.now(),
+      sunset: json['sunset'] is String ? DateTime.parse(json['sunset']) : DateTime.now(),
+      sunshineDuration: (json['sunshine_duration'] as num?)?.toDouble(),
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'dt': date.millisecondsSinceEpoch ~/ 1000,
-        'temp': {
-          'min': tempMin,
-          'max': tempMax,
-          'day': tempDay,
-          'night': tempNight,
-        },
-        'weather': [
-          {
-            'id': weatherCode,
-            'description': weatherDescription,
-            'icon': iconCode,
-          }
-        ],
-        'pop': precipitationProbability,
-        'rain': precipitationAmount,
+        'date': date.toIso8601String(),
+        'temp_min': tempMin,
+        'temp_max': tempMax,
+        'temp_day': tempDay,
+        'temp_night': tempNight,
+        'weather_code': weatherCode,
+        'weather_description': weatherDescription,
+        'precipitation_probability': precipitationProbability,
+        'precipitation_amount': precipitationAmount,
         'wind_speed': windSpeed,
-        'uvi': uvIndex,
+        'wind_gusts_max': windGustsMax,
+        'uv_index': uvIndex,
         'humidity': humidity,
-        'sunrise': sunrise.millisecondsSinceEpoch ~/ 1000,
-        'sunset': sunset.millisecondsSinceEpoch ~/ 1000,
+        'sunrise': sunrise.toIso8601String(),
+        'sunset': sunset.toIso8601String(),
+        'sunshine_duration': sunshineDuration,
       };
 }
 
@@ -161,6 +172,7 @@ class HourlyForecast {
   final int precipitationProbability;
   final int weatherCode;
   final double uvIndex;
+  final double? precipitation;
 
   HourlyForecast({
     required this.time,
@@ -168,13 +180,128 @@ class HourlyForecast {
     required this.precipitationProbability,
     required this.weatherCode,
     required this.uvIndex,
+    this.precipitation,
   });
+}
+
+class AirQuality {
+  final int pm10;
+  final int pm25;
+  final int no2;
+  final int o3;
+  final int? europeanAqi;
+  final DateTime timestamp;
+
+  AirQuality({
+    required this.pm10,
+    required this.pm25,
+    required this.no2,
+    required this.o3,
+    this.europeanAqi,
+    required this.timestamp,
+  });
+
+  String get label {
+    final aqi = europeanAqi ?? pm25;
+    if (aqi <= 20) return 'Goed';
+    if (aqi <= 40) return 'Matig';
+    if (aqi <= 60) return 'Ongezond';
+    if (aqi <= 80) return 'Zeer ongezond';
+    return 'Gevaarlijk';
+  }
+
+  String get advice {
+    final aqi = europeanAqi ?? pm25;
+    if (aqi <= 20) return 'Geen bezorgenheid';
+    if (aqi <= 40) return 'Geen bezorgenheid voor de meesten';
+    if (aqi <= 60) return 'Gevoelige groepen kunnen klachten krijgen';
+    if (aqi <= 80) return 'Iedereen kan klachten krijgen';
+    return 'Vermijd buitenactiviteiten';
+  }
+
+  factory AirQuality.fromJson(Map<String, dynamic> json) {
+    return AirQuality(
+      pm10: (json['pm10'] as num?)?.toInt() ?? 0,
+      pm25: (json['pm25'] as num?)?.toInt() ?? 0,
+      no2: (json['no2'] as num?)?.toInt() ?? 0,
+      o3: (json['o3'] as num?)?.toInt() ?? 0,
+      europeanAqi: (json['european_aqi'] as num?)?.toInt(),
+      timestamp: json['timestamp'] is String
+          ? DateTime.parse(json['timestamp'])
+          : DateTime.now(),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'pm10': pm10,
+        'pm25': pm25,
+        'no2': no2,
+        'o3': o3,
+        'european_aqi': europeanAqi,
+        'timestamp': timestamp.toIso8601String(),
+      };
+}
+
+class PollenInfo {
+  final int grass;
+  final int birch;
+  final int alder;
+  final int mugwort;
+  final int ragweed;
+  final DateTime timestamp;
+
+  PollenInfo({
+    required this.grass,
+    required this.birch,
+    required this.alder,
+    required this.mugwort,
+    required this.ragweed,
+    required this.timestamp,
+  });
+
+  String grassLabel() => _pollenLabel(grass);
+  String birchLabel() => _pollenLabel(birch);
+  String alderLabel() => _pollenLabel(alder);
+  String mugwortLabel() => _pollenLabel(mugwort);
+  String ragweedLabel() => _pollenLabel(ragweed);
+
+  String _pollenLabel(int value) {
+    if (value == 0) return 'geen';
+    if (value <= 2) return 'laag';
+    if (value <= 5) return 'matig';
+    if (value <= 10) return 'hoog';
+    return 'zeer hoog';
+  }
+
+  factory PollenInfo.fromJson(Map<String, dynamic> json) {
+    return PollenInfo(
+      grass: (json['grass'] as num?)?.toInt() ?? 0,
+      birch: (json['birch'] as num?)?.toInt() ?? 0,
+      alder: (json['alder'] as num?)?.toInt() ?? 0,
+      mugwort: (json['mugwort'] as num?)?.toInt() ?? 0,
+      ragweed: (json['ragweed'] as num?)?.toInt() ?? 0,
+      timestamp: json['timestamp'] is String
+          ? DateTime.parse(json['timestamp'])
+          : DateTime.now(),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'grass': grass,
+        'birch': birch,
+        'alder': alder,
+        'mugwort': mugwort,
+        'ragweed': ragweed,
+        'timestamp': timestamp.toIso8601String(),
+      };
 }
 
 class WeatherData {
   final CurrentWeather current;
   final List<DailyForecast> daily;
   final List<HourlyForecast> hourly;
+  final AirQuality? airQuality;
+  final PollenInfo? pollen;
   final DateTime fetchedAt;
   final String locationName;
 
@@ -182,17 +309,26 @@ class WeatherData {
     required this.current,
     required this.daily,
     required this.hourly,
+    this.airQuality,
+    this.pollen,
     required this.fetchedAt,
     required this.locationName,
   });
 
-  /// Get hourly forecasts for a specific date
   List<HourlyForecast> hourlyForDay(DateTime date) {
     return hourly.where((h) =>
       h.time.year == date.year &&
       h.time.month == date.month &&
       h.time.day == date.day
     ).toList();
+  }
+
+  List<HourlyForecast> nextHours(int count) {
+    final now = DateTime.now();
+    return hourly
+        .where((h) => h.time.isAfter(now.subtract(const Duration(hours: 1))))
+        .take(count)
+        .toList();
   }
 
   factory WeatherData.fromJson(Map<String, dynamic> json, String locationName) {
@@ -206,6 +342,7 @@ class WeatherData {
           precipitationProbability: (m['precipitation_probability'] as num).toInt(),
           weatherCode: (m['weather_code'] as num).toInt(),
           uvIndex: (m['uv_index'] as num).toDouble(),
+          precipitation: (m['precipitation'] as num?)?.toDouble(),
         ));
       }
     }
@@ -216,6 +353,12 @@ class WeatherData {
           .map((d) => DailyForecast.fromJson(d as Map<String, dynamic>))
           .toList(),
       hourly: hourly,
+      airQuality: json['air_quality'] != null
+          ? AirQuality.fromJson(json['air_quality'])
+          : null,
+      pollen: json['pollen'] != null
+          ? PollenInfo.fromJson(json['pollen'])
+          : null,
       fetchedAt: DateTime.now(),
       locationName: locationName,
     );
@@ -230,7 +373,10 @@ class WeatherData {
           'precipitation_probability': h.precipitationProbability,
           'weather_code': h.weatherCode,
           'uv_index': h.uvIndex,
+          'precipitation': h.precipitation,
         }).toList(),
+        'air_quality': airQuality?.toJson(),
+        'pollen': pollen?.toJson(),
         'fetchedAt': fetchedAt.toIso8601String(),
         'locationName': locationName,
       };

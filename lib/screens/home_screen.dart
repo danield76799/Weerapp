@@ -7,6 +7,11 @@ import '../services/weather_provider.dart';
 import '../services/weather_service.dart';
 import '../widgets/current_weather_card.dart';
 import '../widgets/daily_forecast_list.dart';
+import '../widgets/jas_advice_card.dart';
+import '../widgets/zonnebrand_card.dart';
+import '../widgets/buien_card.dart';
+import '../widgets/air_quality_card.dart';
+import '../widgets/details_card.dart';
 import 'location_search_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -156,6 +161,27 @@ class _HomeScreenState extends State<HomeScreen> {
                   current: data.current,
                   locationName: data.locationName,
                 ),
+                const SizedBox(height: 12),
+                JasAdviceCard(
+                  current: data.current,
+                  nextHours: data.nextHours(6),
+                ),
+                const SizedBox(height: 12),
+                ZonnebrandCard(current: data.current),
+                const SizedBox(height: 12),
+                BuienCard(nextHours: data.nextHours(12)),
+                const SizedBox(height: 12),
+                DetailsCard(
+                  current: data.current,
+                  today: data.daily.first,
+                ),
+                if (data.airQuality != null || data.pollen != null) ...[
+                  const SizedBox(height: 12),
+                  AirQualityCard(
+                    airQuality: data.airQuality,
+                    pollen: data.pollen,
+                  ),
+                ],
                 const SizedBox(height: 16),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 4),

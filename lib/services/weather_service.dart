@@ -10,18 +10,23 @@ import '../models/weather.dart';
 ///
 /// Docs: https://open-meteo.com/en/docs
 /// Forecast API: https://api.open-meteo.com/v1/forecast
+/// Air Quality API: https://air-quality-api.open-meteo.com/v1/air-quality
 ///
 class WeatherService {
   static const _cacheKeyPrefix = 'weather_cache_';
   static const _lastLocationKey = 'last_location';
   static const _cacheMaxAge = Duration(hours: 1);
 
+  static const _forecastBaseUrl = 'https://api.open-meteo.com';
+  static const _airQualityUrl =
+      'https://air-quality-api.open-meteo.com/v1/air-quality';
+
   final Dio _dio;
 
   WeatherService({Dio? dio})
       : _dio = dio ??
             Dio(BaseOptions(
-              baseUrl: 'https://api.open-meteo.com',
+              baseUrl: _forecastBaseUrl,
               connectTimeout: const Duration(seconds: 10),
               receiveTimeout: const Duration(seconds: 15),
             ));
@@ -62,7 +67,8 @@ class WeatherService {
     required String locationName,
     bool force = false,
   }) async {
-    final cacheKey = '$_cacheKeyPrefix${lat.toStringAsFixed(2)}_${lon.toStringAsFixed(2)}';
+    final cacheKey =
+        '$_cacheKeyPrefix${lat.toStringAsFixed(2)}_${lon.toStringAsFixed(2)}';
 
     if (!force) {
       final cached = await _readCache(cacheKey);
@@ -85,6 +91,10 @@ class WeatherService {
             'pressure_msl',
             'cloud_cover',
             'uv_index',
+            'dew_point_2m',
+            'visibility',
+            'wind_gusts_10m',
+            'sunshine_duration',
           ].join(','),
           'hourly': [
             'temperature_2m',
@@ -105,6 +115,8 @@ class WeatherService {
             'precipitation_probability_max',
             'wind_speed_10m_max',
             'relative_humidity_2m_max',
+            'wind_gusts_10m_max',
+            'sunshine_duration',
           ].join(','),
           'timezone': 'auto',
           'forecast_days': 16,
@@ -119,7 +131,16 @@ class WeatherService {
       }
 
       final data = response.data as Map<String, dynamic>;
-      final weather = _parseOpenMeteo(data, locationName);
+
+      // Best-effort air quality + pollen fetch (separate API).
+      final airQuality = await _fetchAirQuality(lat, lon);
+
+      final weather = _parseOpenMeteo(
+        data,
+        locationName,
+        airQuality: airQuality.$1,
+        pollen: airQuality.$2,
+      );
       await _writeCache(cacheKey, weather);
       await setLastLocation(lat, lon, locationName);
       return weather;
@@ -139,8 +160,90 @@ class WeatherService {
     }
   }
 
+  /// Fetch current air quality + pollen from the Open-Meteo Air Quality API.
+  ///
+  /// Returns `(null, null)` if the request fails — weather data should still be
+  /// returned to the caller in that case.
+  Future<(AirQuality?, PollenInfo?)> _fetchAirQuality(
+    double lat,
+    double lon,
+  ) async {
+    try {
+      final response = await _dio.get(
+        _airQualityUrl,
+        queryParameters: {
+          'latitude': lat,
+          'longitude': lon,
+          'current': [
+            'pm2_5',
+            'pm10',
+            'nitrogen_dioxide',
+            'ozone',
+            'european_aqi',
+            'birch_pollen',
+            'alder_pollen',
+            'grass_pollen',
+            'mugwort_pollen',
+            'ragweed_pollen',
+          ].join(','),
+          'timezone': 'auto',
+        },
+      );
+
+      if (response.statusCode != 200) {
+        return (null, null);
+      }
+
+      final body = response.data as Map<String, dynamic>;
+      final current = body['current'] as Map<String, dynamic>?;
+      if (current == null) return (null, null);
+
+      final timeStr = current['time'] as String?;
+      final ts = timeStr != null ? DateTime.parse(timeStr) : DateTime.now();
+
+      AirQuality? air;
+      PollenInfo? pollen;
+
+      try {
+        air = AirQuality(
+          pm25: (current['pm2_5'] as num?)?.toInt() ?? 0,
+          pm10: (current['pm10'] as num?)?.toInt() ?? 0,
+          no2: (current['nitrogen_dioxide'] as num?)?.toInt() ?? 0,
+          o3: (current['ozone'] as num?)?.toInt() ?? 0,
+          europeanAqi: (current['european_aqi'] as num?)?.toInt(),
+          timestamp: ts,
+        );
+      } catch (_) {
+        air = null;
+      }
+
+      try {
+        pollen = PollenInfo(
+          grass: (current['grass_pollen'] as num?)?.toInt() ?? 0,
+          birch: (current['birch_pollen'] as num?)?.toInt() ?? 0,
+          alder: (current['alder_pollen'] as num?)?.toInt() ?? 0,
+          mugwort: (current['mugwort_pollen'] as num?)?.toInt() ?? 0,
+          ragweed: (current['ragweed_pollen'] as num?)?.toInt() ?? 0,
+          timestamp: ts,
+        );
+      } catch (_) {
+        pollen = null;
+      }
+
+      return (air, pollen);
+    } catch (_) {
+      // Non-fatal: air quality is supplementary.
+      return (null, null);
+    }
+  }
+
   /// Parse Open-Meteo response naar WeatherData
-  WeatherData _parseOpenMeteo(Map<String, dynamic> json, String locationName) {
+  WeatherData _parseOpenMeteo(
+    Map<String, dynamic> json,
+    String locationName, {
+    AirQuality? airQuality,
+    PollenInfo? pollen,
+  }) {
     final currentJson = json['current'] as Map<String, dynamic>;
     final dailyJson = json['daily'] as Map<String, dynamic>;
     final hourlyJson = json['hourly'] as Map<String, dynamic>?;
@@ -151,9 +254,9 @@ class WeatherService {
       feelsLike: (currentJson['apparent_temperature'] as num).toDouble(),
       humidity: (currentJson['relative_humidity_2m'] as num).toInt(),
       windSpeed: (currentJson['wind_speed_10m'] as num).toDouble(),
+      windGusts: (currentJson['wind_gusts_10m'] as num?)?.toDouble(),
       weatherCode: _wmoCode(currentJson['weather_code'] as num),
       weatherDescription: _wmoDescription(currentJson['weather_code'] as num),
-      iconCode: _wmoIcon(currentJson['weather_code'] as num),
       timestamp: DateTime.parse(currentJson['time'] as String),
       uvIndex: (currentJson['uv_index'] as num).toDouble(),
       pressure: (currentJson['pressure_msl'] as num?)?.toInt() ?? 1013,
@@ -161,6 +264,9 @@ class WeatherService {
       precipitation: (currentJson['precipitation'] as num?)?.toDouble(),
       sunrise: DateTime.parse((dailyJson['sunrise'] as List).first as String),
       sunset: DateTime.parse((dailyJson['sunset'] as List).first as String),
+      dewPoint: (currentJson['dew_point_2m'] as num?)?.toDouble(),
+      visibility: (currentJson['visibility'] as num?)?.toInt(),
+      sunshineDuration: (currentJson['sunshine_duration'] as num?)?.toDouble(),
     );
 
     // Daily forecast — 16 days
@@ -175,6 +281,8 @@ class WeatherService {
     final precipProb = dailyJson['precipitation_probability_max'] as List;
     final windMax = dailyJson['wind_speed_10m_max'] as List;
     final humidityMax = dailyJson['relative_humidity_2m_max'] as List;
+    final gustsMax = dailyJson['wind_gusts_10m_max'] as List?;
+    final sunDurDaily = dailyJson['sunshine_duration'] as List?;
     final sunrises = dailyJson['sunrise'] as List;
     final sunsets = dailyJson['sunset'] as List;
 
@@ -190,14 +298,16 @@ class WeatherService {
         tempNight: (tMin[i] as num).toDouble(),
         weatherCode: _wmoCode(wmoCode),
         weatherDescription: _wmoDescription(wmoCode),
-        iconCode: _wmoIcon(wmoCode),
-        precipitationProbability: ((precipProb[i] as num?) ?? 0).toDouble() / 100,
+        precipitationProbability:
+            ((precipProb[i] as num?) ?? 0).toDouble() / 100,
         precipitationAmount: ((precipSum[i] as num?) ?? 0).toDouble(),
         windSpeed: (windMax[i] as num).toDouble(),
+        windGustsMax: (gustsMax?[i] as num?)?.toDouble(),
         uvIndex: (uvMax[i] as num).toDouble(),
         humidity: (humidityMax[i] as num?)?.toInt() ?? 0,
         sunrise: DateTime.parse(sunrises[i] as String),
         sunset: DateTime.parse(sunsets[i] as String),
+        sunshineDuration: (sunDurDaily?[i] as num?)?.toDouble(),
       ));
     }
 
@@ -224,6 +334,8 @@ class WeatherService {
       current: current,
       daily: daily,
       hourly: hourly,
+      airQuality: airQuality,
+      pollen: pollen,
       fetchedAt: DateTime.now(),
       locationName: locationName,
     );

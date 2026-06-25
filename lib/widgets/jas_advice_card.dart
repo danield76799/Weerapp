@@ -1,0 +1,110 @@
+import 'package:flutter/material.dart';
+
+import '../models/weather.dart';
+import '../utils/weather_utils.dart';
+
+/// "Kan ik zonder jas?" — slim advies op basis van temperatuur, gevoel en regen
+class JasAdviceCard extends StatelessWidget {
+  final CurrentWeather current;
+  final List<HourlyForecast> nextHours;
+
+  const JasAdviceCard({
+    super.key,
+    required this.current,
+    required this.nextHours,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final advies = _buildAdvice();
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: advies.color.withAlpha(40),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: advies.color.withAlpha(120), width: 1.5),
+      ),
+      child: Row(
+        children: [
+          Icon(advies.icon, size: 36, color: advies.color),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  advies.title,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: advies.color,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  advies.body,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurface.withAlpha(200),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  ({String title, String body, IconData icon, Color color}) _buildAdvice() {
+    final temp = current.feelsLike;
+    final rain = nextHours.any((h) => h.precipitation != null && h.precipitation! > 0.1);
+
+    if (temp >= 27) {
+      return (
+        title: 'Kan ik zonder jas? Ja!',
+        body: 'Het voelt als ${temp.toStringAsFixed(0)}° en het blijft ${rain ? 'niet' : ''} droog. Je jas kan thuisblijven. Tropisch trouwens, je deodorant draagt overuren.',
+        icon: Icons.thermostat,
+        color: const Color(0xFFFF9800),
+      );
+    }
+    if (temp >= 20) {
+      return (
+        title: 'Kan ik zonder jas? Ja',
+        body: 'Het voelt als ${temp.toStringAsFixed(0)}° en het blijft ${rain ? 'niet helemaal' : 'droog'}. Je jas kan thuisblijven.',
+        icon: Icons.wb_sunny,
+        color: const Color(0xFF4CAF50),
+      );
+    }
+    if (temp >= 12) {
+      return (
+        title: 'Een trui is genoeg',
+        body: 'Het voelt als ${temp.toStringAsFixed(0)}°. Geen jas nodig, maar een trui is prettig.',
+        icon: Icons.layers_outlined,
+        color: const Color(0xFF8BC34A),
+      );
+    }
+    if (temp >= 5) {
+      return (
+        title: 'Neem een jas mee',
+        body: 'Het voelt als ${temp.toStringAsFixed(0)}°. Een dunne jas is verstandig.',
+        icon: Icons.checkroom,
+        color: const Color(0xFFFFC107),
+      );
+    }
+    if (temp >= 0) {
+      return (
+        title: 'Dikke jas aan!',
+        body: 'Het voelt als ${temp.toStringAsFixed(0)}°. Het is koud — warm aankleden.',
+        icon: Icons.ac_unit,
+        color: const Color(0xFF42A5F5),
+      );
+    }
+    return (
+      title: 'Blijf binnen!',
+      body: 'Het voelt als ${temp.toStringAsFixed(0)}°. Het vriest — warm aankleden of binnen blijven.',
+      icon: Icons.severe_cold,
+      color: const Color(0xFF1976D2),
+    );
+  }
+}
