@@ -8,14 +8,10 @@ plugins {
 import java.util.Properties
 import java.io.FileInputStream
 
-if (file("google-services.json").exists()) {
-    apply(plugin = "com.google.gms.google-services")
-}
-
 android {
     namespace = "com.danield.weerapp"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = "27.0.12077973"  // NDK r27 — 16KB page size aligned
+    ndkVersion = "27.0.12077973"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -23,8 +19,10 @@ android {
         isCoreLibraryDesugaringEnabled = true
     }
 
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
+    kotlin {
+        compilerOptions {
+            jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
+        }
     }
 
     val keystoreProperties = Properties()
@@ -59,7 +57,6 @@ android {
         }
     }
 
-    // 16KB page size support
     packaging {
         jniLibs {
             useLegacyPackaging = false
