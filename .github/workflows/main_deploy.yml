@@ -24,19 +24,6 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Setup Android NDK (16KB page size support)
-        uses: nttld/setup-ndk@v1
-        id: setup_ndk
-        with:
-          ndk-version: r28
-          add-to-path: false
-
-      - name: Configure NDK
-        run: |
-          echo "ANDROID_NDK_HOME=${{ steps.setup_ndk.outputs.ndk-path }}" >> $GITHUB_ENV
-          echo "ANDROID_NDK_ROOT=${{ steps.setup_ndk.outputs.ndk-path }}" >> $GITHUB_ENV
-          echo "ndk.dir=${{ steps.setup_ndk.outputs.ndk-path }}" >> android/local.properties
-
       - name: Verify Flutter
         run: flutter --version
 
