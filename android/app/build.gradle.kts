@@ -55,6 +55,9 @@ android {
         release {
             if (signingConfigs.findByName("release") != null) {
                 signingConfig = signingConfigs.getByName("release")
+            } else {
+                // Fall back to debug signing so APKs are installable
+                signingConfig = signingConfigs.getByName("debug")
             }
             isMinifyEnabled = false
             isShrinkResources = false
