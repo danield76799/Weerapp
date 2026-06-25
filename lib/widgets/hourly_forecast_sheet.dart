@@ -66,7 +66,7 @@ class HourlyForecastSheet extends StatelessWidget {
           ),
           // Horizontal scroll with hours
           SizedBox(
-            height: 120,
+            height: 140,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -80,9 +80,9 @@ class HourlyForecastSheet extends StatelessWidget {
                 final uv = WeatherUtils.uvInfo(h.uvIndex);
 
                 return Container(
-                  width: 64,
+                  width: 72,
                   margin: const EdgeInsets.symmetric(horizontal: 4),
-                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
                   decoration: BoxDecoration(
                     color: theme.colorScheme.surfaceContainerHigh.withAlpha(120),
                     borderRadius: BorderRadius.circular(12),
