@@ -24,11 +24,11 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Setup Android NDK r27 (16KB page size support)
+      - name: Setup Android NDK (16KB page size support)
         uses: nttld/setup-ndk@v1
         id: setup_ndk
         with:
-          ndk-version: r27
+          ndk-version: r28
           add-to-path: false
 
       - name: Configure NDK
