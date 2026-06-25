@@ -196,13 +196,26 @@ class WeatherData {
   }
 
   factory WeatherData.fromJson(Map<String, dynamic> json, String locationName) {
+    final hourly = <HourlyForecast>[];
+    if (json['hourly'] != null) {
+      for (final h in (json['hourly'] as List)) {
+        final m = h as Map<String, dynamic>;
+        hourly.add(HourlyForecast(
+          time: DateTime.parse(m['time'] as String),
+          temperature: (m['temperature'] as num).toDouble(),
+          precipitationProbability: (m['precipitation_probability'] as num).toInt(),
+          weatherCode: (m['weather_code'] as num).toInt(),
+          uvIndex: (m['uv_index'] as num).toDouble(),
+        ));
+      }
+    }
     return WeatherData(
       current: CurrentWeather.fromJson(json['current']),
       daily: (json['daily'] as List)
           .take(16)
           .map((d) => DailyForecast.fromJson(d as Map<String, dynamic>))
           .toList(),
-      hourly: [], // hourly not cached — re-fetched on demand
+      hourly: hourly,
       fetchedAt: DateTime.now(),
       locationName: locationName,
     );
@@ -211,6 +224,13 @@ class WeatherData {
   Map<String, dynamic> toJson() => {
         'current': current.toJson(),
         'daily': daily.map((d) => d.toJson()).toList(),
+        'hourly': hourly.map((h) => {
+          'time': h.time.toIso8601String(),
+          'temperature': h.temperature,
+          'precipitation_probability': h.precipitationProbability,
+          'weather_code': h.weatherCode,
+          'uv_index': h.uvIndex,
+        }).toList(),
         'fetchedAt': fetchedAt.toIso8601String(),
         'locationName': locationName,
       };
