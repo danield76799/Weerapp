@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
 import '../models/weather.dart';
 import '../utils/weather_utils.dart';
@@ -29,8 +28,10 @@ class _DailyTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final dateFormat = DateFormat('EEEE d MMM', 'nl_NL');
-    final dayName = isToday ? 'Vandaag' : dateFormat.format(day.date);
+    // Use simple Dutch day names without locale initialization
+    final dayNames = ['maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag', 'zondag'];
+    final dayName = isToday ? 'Vandaag' : dayNames[day.date.weekday - 1];
+    final dateStr = '${day.date.day} ${_monthName(day.date.month)}';
     final icon = WeatherUtils.iconForCode(day.weatherCode);
     final iconColor = WeatherUtils.colorForCode(day.weatherCode);
     final uv = WeatherUtils.uvInfo(day.uvIndex);
@@ -61,7 +62,7 @@ class _DailyTile extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  dateFormat.format(day.date),
+                  dateStr,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurface.withAlpha(150),
                   ),
@@ -134,6 +135,14 @@ class _DailyTile extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  static String _monthName(int month) {
+    const names = [
+      'jan', 'feb', 'mrt', 'apr', 'mei', 'jun',
+      'jul', 'aug', 'sep', 'okt', 'nov', 'dec'
+    ];
+    return names[month - 1];
   }
 }
 
