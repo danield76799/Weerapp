@@ -77,7 +77,8 @@ class WeatherService {
     }
   }
 
-  /// Haal huidige + 14-daagse forecast op voor gegeven coördinaten
+  /// Haal huidige + 5-daagse forecast op voor gegeven coördinaten
+  /// Gebruikt OpenWeather 2.5 API (gratis, geen aparte subscription nodig)
   Future<WeatherData> fetchWeather({
     required double lat,
     required double lon,
@@ -97,32 +98,51 @@ class WeatherService {
     }
 
     try {
-      final response = await _dio.get(
-        '/data/3.0/onecall',
+      // 1. Current weather
+      final currentResponse = await _dio.get(
+        '/data/2.5/weather',
         queryParameters: {
           'lat': lat,
           'lon': lon,
           'appid': key,
           'units': 'metric',
           'lang': 'nl',
-          'exclude': 'minutely,hourly,alerts',
         },
       );
 
-      if (response.statusCode != 200) {
+      if (currentResponse.statusCode != 200) {
         throw WeatherApiException(
-            'API error ${response.statusCode}: ${response.statusMessage}');
+            'API error ${currentResponse.statusCode}: ${currentResponse.statusMessage}');
       }
 
-      final weather = WeatherData.fromJson(
-        response.data as Map<String, dynamic>,
+      // 2. 5-day forecast
+      final forecastResponse = await _dio.get(
+        '/data/2.5/forecast',
+        queryParameters: {
+          'lat': lat,
+          'lon': lon,
+          'appid': key,
+          'units': 'metric',
+          'lang': 'nl',
+          'cnt': 40, // 5 days × 8 entries per day
+        },
+      );
+
+      if (forecastResponse.statusCode != 200) {
+        throw WeatherApiException(
+            'API error ${forecastResponse.statusCode}: ${forecastResponse.statusMessage}');
+      }
+
+      // Combineer naar WeatherData
+      final weather = _parseWeatherData(
+        currentResponse.data as Map<String, dynamic>,
+        forecastResponse.data as Map<String, dynamic>,
         locationName,
       );
       await _writeCache(cacheKey, weather);
       await setLastLocation(lat, lon, locationName);
       return weather;
     } on DioException catch (e) {
-      // Probeer cache als fallback bij netwerkfout
       final cached = await _readCache(cacheKey, ignoreAge: true);
       if (cached != null) return cached;
       if (e.type == DioExceptionType.connectionTimeout ||
@@ -136,6 +156,117 @@ class WeatherService {
       if (cached != null) return cached;
       rethrow;
     }
+  }
+
+  /// Parse OpenWeather 2.5 current + forecast responses naar WeatherData
+  WeatherData _parseWeatherData(
+    Map<String, dynamic> currentJson,
+    Map<String, dynamic> forecastJson,
+    String locationName,
+  ) {
+    // Current weather
+    final current = CurrentWeather(
+      temperature: (currentJson['main']['temp'] as num).toDouble(),
+      feelsLike: (currentJson['main']['feels_like'] as num).toDouble(),
+      humidity: currentJson['main']['humidity'] as int,
+      windSpeed: ((currentJson['wind']?['speed'] as num?) ?? 0).toDouble(),
+      weatherCode: currentJson['weather'][0]['id'] as int,
+      weatherDescription: currentJson['weather'][0]['description'] as String,
+      iconCode: currentJson['weather'][0]['icon'] as String,
+      timestamp: DateTime.fromMillisecondsSinceEpoch((currentJson['dt'] as int) * 1000),
+      uvIndex: 0, // 2.5 weather API doesn't include UV — will fetch separately
+      pressure: (currentJson['main']['pressure'] as int?) ?? 1013,
+      clouds: (currentJson['clouds']?['all'] as int?) ?? 0,
+      precipitation: (currentJson['rain']?['1h'] as num?)?.toDouble() ??
+          (currentJson['snow']?['1h'] as num?)?.toDouble(),
+      sunrise: DateTime.fromMillisecondsSinceEpoch(
+          ((currentJson['sys']?['sunrise'] as int?) ?? 0) * 1000),
+      sunset: DateTime.fromMillisecondsSinceEpoch(
+          ((currentJson['sys']?['sunset'] as int?) ?? 0) * 1000),
+    );
+
+    // 5-day forecast: groepeer 3-uurlijkse entries per dag
+    final list = forecastJson['list'] as List;
+    final dailyMap = <String, List<Map<String, dynamic>>>{};
+    for (final item in list) {
+      final dt = DateTime.fromMillisecondsSinceEpoch((item['dt'] as int) * 1000);
+      final dayKey = '${dt.year}-${dt.month}-${dt.day}';
+      dailyMap.putIfAbsent(dayKey, () => []).add(item as Map<String, dynamic>);
+    }
+
+    final daily = <DailyForecast>[];
+    for (final entries in dailyMap.values) {
+      double tempMin = double.infinity;
+      double tempMax = double.negativeInfinity;
+      double tempDay = 0;
+      double tempNight = 0;
+      double pop = 0;
+      double rain = 0;
+      double windSum = 0;
+      int humiditySum = 0;
+      double uvMax = 0;
+      int weatherCode = 800;
+      String weatherDesc = '';
+      String iconCode = '';
+      DateTime? sunrise;
+      DateTime? sunset;
+      DateTime? date;
+
+      for (final e in entries) {
+        final temp = (e['main']['temp'] as num).toDouble();
+        final minT = (e['main']['temp_min'] as num).toDouble();
+        final maxT = (e['main']['temp_max'] as num).toDouble();
+        if (minT < tempMin) tempMin = minT;
+        if (maxT > tempMax) tempMax = maxT;
+        final dt = DateTime.fromMillisecondsSinceEpoch((e['dt'] as int) * 1000);
+        date ??= dt;
+        if (dt.hour >= 12 && dt.hour <= 15) {
+          tempDay = temp;
+          uvMax = ((e['main']?['uvi'] as num?) ?? 0).toDouble();
+        }
+        if (dt.hour >= 0 && dt.hour <= 6) {
+          tempNight = temp;
+        }
+        pop = ((e['pop'] as num?) ?? 0).toDouble() > pop
+            ? (e['pop'] as num).toDouble()
+            : pop;
+        rain += ((e['rain']?['3h'] as num?) ?? 0).toDouble();
+        windSum += ((e['wind']?['speed'] as num?) ?? 0).toDouble();
+        humiditySum += e['main']['humidity'] as int;
+        weatherCode = e['weather'][0]['id'] as int;
+        weatherDesc = e['weather'][0]['description'] as String;
+        iconCode = e['weather'][0]['icon'] as String;
+      }
+
+      // Use current day's sunrise/sunset from current weather
+      sunrise = current.sunrise;
+      sunset = current.sunset;
+
+      daily.add(DailyForecast(
+        date: date!,
+        tempMin: tempMin,
+        tempMax: tempMax,
+        tempDay: tempDay > 0 ? tempDay : (tempMin + tempMax) / 2,
+        tempNight: tempNight > 0 ? tempNight : tempMin,
+        weatherCode: weatherCode,
+        weatherDescription: weatherDesc,
+        iconCode: iconCode,
+        precipitationProbability: pop,
+        precipitationAmount: rain,
+        windSpeed: windSum / entries.length,
+        uvIndex: uvMax,
+        humidity: humiditySum ~/ entries.length,
+        sunrise: sunrise,
+        sunset: sunset,
+      ));
+    }
+
+    return WeatherData(
+      current: current,
+      daily: daily.take(5).toList(), // 2.5 API gives 5 days
+      fetchedAt: DateTime.now(),
+      locationName: locationName,
+    );
   }
 
   Future<WeatherData?> _readCache(String key, {bool ignoreAge = false}) async {
