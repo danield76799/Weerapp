@@ -42,7 +42,24 @@ class WeatherUtils {
   }
 
   /// WMO weather code → icoon (Open-Meteo uses WMO codes)
-  static IconData iconForWmoCode(int code) {
+  /// [isDay] = false toont nacht variant (maan i.p.v. zon)
+  static IconData iconForWmoCode(int code, {bool isDay = true}) {
+    if (!isDay) {
+      // Nacht varianten
+      if (code == 0) return Icons.nights_stay;
+      if (code == 1) return Icons.nights_stay;
+      if (code == 2) return Icons.cloud_outlined;
+      if (code == 3) return Icons.cloud;
+      if (code == 45 || code == 48) return Icons.foggy;
+      if (code >= 51 && code <= 57) return Icons.grain;
+      if (code >= 61 && code <= 67) return Icons.water_drop;
+      if (code >= 71 && code <= 77) return Icons.ac_unit;
+      if (code >= 80 && code <= 82) return Icons.umbrella;
+      if (code >= 85 && code <= 86) return Icons.ac_unit;
+      if (code >= 95) return Icons.thunderstorm;
+      return Icons.cloud_outlined;
+    }
+    // Dag varianten
     if (code == 0) return Icons.wb_sunny;
     if (code == 1) return Icons.wb_sunny;
     if (code == 2) return Icons.cloud_queue;

@@ -73,7 +73,8 @@ class HourlyForecastSheet extends StatelessWidget {
               itemCount: hours.length,
               itemBuilder: (context, i) {
                 final h = hours[i];
-                final icon = WeatherUtils.iconForWmoCode(h.weatherCode);
+                final isDay = h.time.hour >= 6 && h.time.hour < 21;
+                final icon = WeatherUtils.iconForWmoCode(h.weatherCode, isDay: isDay);
                 final iconColor = WeatherUtils.colorForWmoCode(h.weatherCode);
                 final tempColor = WeatherUtils.tempColor(h.temperature);
                 final uv = WeatherUtils.uvInfo(h.uvIndex);

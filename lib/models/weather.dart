@@ -314,13 +314,21 @@ class WeatherData {
     required this.fetchedAt,
     required this.locationName,
   });
-
+  /// Get hourly forecasts for a specific date, starting from current hour if today
   List<HourlyForecast> hourlyForDay(DateTime date) {
-    return hourly.where((h) =>
-      h.time.year == date.year &&
-      h.time.month == date.month &&
-      h.time.day == date.day
-    ).toList();
+    final now = DateTime.now();
+    final isToday = date.year == now.year && date.month == now.month && date.day == now.day;
+    return hourly.where((h) {
+      // Match the date
+      if (h.time.year != date.year || h.time.month != date.month || h.time.day != date.day) {
+        return false;
+      }
+      // If today, only show hours from now onwards
+      if (isToday && h.time.isBefore(now.subtract(const Duration(minutes: 30)))) {
+        return false;
+      }
+      return true;
+    }).toList();
   }
 
   List<HourlyForecast> nextHours(int count) {
