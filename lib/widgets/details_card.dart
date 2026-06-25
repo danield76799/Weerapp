@@ -111,7 +111,7 @@ class DetailsCard extends StatelessWidget {
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
-              childAspectRatio: 3.5,
+              childAspectRatio: 2.8,
               crossAxisSpacing: 8,
               mainAxisSpacing: 8,
             ),
