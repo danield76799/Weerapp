@@ -3,8 +3,6 @@ import 'package:flutter/material.dart';
 import '../models/weather.dart';
 import '../utils/weather_utils.dart';
 
-/// Toont een horizontale scrollbare lijst met temperatuur per uur voor één dag.
-/// Wordt getoond als je op een dag in de 16-daagse forecast tikt.
 class HourlyForecastSheet extends StatelessWidget {
   final DateTime date;
   final List<HourlyForecast> hours;
@@ -26,8 +24,7 @@ class HourlyForecastSheet extends StatelessWidget {
       return Container(
         padding: const EdgeInsets.all(24),
         child: Center(
-          child: Text('Geen uurdata beschikbaar',
-              style: theme.textTheme.bodyMedium),
+          child: Text('Geen uurdata beschikbaar', style: theme.textTheme.bodyMedium),
         ),
       );
     }
@@ -40,7 +37,6 @@ class HourlyForecastSheet extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Handle bar
           Container(
             margin: const EdgeInsets.only(top: 12),
             width: 40,
@@ -64,12 +60,11 @@ class HourlyForecastSheet extends StatelessWidget {
               ],
             ),
           ),
-          // Horizontal scroll with hours
           SizedBox(
-            height: 140,
+            height: 180,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               itemCount: hours.length,
               itemBuilder: (context, i) {
                 final h = hours[i];
@@ -77,47 +72,44 @@ class HourlyForecastSheet extends StatelessWidget {
                 final icon = WeatherUtils.iconForWmoCode(h.weatherCode, isDay: isDay);
                 final iconColor = WeatherUtils.colorForWmoCode(h.weatherCode);
                 final tempColor = WeatherUtils.tempColor(h.temperature);
-                final uv = WeatherUtils.uvInfo(h.uvIndex);
 
                 return Container(
                   width: 72,
                   margin: const EdgeInsets.symmetric(horizontal: 4),
-                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: theme.colorScheme.surfaceContainerHigh.withAlpha(120),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Column(
-                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
                       Text(
                         '${h.time.hour.toString().padLeft(2, '0')}:00',
-                        style: theme.textTheme.bodySmall?.copyWith(
+                        style: TextStyle(
+                          fontSize: 11,
                           color: theme.colorScheme.onSurface.withAlpha(180),
                         ),
                       ),
-                      const SizedBox(height: 4),
                       Icon(icon, color: iconColor, size: 22),
-                      const SizedBox(height: 4),
                       Text(
                         '${h.temperature.toStringAsFixed(0)}°',
-                        style: theme.textTheme.titleSmall?.copyWith(
+                        style: TextStyle(
+                          fontSize: 16,
                           fontWeight: FontWeight.w600,
                           color: tempColor,
                         ),
                       ),
-                      const SizedBox(height: 2),
                       if (h.precipitationProbability > 10)
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(Icons.water_drop,
-                                size: 10,
-                                color: theme.colorScheme.onSurface.withAlpha(150)),
+                                size: 10, color: theme.colorScheme.onSurface.withAlpha(150)),
                             const SizedBox(width: 2),
                             Text(
                               '${h.precipitationProbability}%',
-                              style: theme.textTheme.bodySmall?.copyWith(
+                              style: TextStyle(
                                 fontSize: 10,
                                 color: theme.colorScheme.onSurface.withAlpha(150),
                               ),
@@ -126,11 +118,10 @@ class HourlyForecastSheet extends StatelessWidget {
                         ),
                       if (h.uvIndex >= 3)
                         Container(
-                          margin: const EdgeInsets.only(top: 2),
                           width: 18,
                           height: 18,
                           decoration: BoxDecoration(
-                            color: uv.color,
+                            color: WeatherUtils.uvInfo(h.uvIndex).color,
                             shape: BoxShape.circle,
                           ),
                           alignment: Alignment.center,
