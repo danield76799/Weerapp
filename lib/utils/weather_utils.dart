@@ -41,6 +41,38 @@ class WeatherUtils {
     );
   }
 
+  /// WMO weather code → icoon (Open-Meteo uses WMO codes)
+  static IconData iconForWmoCode(int code) {
+    if (code == 0) return Icons.wb_sunny;
+    if (code == 1) return Icons.wb_sunny;
+    if (code == 2) return Icons.cloud_queue;
+    if (code == 3) return Icons.cloud;
+    if (code == 45 || code == 48) return Icons.foggy;
+    if (code >= 51 && code <= 57) return Icons.grain;
+    if (code >= 61 && code <= 67) return Icons.water_drop;
+    if (code >= 71 && code <= 77) return Icons.ac_unit;
+    if (code >= 80 && code <= 82) return Icons.umbrella;
+    if (code >= 85 && code <= 86) return Icons.ac_unit;
+    if (code >= 95) return Icons.thunderstorm;
+    return Icons.cloud_queue;
+  }
+
+  /// WMO weather code → icoonkleur
+  static Color colorForWmoCode(int code) {
+    if (code == 0) return const Color(0xFFFFA726);
+    if (code == 1) return const Color(0xFFFFA726);
+    if (code == 2) return const Color(0xFF78909C);
+    if (code == 3) return const Color(0xFF607D8B);
+    if (code == 45 || code == 48) return const Color(0xFF90A4AE);
+    if (code >= 51 && code <= 57) return const Color(0xFF42A5F5);
+    if (code >= 61 && code <= 67) return const Color(0xFF1976D2);
+    if (code >= 71 && code <= 77) return const Color(0xFF90CAF9);
+    if (code >= 80 && code <= 82) return const Color(0xFF1976D2);
+    if (code >= 85 && code <= 86) return const Color(0xFF90CAF9);
+    if (code >= 95) return const Color(0xFF455A64);
+    return const Color(0xFF90A4AE);
+  }
+
   /// OpenWeather weather code → icoon
   static IconData iconForCode(int code) {
     if (code >= 200 && code < 300) return Icons.thunderstorm;

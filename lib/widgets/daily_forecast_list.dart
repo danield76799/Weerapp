@@ -32,8 +32,8 @@ class _DailyTile extends StatelessWidget {
     final dayNames = ['maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag', 'zondag'];
     final dayName = isToday ? 'Vandaag' : dayNames[day.date.weekday - 1];
     final dateStr = '${day.date.day} ${_monthName(day.date.month)}';
-    final icon = WeatherUtils.iconForCode(day.weatherCode);
-    final iconColor = WeatherUtils.colorForCode(day.weatherCode);
+    final icon = WeatherUtils.iconForWmoCode(day.weatherCode);
+    final iconColor = WeatherUtils.colorForWmoCode(day.weatherCode);
     final uv = WeatherUtils.uvInfo(day.uvIndex);
 
     return Container(

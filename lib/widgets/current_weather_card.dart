@@ -18,8 +18,8 @@ class CurrentWeatherCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final uv = WeatherUtils.uvInfo(current.uvIndex);
-    final icon = WeatherUtils.iconForCode(current.weatherCode);
-    final iconColor = WeatherUtils.colorForCode(current.weatherCode);
+    final icon = WeatherUtils.iconForWmoCode(current.weatherCode);
+    final iconColor = WeatherUtils.colorForWmoCode(current.weatherCode);
     final tempColor = WeatherUtils.tempColor(current.temperature);
 
     return Container(

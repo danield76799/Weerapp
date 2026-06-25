@@ -7,7 +7,6 @@ import '../services/weather_provider.dart';
 import '../services/weather_service.dart';
 import '../widgets/current_weather_card.dart';
 import '../widgets/daily_forecast_list.dart';
-import 'api_key_screen.dart';
 import 'location_search_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -19,7 +18,6 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final _locationService = LocationService();
-  bool _checkingKey = true;
 
   @override
   void initState() {
@@ -29,16 +27,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _bootstrap() async {
     final service = context.read<WeatherService>();
-    final hasKey = await service.hasApiKey();
-    if (!mounted) return;
-    setState(() => _checkingKey = false);
-    if (!hasKey) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const ApiKeyScreen()),
-      );
-      return;
-    }
+    // Open-Meteo doesn't need an API key — skip setup screen
     final last = await service.getLastLocation();
     if (last != null) {
       _load(last.lat, last.lon, last.name);
@@ -100,10 +89,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_checkingKey) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Weer'),
@@ -175,7 +160,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                   child: Text(
-                    '5-daagse verwachting',
+                    '16-daagse verwachting',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w600,
                         ),
