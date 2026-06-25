@@ -10,6 +10,7 @@ import '../models/weather.dart';
 ///
 /// Docs: https://open-meteo.com/en/docs
 /// Forecast API: https://api.open-meteo.com/v1/forecast
+///
 class WeatherService {
   static const _cacheKeyPrefix = 'weather_cache_';
   static const _lastLocationKey = 'last_location';
@@ -85,6 +86,12 @@ class WeatherService {
             'cloud_cover',
             'uv_index',
           ].join(','),
+          'hourly': [
+            'temperature_2m',
+            'precipitation_probability',
+            'weather_code',
+            'uv_index',
+          ].join(','),
           'daily': [
             'weather_code',
             'temperature_2m_max',
@@ -136,6 +143,7 @@ class WeatherService {
   WeatherData _parseOpenMeteo(Map<String, dynamic> json, String locationName) {
     final currentJson = json['current'] as Map<String, dynamic>;
     final dailyJson = json['daily'] as Map<String, dynamic>;
+    final hourlyJson = json['hourly'] as Map<String, dynamic>?;
 
     // Current weather
     final current = CurrentWeather(
@@ -193,9 +201,29 @@ class WeatherService {
       ));
     }
 
+    // Hourly forecast — parse all hours
+    final hourly = <HourlyForecast>[];
+    if (hourlyJson != null) {
+      final hTimes = hourlyJson['time'] as List;
+      final hTemp = hourlyJson['temperature_2m'] as List;
+      final hPop = hourlyJson['precipitation_probability'] as List?;
+      final hWeather = hourlyJson['weather_code'] as List;
+      final hUv = hourlyJson['uv_index'] as List;
+      for (var i = 0; i < hTimes.length; i++) {
+        hourly.add(HourlyForecast(
+          time: DateTime.parse(hTimes[i] as String),
+          temperature: (hTemp[i] as num).toDouble(),
+          precipitationProbability: ((hPop?[i] as num?) ?? 0).toInt(),
+          weatherCode: (hWeather[i] as num).toInt(),
+          uvIndex: ((hUv[i] as num?) ?? 0).toDouble(),
+        ));
+      }
+    }
+
     return WeatherData(
       current: current,
       daily: daily,
+      hourly: hourly,
       fetchedAt: DateTime.now(),
       locationName: locationName,
     );

@@ -155,26 +155,54 @@ class DailyForecast {
       };
 }
 
+class HourlyForecast {
+  final DateTime time;
+  final double temperature;
+  final int precipitationProbability;
+  final int weatherCode;
+  final double uvIndex;
+
+  HourlyForecast({
+    required this.time,
+    required this.temperature,
+    required this.precipitationProbability,
+    required this.weatherCode,
+    required this.uvIndex,
+  });
+}
+
 class WeatherData {
   final CurrentWeather current;
   final List<DailyForecast> daily;
+  final List<HourlyForecast> hourly;
   final DateTime fetchedAt;
   final String locationName;
 
   WeatherData({
     required this.current,
     required this.daily,
+    required this.hourly,
     required this.fetchedAt,
     required this.locationName,
   });
+
+  /// Get hourly forecasts for a specific date
+  List<HourlyForecast> hourlyForDay(DateTime date) {
+    return hourly.where((h) =>
+      h.time.year == date.year &&
+      h.time.month == date.month &&
+      h.time.day == date.day
+    ).toList();
+  }
 
   factory WeatherData.fromJson(Map<String, dynamic> json, String locationName) {
     return WeatherData(
       current: CurrentWeather.fromJson(json['current']),
       daily: (json['daily'] as List)
-          .take(14)
+          .take(16)
           .map((d) => DailyForecast.fromJson(d as Map<String, dynamic>))
           .toList(),
+      hourly: [], // hourly not cached — re-fetched on demand
       fetchedAt: DateTime.now(),
       locationName: locationName,
     );

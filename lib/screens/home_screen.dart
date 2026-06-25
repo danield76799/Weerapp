@@ -167,7 +167,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                DailyForecastList(days: data.daily),
+                DailyForecastList(
+                  days: data.daily,
+                  hourly: data.hourly,
+                  locationName: data.locationName,
+                ),
                 const SizedBox(height: 24),
               ],
             ),
