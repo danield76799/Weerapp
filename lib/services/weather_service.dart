@@ -333,6 +333,21 @@ class WeatherService {
       }
     }
 
+    // Update daily UV with the max hourly UV for each day
+    // This ensures daily UV matches what's shown in the hourly forecast
+    for (final day in daily) {
+      final dayHours = hourly.where((h) =>
+          h.time.year == day.date.year &&
+          h.time.month == day.date.month &&
+          h.time.day == day.date.day);
+      if (dayHours.isNotEmpty) {
+        final maxHourlyUv = dayHours
+            .map((h) => h.uvIndex)
+            .reduce((a, b) => a > b ? a : b);
+        day.uvIndexFromHourly = maxHourlyUv;
+      }
+    }
+
     return WeatherData(
       current: current,
       daily: daily,

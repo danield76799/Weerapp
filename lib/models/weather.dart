@@ -97,7 +97,7 @@ class DailyForecast {
   final double precipitationAmount;
   final double windSpeed;
   final double? windGustsMax;
-  final double _uvIndexMax; // raw theoretical max from API
+  double _uvIndexMax; // raw theoretical max from API, updated from hourly
   final int cloudCover; // daily average cloud cover %
   final int humidity;
   final DateTime sunrise;
@@ -124,14 +124,15 @@ class DailyForecast {
     this.sunshineDuration,
   }) : _uvIndexMax = uvIndex;
 
-  /// UV index adjusted for cloud cover
-  /// Clouds reduce UV: 0% clouds = full UV, 100% clouds = ~40% UV
-  double get uvIndex {
-    final cloudFactor = 1.0 - (cloudCover / 100.0) * 0.6;
-    return (_uvIndexMax * cloudFactor).roundToDouble();
+  /// UV index — calculated from hourly data if available, otherwise raw API max
+  double get uvIndex => _uvIndexMax;
+
+  /// Set the UV based on hourly max (called after parsing hourly data)
+  set uvIndexFromHourly(double value) {
+    _uvIndexMax = value;
   }
 
-  /// Raw theoretical UV max (without cloud adjustment)
+  /// Raw theoretical UV max
   double get uvIndexMax => _uvIndexMax;
 
   double get dayLengthHours => sunset.difference(sunrise).inMinutes / 60.0;
