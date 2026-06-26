@@ -188,6 +188,7 @@ class HourlyForecast {
   final int weatherCode;
   final double uvIndex;
   final double? precipitation;
+  final int windDirection;
 
   HourlyForecast({
     required this.time,
@@ -196,6 +197,7 @@ class HourlyForecast {
     required this.weatherCode,
     required this.uvIndex,
     this.precipitation,
+    this.windDirection = 0,
   });
 }
 

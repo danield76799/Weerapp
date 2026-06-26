@@ -102,6 +102,7 @@ class WeatherService {
             'weather_code',
             'uv_index',
             'cloud_cover',
+            'wind_direction_10m',
           ].join(','),
           'daily': [
             'weather_code',
@@ -324,6 +325,7 @@ class WeatherService {
       final hWeather = hourlyJson['weather_code'] as List;
       final hUv = hourlyJson['uv_index'] as List;
       final hCloud = hourlyJson['cloud_cover'] as List?;
+      final hWindDir = hourlyJson['wind_direction_10m'] as List?;
       for (var i = 0; i < hTimes.length; i++) {
         final apiUv = ((hUv[i] as num?) ?? 0).toDouble();
         final cloudCover = ((hCloud?[i] as num?) ?? 0).toInt();
@@ -336,6 +338,7 @@ class WeatherService {
           precipitationProbability: ((hPop?[i] as num?) ?? 0).toInt(),
           weatherCode: (hWeather[i] as num?)?.toInt() ?? 0,
           uvIndex: correctedUv,
+          windDirection: ((hWindDir?[i] as num?) ?? 0).toInt(),
         ));
       }
     }

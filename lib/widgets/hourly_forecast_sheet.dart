@@ -184,6 +184,12 @@ class _HourlyForecastSheetState extends State<HourlyForecastSheet> {
                           color: tempColor,
                         ),
                       ),
+                      // Windrichting pijl
+                      Icon(
+                        Icons.arrow_upward,
+                        size: 14,
+                        color: theme.colorScheme.onSurface.withAlpha(180),
+                      ).rotate(h.windDirection.toDouble()),
                       if (h.precipitationProbability > 10)
                         Row(
                           mainAxisSize: MainAxisSize.min,
