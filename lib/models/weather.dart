@@ -97,7 +97,8 @@ class DailyForecast {
   final double precipitationAmount;
   final double windSpeed;
   final double? windGustsMax;
-  final double uvIndex;
+  final double _uvIndexMax; // raw theoretical max from API
+  final int cloudCover; // daily average cloud cover %
   final int humidity;
   final DateTime sunrise;
   final DateTime sunset;
@@ -115,12 +116,23 @@ class DailyForecast {
     required this.precipitationAmount,
     required this.windSpeed,
     this.windGustsMax,
-    required this.uvIndex,
+    required double uvIndex,
+    this.cloudCover = 0,
     required this.humidity,
     required this.sunrise,
     required this.sunset,
     this.sunshineDuration,
-  });
+  }) : _uvIndexMax = uvIndex;
+
+  /// UV index adjusted for cloud cover
+  /// Clouds reduce UV: 0% clouds = full UV, 100% clouds = ~40% UV
+  double get uvIndex {
+    final cloudFactor = 1.0 - (cloudCover / 100.0) * 0.6;
+    return (_uvIndexMax * cloudFactor).roundToDouble();
+  }
+
+  /// Raw theoretical UV max (without cloud adjustment)
+  double get uvIndexMax => _uvIndexMax;
 
   double get dayLengthHours => sunset.difference(sunrise).inMinutes / 60.0;
   double? get sunshineHours => sunshineDuration != null ? sunshineDuration! / 3600.0 : null;
@@ -139,6 +151,7 @@ class DailyForecast {
       windSpeed: (json['wind_speed'] as num?)?.toDouble() ?? 0,
       windGustsMax: (json['wind_gusts_max'] as num?)?.toDouble(),
       uvIndex: (json['uv_index'] as num?)?.toDouble() ?? 0,
+      cloudCover: (json['cloud_cover'] as num?)?.toInt() ?? 0,
       humidity: (json['humidity'] as int?) ?? 0,
       sunrise: json['sunrise'] is String ? DateTime.parse(json['sunrise']) : DateTime.now(),
       sunset: json['sunset'] is String ? DateTime.parse(json['sunset']) : DateTime.now(),
@@ -158,7 +171,8 @@ class DailyForecast {
         'precipitation_amount': precipitationAmount,
         'wind_speed': windSpeed,
         'wind_gusts_max': windGustsMax,
-        'uv_index': uvIndex,
+        'uv_index': uvIndexMax,
+        'cloud_cover': cloudCover,
         'humidity': humidity,
         'sunrise': sunrise.toIso8601String(),
         'sunset': sunset.toIso8601String(),
