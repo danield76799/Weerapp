@@ -250,17 +250,17 @@ class WeatherService {
 
     // Current weather
     final current = CurrentWeather(
-      temperature: (currentJson['temperature_2m'] as num).toDouble(),
-      feelsLike: (currentJson['apparent_temperature'] as num).toDouble(),
-      humidity: (currentJson['relative_humidity_2m'] as num).toInt(),
-      windSpeed: (currentJson['wind_speed_10m'] as num).toDouble(),
+      temperature: (currentJson['temperature_2m'] as num?)?.toDouble() ?? 0,
+      feelsLike: (currentJson['apparent_temperature'] as num?)?.toDouble() ?? 0,
+      humidity: (currentJson['relative_humidity_2m'] as num?)?.toInt() ?? 0,
+      windSpeed: (currentJson['wind_speed_10m'] as num?)?.toDouble() ?? 0,
       windGusts: (currentJson['wind_gusts_10m'] as num?)?.toDouble(),
-      weatherCode: _wmoCode(currentJson['weather_code'] as num),
-      weatherDescription: _wmoDescription(currentJson['weather_code'] as num),
+      weatherCode: _wmoCode((currentJson['weather_code'] as num?) ?? 0),
+      weatherDescription: _wmoDescription((currentJson['weather_code'] as num?) ?? 0),
       timestamp: DateTime.parse(currentJson['time'] as String),
-      uvIndex: (currentJson['uv_index'] as num).toDouble(),
+      uvIndex: (currentJson['uv_index'] as num?)?.toDouble() ?? 0,
       pressure: (currentJson['pressure_msl'] as num?)?.toInt() ?? 1013,
-      clouds: (currentJson['cloud_cover'] as num).toInt(),
+      clouds: (currentJson['cloud_cover'] as num?)?.toInt() ?? 0,
       precipitation: (currentJson['precipitation'] as num?)?.toDouble(),
       sunrise: DateTime.parse((dailyJson['sunrise'] as List).first as String),
       sunset: DateTime.parse((dailyJson['sunset'] as List).first as String),
@@ -289,21 +289,21 @@ class WeatherService {
     final daily = <DailyForecast>[];
     for (var i = 0; i < dates.length && i < 16; i++) {
       final date = DateTime.parse(dates[i] as String);
-      final wmoCode = (weatherCodes[i] as num).toInt();
+      final wmoCode = (weatherCodes[i] as num?)?.toInt() ?? 0;
       daily.add(DailyForecast(
         date: date,
-        tempMin: (tMin[i] as num).toDouble(),
-        tempMax: (tMax[i] as num).toDouble(),
-        tempDay: (tMax[i] as num).toDouble(),
-        tempNight: (tMin[i] as num).toDouble(),
+        tempMin: (tMin[i] as num?)?.toDouble() ?? 0,
+        tempMax: (tMax[i] as num?)?.toDouble() ?? 0,
+        tempDay: (tMax[i] as num?)?.toDouble() ?? 0,
+        tempNight: (tMin[i] as num?)?.toDouble() ?? 0,
         weatherCode: _wmoCode(wmoCode),
         weatherDescription: _wmoDescription(wmoCode),
         precipitationProbability:
             ((precipProb[i] as num?) ?? 0).toDouble() / 100,
         precipitationAmount: ((precipSum[i] as num?) ?? 0).toDouble(),
-        windSpeed: (windMax[i] as num).toDouble(),
+        windSpeed: (windMax[i] as num?)?.toDouble() ?? 0,
         windGustsMax: (gustsMax?[i] as num?)?.toDouble(),
-        uvIndex: (uvMax[i] as num).toDouble(),
+        uvIndex: (uvMax[i] as num?)?.toDouble() ?? 0,
         humidity: (humidityMax[i] as num?)?.toInt() ?? 0,
         sunrise: DateTime.parse(sunrises[i] as String),
         sunset: DateTime.parse(sunsets[i] as String),
@@ -322,9 +322,9 @@ class WeatherService {
       for (var i = 0; i < hTimes.length; i++) {
         hourly.add(HourlyForecast(
           time: DateTime.parse(hTimes[i] as String),
-          temperature: (hTemp[i] as num).toDouble(),
+          temperature: (hTemp[i] as num?)?.toDouble() ?? 0,
           precipitationProbability: ((hPop?[i] as num?) ?? 0).toInt(),
-          weatherCode: (hWeather[i] as num).toInt(),
+          weatherCode: (hWeather[i] as num?)?.toInt() ?? 0,
           uvIndex: ((hUv[i] as num?) ?? 0).toDouble(),
         ));
       }
