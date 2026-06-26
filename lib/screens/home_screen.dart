@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/location_service.dart';
 import '../services/saved_locations_service.dart';
@@ -16,6 +17,7 @@ import '../widgets/buien_card.dart';
 import '../widgets/air_quality_card.dart';
 import '../widgets/details_card.dart';
 import 'location_search_screen.dart';
+import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -35,11 +37,48 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   PageController? _pageController;
   bool _loading = true;
 
+  // Settings
+  bool _showJas = true;
+  bool _showZonnebrand = true;
+  bool _showBuien = true;
+  bool _showDetails = true;
+  bool _showAirQuality = true;
+  bool _autoRefresh = true;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _loadSettings();
     _bootstrap();
+  }
+
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    setState(() {
+      _showJas = prefs.getBool('show_jas_advies') ?? true;
+      _showZonnebrand = prefs.getBool('show_zonnebrand') ?? true;
+      _showBuien = prefs.getBool('show_buien') ?? true;
+      _showDetails = prefs.getBool('show_details') ?? true;
+      _showAirQuality = prefs.getBool('show_air_quality') ?? true;
+      _autoRefresh = prefs.getBool('auto_refresh') ?? true;
+    });
+    // Restart timer if auto-refresh setting changed
+    if (_autoRefresh) {
+      _startAutoRefresh();
+    } else {
+      _autoRefreshTimer?.cancel();
+    }
+  }
+
+  Future<void> _openSettings() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const SettingsScreen()),
+    );
+    // Reload settings when returning
+    _loadSettings();
   }
 
   @override
@@ -241,6 +280,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             onPressed: _useCurrentLocation,
             tooltip: 'Mijn locatie',
           ),
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: _openSettings,
+            tooltip: 'Instellingen',
+          ),
           if (_locations.length > 1)
             IconButton(
               icon: const Icon(Icons.delete_outline),
@@ -305,18 +349,22 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         ),
                       ),
                     const SizedBox(height: 12),
-                    JasAdviceCard(current: data.current, nextHours: data.nextHours(6)),
-                    const SizedBox(height: 12),
-                    ZonnebrandCard(current: data.current),
-                    const SizedBox(height: 12),
-                    BuienCard(nextHours: data.nextHours(12)),
-                    const SizedBox(height: 12),
-                    DetailsCard(current: data.current, today: data.daily.first),
-                    if (data.airQuality != null || data.pollen != null) ...[
-                      const SizedBox(height: 12),
+                    if (_showJas)
+                      JasAdviceCard(current: data.current, nextHours: data.nextHours(6)),
+                    if (_showJas) const SizedBox(height: 12),
+                    if (_showZonnebrand)
+                      ZonnebrandCard(current: data.current),
+                    if (_showZonnebrand) const SizedBox(height: 12),
+                    if (_showBuien)
+                      BuienCard(nextHours: data.nextHours(12)),
+                    if (_showBuien) const SizedBox(height: 12),
+                    if (_showDetails)
+                      DetailsCard(current: data.current, today: data.daily.first),
+                    if (_showDetails) const SizedBox(height: 12),
+                    if (_showAirQuality && (data.airQuality != null || data.pollen != null))
                       AirQualityCard(airQuality: data.airQuality, pollen: data.pollen),
-                    ],
-                    const SizedBox(height: 16),
+                    if (_showAirQuality && (data.airQuality != null || data.pollen != null))
+                      const SizedBox(height: 16),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 4),
                       child: Text(
