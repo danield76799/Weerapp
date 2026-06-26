@@ -47,13 +47,27 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // Refresh when app comes back to foreground
     if (state == AppLifecycleState.resumed) {
-      _refresh();
+      _silentRefresh();
     }
   }
 
   void _startAutoRefresh() {
     _autoRefreshTimer?.cancel();
-    _autoRefreshTimer = Timer.periodic(_refreshInterval, (_) => _refresh());
+    _autoRefreshTimer = Timer.periodic(_refreshInterval, (_) => _silentRefresh());
+  }
+
+  Future<void> _silentRefresh() async {
+    final provider = context.read<WeatherProvider>();
+    final service = context.read<WeatherService>();
+    final last = await service.getLastLocation();
+    if (last == null) return;
+    await provider.silentRefresh(last.lat, last.lon, last.name);
+    if (provider.hasData) {
+      try {
+        final notif = WeatherNotificationService(weatherService: service);
+        await notif.checkThresholds(provider.data!);
+      } catch (_) {}
+    }
   }
 
   Future<void> _bootstrap() async {
@@ -187,6 +201,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   current: data.current,
                   locationName: data.locationName,
                 ),
+                // Last updated indicator
+                if (provider.lastRefresh != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6, bottom: 4),
+                    child: Text(
+                      'Bijgewerkt om ${provider.lastRefresh!.hour.toString().padLeft(2, '0')}:${provider.lastRefresh!.minute.toString().padLeft(2, '0')}',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Theme.of(context).colorScheme.onSurface.withAlpha(120),
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
                 const SizedBox(height: 12),
                 JasAdviceCard(
                   current: data.current,

@@ -12,6 +12,7 @@ class WeatherProvider extends ChangeNotifier {
   WeatherStatus _status = WeatherStatus.idle;
   String? _errorMessage;
   bool _isFromCache = false;
+  DateTime? _lastRefresh;
 
   WeatherProvider(this._service);
 
@@ -20,6 +21,7 @@ class WeatherProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   bool get isFromCache => _isFromCache;
   bool get hasData => _data != null;
+  DateTime? get lastRefresh => _lastRefresh;
 
   Future<void> loadWeather({
     required double lat,
@@ -41,13 +43,32 @@ class WeatherProvider extends ChangeNotifier {
       );
       _data = data;
       _status = WeatherStatus.loaded;
-      // Bepaal of data uit cache komt
+      _lastRefresh = DateTime.now();
       _isFromCache = DateTime.now().difference(data.fetchedAt) > const Duration(minutes: 5);
     } catch (e) {
       _errorMessage = e.toString();
       _status = WeatherStatus.error;
     }
     notifyListeners();
+  }
+
+  /// Silent refresh — no loading state, just update data in background
+  Future<void> silentRefresh(double lat, double lon, String name) async {
+    try {
+      final data = await _service.fetchWeather(
+        lat: lat,
+        lon: lon,
+        locationName: name,
+        force: true,
+      );
+      _data = data;
+      _lastRefresh = DateTime.now();
+      _isFromCache = false;
+      notifyListeners();
+    } catch (e) {
+      // Silent fail — keep old data
+      debugPrint('Silent refresh failed: $e');
+    }
   }
 
   Future<void> refresh(double lat, double lon, String name) async {
