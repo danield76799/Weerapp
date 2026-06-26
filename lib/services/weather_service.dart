@@ -116,7 +116,7 @@ class WeatherService {
             'wind_speed_10m_max',
             'wind_gusts_10m_max',
             'relative_humidity_2m_max',
-            'cloud_cover',
+            'cloud_cover_max',
             'sunshine_duration',
           ].join(','),
           'timezone': 'auto',
@@ -283,7 +283,7 @@ class WeatherService {
     final windMax = dailyJson['wind_speed_10m_max'] as List;
     final humidityMax = dailyJson['relative_humidity_2m_max'] as List;
     final gustsMax = dailyJson['wind_gusts_10m_max'] as List?;
-    final cloudCoverDaily = dailyJson['cloud_cover'] as List?;
+    final cloudCoverDaily = dailyJson['cloud_cover_max'] as List?;
     final sunDurDaily = dailyJson['sunshine_duration'] as List?;
     final sunrises = dailyJson['sunrise'] as List;
     final sunsets = dailyJson['sunset'] as List;
