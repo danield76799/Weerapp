@@ -124,19 +124,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 Icon(Icons.palette, color: Theme.of(context).colorScheme.primary),
                 const SizedBox(width: 16),
-                const Text('Thema'),
-                const Spacer(),
-                SegmentedButton<String>(
-                  segments: const [
-                    ButtonSegment(value: 'system', label: Text('Auto')),
-                    ButtonSegment(value: 'light', label: Text('Licht')),
-                    ButtonSegment(value: 'dark', label: Text('Donker')),
-                  ],
-                  selected: {_themeMode},
-                  onSelectionChanged: (selection) {
-                    setState(() => _themeMode = selection.first);
-                    _toggle('theme_mode', selection.first, isString: true);
-                  },
+                const Expanded(
+                  child: Text('Thema'),
+                ),
+                Flexible(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: SegmentedButton<String>(
+                      segments: const [
+                        ButtonSegment(value: 'system', label: Text('Auto')),
+                        ButtonSegment(value: 'light', label: Text('Licht')),
+                        ButtonSegment(value: 'dark', label: Text('Donker')),
+                      ],
+                      selected: {_themeMode},
+                      onSelectionChanged: (selection) {
+                        setState(() => _themeMode = selection.first);
+                        _toggle('theme_mode', selection.first, isString: true);
+                      },
+                    ),
+                  ),
                 ),
               ],
             ),

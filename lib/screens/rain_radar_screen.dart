@@ -44,10 +44,10 @@ class RainRadarScreen extends StatelessWidget {
                 subdomains: const ['a', 'b', 'c', 'd'],
                 userAgentPackageName: 'com.danield.weerapp',
               ),
-              // Rain overlay — Buienradar radar
+              // Rain overlay — Buienradar actuele radar
               TileLayer(
                 urlTemplate:
-                    'https://cdn.buienradar.nl/maps/forecast/forecast.1/radarnl_{z}/{x}/{y}.png',
+                    'https://cdn.buienradar.nl/maps/radar/radar.1/radarnl_{z}/{x}/{y}.png',
                 subdomains: const ['a', 'b', 'c'],
                 tileProvider: NetworkTileProvider(),
                 userAgentPackageName: 'com.danield.weerapp',
