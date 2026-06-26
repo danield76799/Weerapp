@@ -43,8 +43,24 @@ class WeatherNotificationService {
   /// Controleer weer op drempelwaarden en stuur notificatie
   Future<void> checkThresholds(WeatherData data) async {
     final prefs = await SharedPreferences.getInstance();
-    final today = data.daily.first;
     final current = data.current;
+    final today = data.daily.isNotEmpty ? data.daily.first : null;
+    if (today == null) return;
+
+    // Check for rain in next 60 minutes
+    bool rainSoon = false;
+    int rainMinutes = 0;
+    final nextHours = data.nextHours(4);
+    for (var i = 0; i < nextHours.length && i < 4; i++) {
+      final h = nextHours[i];
+      final precip = h.precipitation ?? 0;
+      final precipProb = h.precipitationProbability;
+      if (precip > 0.2 || precipProb > 40) {
+        rainSoon = true;
+        rainMinutes = i * 60;
+        break;
+      }
+    }
 
     final lastNotifKey =
         '${_lastNotifPref}_${today.date.toIso8601String().substring(0, 10)}';
@@ -52,8 +68,13 @@ class WeatherNotificationService {
 
     final reasons = <String>[];
 
-    if (current.uvIndex >= 7 && !alreadyNotified.contains('uv')) {
-      reasons.add('uv');
+    // Rain notification (only once per day)
+    if (rainSoon && !alreadyNotified.contains('rain')) {
+      reasons.add('rain');
+    }
+
+    if ((current.uvIndex >= 7 || (today.tempMax >= 33)) && !alreadyNotified.contains('uv')) {
+      if (!reasons.contains('uv')) reasons.add('uv');
     }
     if (current.temperature <= 0 && !alreadyNotified.contains('freeze')) {
       reasons.add('freeze');
@@ -61,52 +82,54 @@ class WeatherNotificationService {
     if (current.temperature >= 30 && !alreadyNotified.contains('heat')) {
       reasons.add('heat');
     }
-    if (today.tempMin <= -2 && !alreadyNotified.contains('frost')) {
-      reasons.add('frost');
-    }
-    if (today.tempMax >= 33 && !alreadyNotified.contains('hot')) {
-      reasons.add('hot');
-    }
 
     if (reasons.isNotEmpty) {
-      await _showThresholdNotification(current, today, reasons);
+      await _showNotification(current, today, reasons, rainMinutes);
       await prefs.setStringList(lastNotifKey, [...alreadyNotified, ...reasons]);
     }
   }
 
-  Future<void> _showThresholdNotification(
+  Future<void> _showNotification(
     CurrentWeather current,
     DailyForecast today,
     List<String> reasons,
+    int rainMinutes,
   ) async {
     final lines = <String>[];
+
+    if (reasons.contains('rain')) {
+      if (rainMinutes == 0) {
+        lines.add('🌧 Het begint te regenen!');
+      } else {
+        lines.add('🌧 Regen verwacht binnen ${(rainMinutes / 60).ceil()} uur');
+      }
+    }
     if (reasons.contains('uv') || reasons.contains('hot')) {
-      lines.add(
-          '☀️ UV-index is ${current.uvIndex.toStringAsFixed(1)} (${_uvLabel(current.uvIndex)})');
+      lines
+          .add('☀️ UV-index ${current.uvIndex.toStringAsFixed(1)} (${_uvLabel(current.uvIndex)})');
     }
-    if (reasons.contains('freeze') || reasons.contains('frost')) {
-      lines.add(
-          '🥶 Vorst: ${current.temperature.toStringAsFixed(0)}°C (min vandaag ${today.tempMin.toStringAsFixed(0)}°C)');
-    }
-    if (reasons.contains('heat')) {
-      lines.add('🔥 Hitte: ${current.temperature.toStringAsFixed(0)}°C');
+    if (reasons.contains('freeze') || reasons.contains('heat')) {
+      lines.add('🌡 ${current.temperature.toStringAsFixed(0)}°C');
     }
 
     const androidDetails = AndroidNotificationDetails(
       'weather_alerts',
       'Weer waarschuwingen',
-      channelDescription: 'Meldingen bij extreme weersomstandigheden',
+      channelDescription: 'Meldingen bij regen, UV, vorst of hitte',
       importance: Importance.high,
       priority: Priority.high,
       category: AndroidNotificationCategory.alarm,
     );
     const iosDetails = DarwinNotificationDetails(
-      presentAlert: true, presentBadge: true, presentSound: true,
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
     );
+
     await _plugin.show(
-      id: 9001,
+      id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
       title:
-          'Weer alert: ${today.tempMax.toStringAsFixed(0)}°C / ${today.tempMin.toStringAsFixed(0)}°C',
+          'Weer alert: ${today.tempMax.toStringAsFixed(0)}° / ${today.tempMin.toStringAsFixed(0)}°',
       body: lines.join('\n'),
       notificationDetails: const NotificationDetails(
         android: androidDetails,

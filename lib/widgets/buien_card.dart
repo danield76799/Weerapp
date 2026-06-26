@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/weather.dart';
 
-/// Buienverwachting — regen de komende uren met "wanneer regent het?" highlight
+/// Buienverwachting met regendiagram — toont hoeveel mm regen per uur
 class BuienCard extends StatelessWidget {
   final List<HourlyForecast> nextHours;
 
@@ -15,27 +15,35 @@ class BuienCard extends StatelessWidget {
     // Find first rain hour
     HourlyForecast? firstRain;
     int firstRainIndex = -1;
+    double maxPrecip = 0;
+    final rainHours = <HourlyForecast>[];
+    bool anyRain = false;
+
     for (var i = 0; i < nextHours.length; i++) {
       final h = nextHours[i];
-      if ((h.precipitation ?? 0) > 0.1 || h.precipitationProbability > 30) {
-        firstRain = h;
-        firstRainIndex = i;
-        break;
+      final precip = h.precipitation ?? 0;
+      final precipProb = h.precipitationProbability;
+      if (precip > 0.2 || precipProb > 30) {
+        anyRain = true;
+        rainHours.add(h);
+        if (precip > maxPrecip) maxPrecip = precip;
+        if (firstRainIndex == -1) {
+          firstRain = h;
+          firstRainIndex = i;
+        }
       }
     }
-
-    final raining = firstRain != null;
 
     String advies;
     IconData icon;
     Color color;
 
-    if (!raining) {
+    if (!anyRain) {
       advies = 'Het blijft droog de komende ${nextHours.length} uur.';
       icon = Icons.umbrella_outlined;
       color = const Color(0xFF4CAF50);
     } else if (firstRainIndex == 0) {
-      advies = 'Het regent nu! Neem een paraplu mee.';
+      advies = 'Het regent nu! 🌧';
       icon = Icons.umbrella;
       color = const Color(0xFF1976D2);
     } else {
@@ -57,8 +65,8 @@ class BuienCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(icon, size: 28, color: color),
-              const SizedBox(width: 10),
+              Icon(icon, size: 24, color: color),
+              const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   advies,
@@ -69,63 +77,90 @@ class BuienCard extends StatelessWidget {
               ),
             ],
           ),
-          if (raining) ...[
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 40,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: nextHours.length,
-                itemBuilder: (context, i) {
-                  final h = nextHours[i];
-                  final intensity = (h.precipitation ?? 0);
-                  final isRain = intensity > 0.1 || h.precipitationProbability > 30;
-                  final isFirstRain = i == firstRainIndex;
+          const SizedBox(height: 12),
+          // Bar chart
+          SizedBox(
+            height: 80,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: nextHours.map((h) {
+                final precip = h.precipitation ?? 0;
+                final prob = h.precipitationProbability;
+                final isRain = precip > 0.2 || prob > 30;
+                final isFirst = h.time == firstRain?.time;
 
-                  return Container(
-                    width: 48,
-                    margin: const EdgeInsets.only(right: 4),
-                    decoration: BoxDecoration(
-                      color: isRain
-                          ? (isFirstRain
-                              ? color.withAlpha(200)
-                              : color.withAlpha(80 + (intensity * 400).toInt().clamp(0, 120)))
-                          : theme.colorScheme.surfaceContainerHigh.withAlpha(100),
-                      borderRadius: BorderRadius.circular(8),
-                      border: isFirstRain ? Border.all(color: color, width: 2) : null,
-                    ),
+                final barHeight = maxPrecip > 0
+                    ? ((precip / maxPrecip) * 60).clamp(4.0, 60.0)
+                    : 4.0;
+
+                return Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 1),
                     child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        Text(
-                          isRain && isFirstRain
-                              ? '🌧'
-                              : '${h.time.hour.toString().padLeft(2, '0')}u',
-                          style: TextStyle(
-                            fontSize: isRain && isFirstRain ? 14 : 10,
-                            fontWeight: isFirstRain ? FontWeight.w700 : FontWeight.w400,
-                            color: isRain
-                                ? (isFirstRain ? Colors.white : color)
-                                : theme.colorScheme.onSurface.withAlpha(120),
+                        // mm label at top if rain
+                        if (isRain && precip >= 0.5)
+                          Text(
+                            '${precip.toStringAsFixed(1)}',
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: isFirst ? FontWeight.w700 : FontWeight.w400,
+                              color: isFirst ? color : theme.colorScheme.onSurface.withAlpha(150),
+                            ),
+                          ),
+                        const SizedBox(height: 2),
+                        // Bar
+                        Container(
+                          height: barHeight,
+                          decoration: BoxDecoration(
+                            color: isFirst
+                                ? color
+                                : isRain
+                                    ? color.withAlpha(120 + ((precip / (maxPrecip > 0 ? maxPrecip : 1)) * 100).toInt().clamp(0, 100))
+                                    : theme.colorScheme.surfaceContainerHigh.withAlpha(80),
+                            borderRadius: BorderRadius.circular(3),
+                            border: isFirst
+                                ? Border.all(color: Colors.white, width: 1)
+                                : null,
                           ),
                         ),
+                        const SizedBox(height: 4),
+                        // Hour label
                         Text(
-                          isRain ? '${h.precipitationProbability}%' : '—',
+                          '${h.time.hour.toString().padLeft(2, '0')}',
                           style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: isRain ? FontWeight.w600 : FontWeight.w400,
-                            color: isRain
-                                ? (isFirstRain ? Colors.white : color)
-                                : theme.colorScheme.onSurface.withAlpha(120),
+                            fontSize: 9,
+                            fontWeight: isFirst ? FontWeight.w700 : FontWeight.w400,
+                            color: isFirst ? color : theme.colorScheme.onSurface.withAlpha(120),
                           ),
                         ),
                       ],
                     ),
-                  );
-                },
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+          // Legend
+          if (anyRain)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.circle, size: 6, color: color.withAlpha(120)),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Regenintensiteit in mm per uur',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: theme.colorScheme.onSurface.withAlpha(120),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
         ],
       ),
     );
