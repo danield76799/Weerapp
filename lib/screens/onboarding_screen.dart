@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../screens/home_screen.dart';
+
 /// Eerste keer onboarding — uitleg over swipe, instellingen en features
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -50,7 +52,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('onboarding_seen', true);
     if (!mounted) return;
-    Navigator.of(context).pushReplacementNamed('/home');
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => const HomeScreen()),
+    );
   }
 
   @override
