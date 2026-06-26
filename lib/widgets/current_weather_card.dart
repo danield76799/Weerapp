@@ -158,7 +158,42 @@ class CurrentWeatherCard extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 16),
-          // Details grid
+          // Zonsopgang / zonsondergang klok
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerHigh.withAlpha(100),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _SunTimeItem(
+                  icon: Icons.wb_sunny,
+                  iconColor: const Color(0xFFFFB74D),
+                  label: 'Op',
+                  time: current.sunrise,
+                ),
+                // Day progress bar
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: _DayProgressBar(
+                      sunrise: current.sunrise,
+                      sunset: current.sunset,
+                      now: DateTime.now(),
+                    ),
+                  ),
+                ),
+                _SunTimeItem(
+                  icon: Icons.nights_stay_outlined,
+                  iconColor: const Color(0xFF7E57C2),
+                  label: 'Onder',
+                  time: current.sunset,
+                ),
+              ],
+            ),
+          ),
           Row(
             children: [
               _DetailChip(
@@ -239,6 +274,124 @@ class _DetailChip extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _SunTimeItem extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final String label;
+  final DateTime time;
+
+  const _SunTimeItem({
+    required this.icon,
+    required this.iconColor,
+    required this.label,
+    required this.time,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final timeStr =
+        '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 18, color: iconColor),
+        const SizedBox(height: 2),
+        Text(label, style: TextStyle(
+          fontSize: 10,
+          color: Theme.of(context).colorScheme.onSurface.withAlpha(150),
+        )),
+        Text(timeStr, style: const TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+        )),
+      ],
+    );
+  }
+}
+
+class _DayProgressBar extends StatelessWidget {
+  final DateTime sunrise;
+  final DateTime sunset;
+  final DateTime now;
+
+  const _DayProgressBar({
+    required this.sunrise,
+    required this.sunset,
+    required this.now,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final totalDuration = sunset.difference(sunrise).inMilliseconds;
+    final elapsed = now.difference(sunrise).inMilliseconds;
+    final progress = (elapsed / totalDuration).clamp(0.0, 1.0);
+    final isDay = now.isAfter(sunrise) && now.isBefore(sunset);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final sunX = (progress * width).clamp(0.0, width);
+
+        return SizedBox(
+          height: 24,
+          child: Stack(
+            alignment: Alignment.centerLeft,
+            children: [
+              Positioned(
+                left: 0,
+                right: 0,
+                top: 10,
+                child: Container(
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              if (isDay)
+                Positioned(
+                  left: 0,
+                  top: 10,
+                  child: Container(
+                    width: sunX,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(colors: [
+                        Color(0xFFFFB74D),
+                        Color(0xFFFFA726),
+                      ]),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+              if (isDay)
+                Positioned(
+                  left: sunX - 6,
+                  top: 4,
+                  child: Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFA726),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFFFA726).withAlpha(100),
+                          blurRadius: 4,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

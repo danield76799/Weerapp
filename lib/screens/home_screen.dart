@@ -17,6 +17,7 @@ import '../widgets/buien_card.dart';
 import '../widgets/air_quality_card.dart';
 import '../widgets/details_card.dart';
 import 'location_search_screen.dart';
+import 'rain_radar_screen.dart';
 import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -212,6 +213,46 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
+  Future<void> _renameLocation() async {
+    if (_locations.isEmpty || _currentPage >= _locations.length) return;
+    final loc = _locations[_currentPage];
+    final controller = TextEditingController(text: loc.name);
+
+    final newName = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Locatie hernoemen'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(
+            labelText: 'Naam',
+            border: OutlineInputBorder(),
+          ),
+          onSubmitted: (v) => Navigator.pop(context, v.trim()),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Annuleren')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, controller.text.trim()),
+            child: const Text('Opslaan'),
+          ),
+        ],
+      ),
+    );
+
+    if (newName != null && newName.isNotEmpty && newName != loc.name) {
+      // Remove old, add with new name
+      await _savedLocations.removeLocation(loc.lat, loc.lon);
+      await _savedLocations.addLocation(SavedLocation(lat: loc.lat, lon: loc.lon, name: newName));
+      final locations = await _savedLocations.getLocations();
+      if (!mounted) return;
+      setState(() => _locations = locations);
+      // Reload weather with new name
+      await _loadLocation(loc.lat, loc.lon, newName);
+    }
+  }
+
   Future<void> _removeCurrentLocation() async {
     if (_locations.isEmpty || _currentPage >= _locations.length) return;
     final loc = _locations[_currentPage];
@@ -266,8 +307,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          _locations.isNotEmpty ? _locations[_currentPage.clamp(0, _locations.length - 1)].name : 'Weer',
+        title: GestureDetector(
+          onTap: _renameLocation,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                _locations.isNotEmpty
+                    ? _locations[_currentPage.clamp(0, _locations.length - 1)].name
+                    : 'Weer',
+              ),
+              const SizedBox(width: 6),
+              Icon(Icons.edit_outlined, size: 14, color: Theme.of(context).colorScheme.onSurface.withAlpha(120)),
+            ],
+          ),
         ),
         actions: [
           IconButton(
@@ -279,6 +332,22 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             icon: const Icon(Icons.my_location),
             onPressed: _useCurrentLocation,
             tooltip: 'Mijn locatie',
+          ),
+          IconButton(
+            icon: const Icon(Icons.radar),
+            onPressed: () {
+              if (_locations.isNotEmpty && _currentPage < _locations.length) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => RainRadarScreen(
+                      location: _locations[_currentPage],
+                    ),
+                  ),
+                );
+              }
+            },
+            tooltip: 'Neerslagkaart',
           ),
           IconButton(
             icon: const Icon(Icons.settings_outlined),

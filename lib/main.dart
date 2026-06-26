@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'screens/home_screen.dart';
 import 'services/weather_notification_service.dart';
@@ -14,12 +15,32 @@ void main() async {
   final weatherService = WeatherService();
   await WeatherNotificationService(weatherService: weatherService).initialize();
 
-  runApp(WeerApp(weatherService: weatherService));
+  final prefs = await SharedPreferences.getInstance();
+  final themeMode = prefs.getString('theme_mode') ?? 'system';
+
+  runApp(WeerApp(weatherService: weatherService, themeMode: themeMode));
 }
 
 class WeerApp extends StatelessWidget {
   final WeatherService weatherService;
-  const WeerApp({super.key, required this.weatherService});
+  final String themeMode;
+
+  const WeerApp({
+    super.key,
+    required this.weatherService,
+    required this.themeMode,
+  });
+
+  ThemeMode get _themeMode {
+    switch (themeMode) {
+      case 'light':
+        return ThemeMode.light;
+      case 'dark':
+        return ThemeMode.dark;
+      default:
+        return ThemeMode.system;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,6 +54,7 @@ class WeerApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: _buildTheme(Brightness.light),
         darkTheme: _buildTheme(Brightness.dark),
+        themeMode: _themeMode,
         home: const HomeScreen(),
       ),
     );
