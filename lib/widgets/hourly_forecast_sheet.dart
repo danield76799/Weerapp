@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/weather.dart';
 import '../utils/weather_utils.dart';
 
-class HourlyForecastSheet extends StatelessWidget {
+class HourlyForecastSheet extends StatefulWidget {
   final DateTime date;
   final List<HourlyForecast> hours;
 
@@ -14,13 +14,63 @@ class HourlyForecastSheet extends StatelessWidget {
   });
 
   @override
+  State<HourlyForecastSheet> createState() => _HourlyForecastSheetState();
+}
+
+class _HourlyForecastSheetState extends State<HourlyForecastSheet> {
+  final _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    // Auto-scroll to current hour if today
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollToCurrentHour();
+    });
+  }
+
+  void _scrollToCurrentHour() {
+    final now = DateTime.now();
+    final isToday = widget.date.year == now.year &&
+        widget.date.month == now.month &&
+        widget.date.day == now.day;
+
+    if (!isToday || widget.hours.isEmpty) return;
+
+    // Find the index of the first hour >= now
+    int targetIndex = 0;
+    for (var i = 0; i < widget.hours.length; i++) {
+      if (widget.hours[i].time.hour >= now.hour) {
+        targetIndex = i;
+        break;
+      }
+      targetIndex = i;
+    }
+
+    // Each item is ~80px wide (72 + 8 margin)
+    const itemWidth = 80.0;
+    final offset = (targetIndex * itemWidth) - 60.0; // slight left padding
+    _scrollController.animateTo(
+      offset.clamp(0.0, double.infinity),
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final dayNames = ['maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag', 'zondag'];
     final monthNames = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
-    final title = '${dayNames[date.weekday - 1]} ${date.day} ${monthNames[date.month - 1]}';
+    final title = '${dayNames[widget.date.weekday - 1]} ${widget.date.day} ${monthNames[widget.date.month - 1]}';
 
-    if (hours.isEmpty) {
+    if (widget.hours.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(24),
         child: Center(
@@ -28,6 +78,11 @@ class HourlyForecastSheet extends StatelessWidget {
         ),
       );
     }
+
+    final now = DateTime.now();
+    final isToday = widget.date.year == now.year &&
+        widget.date.month == now.month &&
+        widget.date.day == now.day;
 
     return Container(
       decoration: BoxDecoration(
@@ -54,7 +109,24 @@ class HourlyForecastSheet extends StatelessWidget {
                     style: theme.textTheme.titleMedium
                         ?.copyWith(fontWeight: FontWeight.w600)),
                 const Spacer(),
-                Text('${hours.length} uur',
+                if (isToday)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary.withAlpha(40),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      'NU',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                const SizedBox(width: 8),
+                Text('${widget.hours.length} uur',
                     style: theme.textTheme.bodySmall
                         ?.copyWith(color: theme.colorScheme.onSurface.withAlpha(150))),
               ],
@@ -63,32 +135,44 @@ class HourlyForecastSheet extends StatelessWidget {
           SizedBox(
             height: 180,
             child: ListView.builder(
+              controller: _scrollController,
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              itemCount: hours.length,
+              itemCount: widget.hours.length,
               itemBuilder: (context, i) {
-                final h = hours[i];
+                final h = widget.hours[i];
                 final isDay = h.time.hour >= 6 && h.time.hour < 21;
                 final icon = WeatherUtils.iconForWmoCode(h.weatherCode, isDay: isDay);
                 final iconColor = WeatherUtils.colorForWmoCode(h.weatherCode);
                 final tempColor = WeatherUtils.tempColor(h.temperature);
+
+                // Highlight current hour if today
+                final isCurrentHour = isToday && h.time.hour == now.hour;
 
                 return Container(
                   width: 72,
                   margin: const EdgeInsets.symmetric(horizontal: 4),
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerHigh.withAlpha(120),
+                    color: isCurrentHour
+                        ? theme.colorScheme.primary.withAlpha(40)
+                        : theme.colorScheme.surfaceContainerHigh.withAlpha(120),
                     borderRadius: BorderRadius.circular(12),
+                    border: isCurrentHour
+                        ? Border.all(color: theme.colorScheme.primary.withAlpha(120), width: 1.5)
+                        : null,
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
                       Text(
-                        '${h.time.hour.toString().padLeft(2, '0')}:00',
+                        isCurrentHour ? 'NU' : '${h.time.hour.toString().padLeft(2, '0')}:00',
                         style: TextStyle(
                           fontSize: 11,
-                          color: theme.colorScheme.onSurface.withAlpha(180),
+                          fontWeight: isCurrentHour ? FontWeight.w700 : FontWeight.w400,
+                          color: isCurrentHour
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.onSurface.withAlpha(180),
                         ),
                       ),
                       Icon(icon, color: iconColor, size: 22),
