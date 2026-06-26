@@ -63,7 +63,7 @@ class JasAdviceCard extends StatelessWidget {
     if (temp >= 27) {
       return (
         title: 'Kan ik zonder jas? Ja!',
-        body: 'Het voelt als ${temp.toStringAsFixed(0)}° en het blijft ${rain ? 'niet' : ''} droog. Je jas kan thuisblijven. Tropisch trouwens, je deodorant draagt overuren.',
+        body: 'Het voelt als ${temp.toStringAsFixed(0)}° en het blijft ${rain ? 'niet' : 'droog'}. Je jas kan thuisblijven. Tropisch trouwens, je deodorant draagt overuren.',
         icon: Icons.thermostat,
         color: const Color(0xFFFF9800),
       );
