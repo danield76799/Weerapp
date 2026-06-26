@@ -101,6 +101,7 @@ class WeatherService {
             'precipitation_probability',
             'weather_code',
             'uv_index',
+            'cloud_cover',
           ].join(','),
           'daily': [
             'weather_code',
@@ -322,13 +323,19 @@ class WeatherService {
       final hPop = hourlyJson['precipitation_probability'] as List?;
       final hWeather = hourlyJson['weather_code'] as List;
       final hUv = hourlyJson['uv_index'] as List;
+      final hCloud = hourlyJson['cloud_cover'] as List?;
       for (var i = 0; i < hTimes.length; i++) {
+        final apiUv = ((hUv[i] as num?) ?? 0).toDouble();
+        final cloudCover = ((hCloud?[i] as num?) ?? 0).toInt();
+        // Clouds reduce UV: 0% clouds = full UV, 100% clouds = ~50% UV
+        final cloudFactor = 1.0 - (cloudCover / 200.0);
+        final correctedUv = apiUv * cloudFactor;
         hourly.add(HourlyForecast(
           time: DateTime.parse(hTimes[i] as String),
           temperature: (hTemp[i] as num?)?.toDouble() ?? 0,
           precipitationProbability: ((hPop?[i] as num?) ?? 0).toInt(),
           weatherCode: (hWeather[i] as num?)?.toInt() ?? 0,
-          uvIndex: ((hUv[i] as num?) ?? 0).toDouble(),
+          uvIndex: correctedUv,
         ));
       }
     }
