@@ -8,6 +8,9 @@ import 'services/weather_notification_service.dart';
 import 'services/weather_provider.dart';
 import 'services/weather_service.dart';
 
+// Global notifier voor thema changes
+final ValueNotifier<String> themeModeNotifier = ValueNotifier<String>('system');
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
@@ -16,23 +19,41 @@ void main() async {
   await WeatherNotificationService(weatherService: weatherService).initialize();
 
   final prefs = await SharedPreferences.getInstance();
-  final themeMode = prefs.getString('theme_mode') ?? 'system';
+  themeModeNotifier.value = prefs.getString('theme_mode') ?? 'system';
 
-  runApp(WeerApp(weatherService: weatherService, themeMode: themeMode));
+  runApp(WeerApp(weatherService: weatherService));
 }
 
 class WeerApp extends StatelessWidget {
   final WeatherService weatherService;
-  final String themeMode;
 
-  const WeerApp({
-    super.key,
-    required this.weatherService,
-    required this.themeMode,
-  });
+  const WeerApp({super.key, required this.weatherService});
 
-  ThemeMode get _themeMode {
-    switch (themeMode) {
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<String>(
+      valueListenable: themeModeNotifier,
+      builder: (context, themeMode, _) {
+        return MultiProvider(
+          providers: [
+            Provider<WeatherService>.value(value: weatherService),
+            ChangeNotifierProvider(create: (_) => WeatherProvider(weatherService)),
+          ],
+          child: MaterialApp(
+            title: 'Weer',
+            debugShowCheckedModeBanner: false,
+            theme: _buildTheme(Brightness.light),
+            darkTheme: _buildTheme(Brightness.dark),
+            themeMode: _themeModeFromString(themeMode),
+            home: const HomeScreen(),
+          ),
+        );
+      },
+    );
+  }
+
+  ThemeMode _themeModeFromString(String mode) {
+    switch (mode) {
       case 'light':
         return ThemeMode.light;
       case 'dark':
@@ -40,24 +61,6 @@ class WeerApp extends StatelessWidget {
       default:
         return ThemeMode.system;
     }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        Provider<WeatherService>.value(value: weatherService),
-        ChangeNotifierProvider(create: (_) => WeatherProvider(weatherService)),
-      ],
-      child: MaterialApp(
-        title: 'Weer',
-        debugShowCheckedModeBanner: false,
-        theme: _buildTheme(Brightness.light),
-        darkTheme: _buildTheme(Brightness.dark),
-        themeMode: _themeMode,
-        home: const HomeScreen(),
-      ),
-    );
   }
 
   ThemeData _buildTheme(Brightness brightness) {

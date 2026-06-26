@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../main.dart';
+
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
@@ -139,6 +141,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       selected: {_themeMode},
                       onSelectionChanged: (selection) {
                         setState(() => _themeMode = selection.first);
+                        themeModeNotifier.value = selection.first;
                         _toggle('theme_mode', selection.first, isString: true);
                       },
                     ),
