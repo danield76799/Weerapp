@@ -1,17 +1,22 @@
 import 'package:flutter/material.dart';
 
 import '../models/weather.dart';
+import '../utils/sky_gradient.dart';
 import '../utils/weather_utils.dart';
 
 /// Toont huidig weer: grote temp, icoon, UV-badge, details (voelt, wind, etc.)
 class CurrentWeatherCard extends StatelessWidget {
   final CurrentWeather current;
   final String locationName;
+  final DateTime? sunrise;
+  final DateTime? sunset;
 
   const CurrentWeatherCard({
     super.key,
     required this.current,
     required this.locationName,
+    this.sunrise,
+    this.sunset,
   });
 
   @override
@@ -22,15 +27,15 @@ class CurrentWeatherCard extends StatelessWidget {
     final iconColor = WeatherUtils.colorForWmoCode(current.weatherCode);
     final tempColor = WeatherUtils.tempColor(current.temperature);
 
+    // Dynamische lucht gradient op basis van actuele tijd
+    final skyColors = SkyGradient.getColors(DateTime.now());
+
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            theme.colorScheme.primaryContainer,
-            theme.colorScheme.surface,
-          ],
+          colors: skyColors,
         ),
         borderRadius: BorderRadius.circular(24),
       ),

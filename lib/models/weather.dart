@@ -318,6 +318,7 @@ class PollenInfo {
 class WeatherData {
   final CurrentWeather current;
   final List<DailyForecast> daily;
+  final List<DailyForecast> pastDaily;
   final List<HourlyForecast> hourly;
   final AirQuality? airQuality;
   final PollenInfo? pollen;
@@ -327,6 +328,7 @@ class WeatherData {
   WeatherData({
     required this.current,
     required this.daily,
+    this.pastDaily = const [],
     required this.hourly,
     this.airQuality,
     this.pollen,
@@ -381,6 +383,9 @@ class WeatherData {
           .take(16)
           .map((d) => DailyForecast.fromJson(d as Map<String, dynamic>))
           .toList(),
+      pastDaily: (json['past_daily'] as List?)
+          ?.map((d) => DailyForecast.fromJson(d as Map<String, dynamic>))
+          .toList() ?? [],
       hourly: hourly,
       airQuality: json['air_quality'] != null
           ? AirQuality.fromJson(json['air_quality'])
@@ -396,6 +401,7 @@ class WeatherData {
   Map<String, dynamic> toJson() => {
         'current': current.toJson(),
         'daily': daily.map((d) => d.toJson()).toList(),
+        'past_daily': pastDaily.map((d) => d.toJson()).toList(),
         'hourly': hourly.map((h) => {
           'time': h.time.toIso8601String(),
           'temperature': h.temperature,

@@ -17,6 +17,7 @@ import '../widgets/zonnebrand_card.dart';
 import '../widgets/buien_card.dart';
 import '../widgets/air_quality_card.dart';
 import '../widgets/details_card.dart';
+import '../widgets/weather_history_card.dart';
 import 'location_search_screen.dart';
 import 'rain_radar_screen.dart';
 import 'settings_screen.dart';
@@ -426,6 +427,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     CurrentWeatherCard(
                       current: data.current,
                       locationName: data.locationName,
+                      sunrise: data.daily.isNotEmpty ? data.daily.first.sunrise : null,
+                      sunset: data.daily.isNotEmpty ? data.daily.first.sunset : null,
                     ),
                     if (provider.lastRefresh != null)
                       Padding(
@@ -456,6 +459,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       AirQualityCard(airQuality: data.airQuality, pollen: data.pollen),
                     if (_showAirQuality && (data.airQuality != null || data.pollen != null))
                       const SizedBox(height: 16),
+                    if (data.pastDaily.length >= 2) ...[
+                      WeatherHistoryCard(pastDaily: data.pastDaily, daily: data.daily),
+                      const SizedBox(height: 16),
+                    ],
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 4),
                       child: Text(

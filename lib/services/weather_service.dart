@@ -123,6 +123,7 @@ class WeatherService {
             'sunshine_duration',
           ].join(','),
           'timezone': 'auto',
+          'past_days': 7,
           'forecast_days': 16,
           'wind_speed_unit': 'ms',
           'temperature_unit': 'celsius',
@@ -292,10 +293,12 @@ class WeatherService {
     final sunsets = dailyJson['sunset'] as List;
 
     final daily = <DailyForecast>[];
-    for (var i = 0; i < dates.length && i < 16; i++) {
+    final pastDaily = <DailyForecast>[];
+    final today = DateTime.now();
+    for (var i = 0; i < dates.length; i++) {
       final date = DateTime.parse(dates[i] as String);
       final wmoCode = (weatherCodes[i] as num?)?.toInt() ?? 0;
-      daily.add(DailyForecast(
+      final day = DailyForecast(
         date: date,
         tempMin: (tMin[i] as num?)?.toDouble() ?? 0,
         tempMax: (tMax[i] as num?)?.toDouble() ?? 0,
@@ -314,7 +317,13 @@ class WeatherService {
         sunrise: DateTime.parse(sunrises[i] as String),
         sunset: DateTime.parse(sunsets[i] as String),
         sunshineDuration: (sunDurDaily?[i] as num?)?.toDouble(),
-      ));
+      );
+      // Split: before today = past, from today onwards = forecast
+      if (date.isBefore(DateTime(today.year, today.month, today.day))) {
+        pastDaily.add(day);
+      } else if (daily.length < 16) {
+        daily.add(day);
+      }
     }
 
     // Hourly forecast — parse all hours
@@ -364,6 +373,7 @@ class WeatherService {
     return WeatherData(
       current: current,
       daily: daily,
+      pastDaily: pastDaily,
       hourly: hourly,
       airQuality: airQuality,
       pollen: pollen,
