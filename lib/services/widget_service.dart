@@ -16,7 +16,7 @@ class WidgetService {
       final condition = _wmoToDutch(current.weatherCode);
 
       final temp = '${current.temperature.toStringAsFixed(0)}°';
-      final feels = 'Voelt ${current.feelsLike.toStringAsFixed(0)}°';
+      final feels = 'Voelt als ${current.feelsLike.toStringAsFixed(0)}°';
 
       // Rain info from next hours
       String rainInfo = '';
