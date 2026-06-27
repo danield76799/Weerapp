@@ -25,7 +25,6 @@ class CurrentWeatherCard extends StatelessWidget {
     final uv = WeatherUtils.uvInfo(current.uvIndex);
     final icon = WeatherUtils.iconForWmoCode(current.weatherCode);
     final iconColor = WeatherUtils.colorForWmoCode(current.weatherCode);
-    final tempColor = WeatherUtils.tempColor(current.temperature);
 
     // Dynamische lucht gradient op basis van actuele tijd
     final skyColors = SkyGradient.getColors(DateTime.now());
@@ -46,142 +45,142 @@ class CurrentWeatherCard extends StatelessWidget {
         ),
         padding: const EdgeInsets.all(20),
         child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.location_on, size: 18, color: theme.colorScheme.onSurface),
-              const SizedBox(width: 4),
-              Expanded(
-                child: Text(
-                  locationName,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(icon, size: 72, color: iconColor),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          current.temperature.toStringAsFixed(0),
-                          style: theme.textTheme.displayLarge?.copyWith(
-                            fontSize: 72,
-                            fontWeight: FontWeight.w200,
-                            color: Colors.white,
-                            height: 1,
-                            shadows: const [
-                              Shadow(
-                                color: Colors.black38,
-                                blurRadius: 4,
-                                offset: Offset(0, 1),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.only(top: 12),
-                          child: Text('°C',
-                              style: theme.textTheme.titleLarge?.copyWith(
-                                color: Colors.white70,
-                                shadows: const [
-                                  Shadow(
-                                    color: Colors.black38,
-                                    blurRadius: 3,
-                                    offset: Offset(0, 1),
-                                  ),
-                                ],
-                              )),
-                        ),
-                      ],
-                    ),
-                    Text(
-                      current.weatherDescription,
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        color: Colors.white.withAlpha(235),
-                        shadows: const [
-                          Shadow(
-                            color: Colors.black38,
-                            blurRadius: 3,
-                            offset: Offset(0, 1),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Text(
-                      'Voelt als ${current.feelsLike.toStringAsFixed(0)}°C',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: Colors.white.withAlpha(200),
-                        shadows: const [
-                          Shadow(
-                            color: Colors.black38,
-                            blurRadius: 2,
-                            offset: Offset(0, 1),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          // UV badge — prominent
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: uv.color.withAlpha(40),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: uv.color.withAlpha(180), width: 1.5),
-            ),
-            child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                Icon(Icons.wb_sunny, color: uv.color, size: 22),
-                const SizedBox(width: 8),
-                Text('UV-index',
-                    style: theme.textTheme.bodyMedium
-                        ?.copyWith(color: theme.colorScheme.onSurface)),
-                const Spacer(),
-                Text(
-                  current.uvIndex.toStringAsFixed(1),
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    color: uv.color,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(width: 6),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: uv.color,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+                Icon(Icons.location_on, size: 18, color: theme.colorScheme.onSurface),
+                const SizedBox(width: 4),
+                Expanded(
                   child: Text(
-                    uv.label.toUpperCase(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
+                    locationName,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
                     ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
             ),
-          ),
+            const SizedBox(height: 12),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(icon, size: 72, color: iconColor),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            current.temperature.toStringAsFixed(0),
+                            style: theme.textTheme.displayLarge?.copyWith(
+                              fontSize: 72,
+                              fontWeight: FontWeight.w200,
+                              color: Colors.white,
+                              height: 1,
+                              shadows: const [
+                                Shadow(
+                                  color: Colors.black38,
+                                  blurRadius: 4,
+                                  offset: Offset(0, 1),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.only(top: 12),
+                            child: Text('°C',
+                                style: theme.textTheme.titleLarge?.copyWith(
+                                  color: Colors.white70,
+                                  shadows: const [
+                                    Shadow(
+                                      color: Colors.black38,
+                                      blurRadius: 3,
+                                      offset: Offset(0, 1),
+                                    ),
+                                  ],
+                                )),
+                          ),
+                        ],
+                      ),
+                      Text(
+                        current.weatherDescription,
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          color: Colors.white.withAlpha(235),
+                          shadows: const [
+                            Shadow(
+                              color: Colors.black38,
+                              blurRadius: 3,
+                              offset: Offset(0, 1),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Text(
+                        'Voelt als ${current.feelsLike.toStringAsFixed(0)}°C',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: Colors.white.withAlpha(200),
+                          shadows: const [
+                            Shadow(
+                              color: Colors.black38,
+                              blurRadius: 2,
+                              offset: Offset(0, 1),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            // UV badge — prominent
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: uv.color.withAlpha(40),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: uv.color.withAlpha(180), width: 1.5),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.wb_sunny, color: uv.color, size: 22),
+                  const SizedBox(width: 8),
+                  Text('UV-index',
+                      style: theme.textTheme.bodyMedium
+                          ?.copyWith(color: Colors.white)),
+                  const Spacer(),
+                  Text(
+                    current.uvIndex.toStringAsFixed(1),
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      color: uv.color,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: uv.color,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      uv.label.toUpperCase(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           if (uv.advice.isNotEmpty) ...[
             const SizedBox(height: 6),
             Padding(
@@ -262,6 +261,7 @@ class CurrentWeatherCard extends StatelessWidget {
             ),
           ],
         ],
+      ),
       ),
     );
   }
