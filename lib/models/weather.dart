@@ -371,6 +371,7 @@ class WeatherData {
           weatherCode: (m['weather_code'] as num).toInt(),
           uvIndex: (m['uv_index'] as num).toDouble(),
           precipitation: (m['precipitation'] as num?)?.toDouble(),
+          windDirection: (m['wind_direction'] as num?)?.toInt() ?? 0,
         ));
       }
     }
@@ -398,10 +399,12 @@ class WeatherData {
         'hourly': hourly.map((h) => {
           'time': h.time.toIso8601String(),
           'temperature': h.temperature,
+          'apparent_temperature': h.apparentTemperature,
           'precipitation_probability': h.precipitationProbability,
           'weather_code': h.weatherCode,
           'uv_index': h.uvIndex,
           'precipitation': h.precipitation,
+          'wind_direction': h.windDirection,
         }).toList(),
         'air_quality': airQuality?.toJson(),
         'pollen': pollen?.toJson(),
