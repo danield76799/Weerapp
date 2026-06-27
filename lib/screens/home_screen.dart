@@ -9,6 +9,7 @@ import '../services/saved_locations_service.dart';
 import '../services/weather_notification_service.dart';
 import '../services/weather_provider.dart';
 import '../services/weather_service.dart';
+import '../services/widget_service.dart';
 import '../widgets/current_weather_card.dart';
 import '../widgets/daily_forecast_list.dart';
 import '../widgets/jas_advice_card.dart';
@@ -156,13 +157,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Future<void> _loadLocation(double lat, double lon, String name, {bool isCurrentLocation = false}) async {
     final provider = context.read<WeatherProvider>();
     await provider.loadWeather(lat: lat, lon: lon, locationName: name);
-    if (provider.hasData && isCurrentLocation) {
-      try {
-        final notif = WeatherNotificationService(
-          weatherService: context.read<WeatherService>(),
-        );
-        await notif.checkThresholds(provider.data!);
-      } catch (_) {}
+    if (provider.hasData) {
+      // Update home screen widget
+      WidgetService.updateWeather(provider.data!);
+      if (isCurrentLocation) {
+        try {
+          final notif = WeatherNotificationService(
+            weatherService: context.read<WeatherService>(),
+          );
+          await notif.checkThresholds(provider.data!);
+        } catch (_) {}
+      }
     }
   }
 
@@ -172,11 +177,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final provider = context.read<WeatherProvider>();
     final service = context.read<WeatherService>();
     await provider.silentRefresh(loc.lat, loc.lon, loc.name);
-    if (provider.hasData && loc.isCurrentLocation) {
-      try {
-        final notif = WeatherNotificationService(weatherService: service);
-        await notif.checkThresholds(provider.data!);
-      } catch (_) {}
+    if (provider.hasData) {
+      WidgetService.updateWeather(provider.data!);
+      if (loc.isCurrentLocation) {
+        try {
+          final notif = WeatherNotificationService(weatherService: service);
+          await notif.checkThresholds(provider.data!);
+        } catch (_) {}
+      }
     }
   }
 
