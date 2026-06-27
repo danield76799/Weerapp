@@ -16,6 +16,9 @@ class WeatherService {
   static const _cacheKeyPrefix = 'weather_cache_';
   static const _lastLocationKey = 'last_location';
   static const _cacheMaxAge = Duration(hours: 1);
+  /// Verhoog dit nummer bij elke wijziging aan het data-model.
+  /// Oude caches met een lager versienummer worden automatisch genegeerd.
+  static const _cacheVersion = 3;
 
   static const _forecastBaseUrl = 'https://api.open-meteo.com';
   static const _airQualityUrl =
@@ -463,6 +466,15 @@ class WeatherService {
     if (raw == null) return null;
     try {
       final json = jsonDecode(raw) as Map<String, dynamic>;
+
+      // Cache-versie check — negeer oude caches na model-wijzigingen
+      final cachedVersion = (json['cache_version'] as num?)?.toInt() ?? 0;
+      if (cachedVersion < _cacheVersion) {
+        // Oude cache verwijderen
+        await prefs.remove(key);
+        return null;
+      }
+
       final fetchedAt = DateTime.parse(json['fetchedAt'] as String);
       if (!ignoreAge &&
           DateTime.now().difference(fetchedAt) > _cacheMaxAge) {
@@ -470,6 +482,8 @@ class WeatherService {
       }
       return WeatherData.fromJson(json, json['locationName'] as String);
     } catch (_) {
+      // Corrupte cache verwijderen
+      await prefs.remove(key);
       return null;
     }
   }
