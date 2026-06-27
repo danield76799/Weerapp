@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../main.dart';
+import '../services/weather_notification_service.dart';
+import '../services/weather_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -32,7 +35,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   double _frostThreshold = 0;
   double _rainThreshold = 40; // neerslagkans %
 
+  // Ochtendbriefing
+  bool _morningBriefing = false;
+  TimeOfDay _briefingTime = const TimeOfDay(hour: 7, minute: 0);
+
   String _themeMode = 'system';
+  int _accentColor = 0xFF49AFC2;
 
   @override
   void initState() {
@@ -51,6 +59,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _autoRefresh = prefs.getBool('auto_refresh') ?? true;
       _notificaties = prefs.getBool('weather_notifications') ?? true;
       _themeMode = prefs.getString('theme_mode') ?? 'system';
+      _accentColor = prefs.getInt('accent_color') ?? 0xFF49AFC2;
+
+      _morningBriefing = prefs.getBool('morning_briefing') ?? false;
+      final bh = prefs.getInt('briefing_hour') ?? 7;
+      final bm = prefs.getInt('briefing_minute') ?? 0;
+      _briefingTime = TimeOfDay(hour: bh, minute: bm);
 
       _notifRain = prefs.getBool('notif_rain') ?? true;
       _notifUV = prefs.getBool('notif_uv') ?? true;
@@ -72,10 +86,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await prefs.setString(key, value as String);
     } else if (value is double) {
       await prefs.setDouble(key, value);
+    } else if (value is int) {
+      await prefs.setInt(key, value);
     } else {
       await prefs.setBool(key, value as bool);
     }
   }
+
+  static const _accentColors = <_AccentColor>[
+    _AccentColor('Blauw', 0xFF49AFC2),
+    _AccentColor('Groen', 0xFF4CAF50),
+    _AccentColor('Oranje', 0xFFFF9800),
+    _AccentColor('Rood', 0xFFEF5350),
+    _AccentColor('Paars', 0xFF9C27B0),
+    _AccentColor('Roze', 0xFFEC407A),
+    _AccentColor('Indigo', 0xFF5C6BC0),
+    _AccentColor('Teal', 0xFF00897B),
+    _AccentColor('Lime', 0xFF7CB342),
+    _AccentColor('Amber', 0xFFFFB300),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -170,6 +199,54 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
               ],
+            ),
+          ),
+          // Accentkleur kiezer
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Row(
+              children: [
+                Icon(Icons.color_lens, color: Theme.of(context).colorScheme.primary),
+                const SizedBox(width: 16),
+                const Expanded(child: Text('Accentkleur')),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: _accentColors.map((c) {
+                final isSelected = c.value == _accentColor;
+                return GestureDetector(
+                  onTap: () {
+                    setState(() => _accentColor = c.value);
+                    accentColorNotifier.value = c.value;
+                    _toggle('accent_color', c.value);
+                  },
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: Color(c.value),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isSelected
+                            ? Theme.of(context).colorScheme.onSurface
+                            : Colors.transparent,
+                        width: 3,
+                      ),
+                      boxShadow: isSelected
+                          ? [BoxShadow(color: Color(c.value).withAlpha(80), blurRadius: 8, spreadRadius: 2)]
+                          : null,
+                    ),
+                    child: isSelected
+                        ? const Icon(Icons.check, color: Colors.white, size: 20)
+                        : null,
+                  ),
+                );
+              }).toList(),
             ),
           ),
           _SwitchTile(
@@ -284,6 +361,60 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onChangeEnd: (v) => _toggle('notif_heat_threshold', v),
               ),
           ],
+          const Divider(),
+          _SectionHeader('Ochtendbriefing'),
+          _SwitchTile(
+            icon: Icons.wb_sunny_outlined,
+            title: 'Dagelijkse briefing',
+            subtitle: 'Krijg elke dag een weeroverzicht op een vast tijdstip',
+            value: _morningBriefing,
+            onChanged: (v) async {
+              setState(() => _morningBriefing = v);
+              final notif = WeatherNotificationService(
+                weatherService: context.read<WeatherService>(),
+              );
+              if (v) {
+                await notif.scheduleMorningBriefing(_briefingTime);
+              } else {
+                await notif.cancelMorningBriefing();
+              }
+            },
+          ),
+          if (_morningBriefing)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                children: [
+                  Icon(Icons.access_time, color: Theme.of(context).colorScheme.primary),
+                  const SizedBox(width: 16),
+                  const Expanded(child: Text('Briefingstijd')),
+                  TextButton(
+                    onPressed: () async {
+                      final picked = await showTimePicker(
+                        context: context,
+                        initialTime: _briefingTime,
+                        helpText: 'Kies briefingstijd',
+                      );
+                      if (picked != null) {
+                        setState(() => _briefingTime = picked);
+                        final notif = WeatherNotificationService(
+                          weatherService: context.read<WeatherService>(),
+                        );
+                        await notif.scheduleMorningBriefing(picked);
+                      }
+                    },
+                    child: Text(
+                      '${_briefingTime.hour.toString().padLeft(2, '0')}:${_briefingTime.minute.toString().padLeft(2, '0')}',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           const SizedBox(height: 24),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -300,6 +431,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
   }
+}
+
+class _AccentColor {
+  final String name;
+  final int value;
+  const _AccentColor(this.name, this.value);
 }
 
 class _SectionHeader extends StatelessWidget {

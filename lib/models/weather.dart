@@ -399,7 +399,7 @@ class WeatherData {
   }
 
   Map<String, dynamic> toJson() => {
-        'cache_version': 3,
+        'cache_version': 4,
         'current': current.toJson(),
         'daily': daily.map((d) => d.toJson()).toList(),
         'past_daily': pastDaily.map((d) => d.toJson()).toList(),

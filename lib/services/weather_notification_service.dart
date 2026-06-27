@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart' show TimeOfDay;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest_all.dart' as tzdata;
@@ -11,6 +12,8 @@ import 'weather_service.dart';
 /// Service voor weer-gerelateerde notificaties
 class WeatherNotificationService {
   static const _lastNotifPref = 'last_weather_notif';
+  static const _morningBriefingChannelId = 'morning_briefing';
+  static const _morningBriefingNotifId = 1001;
 
   final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
   final WeatherService weatherService;
@@ -151,5 +154,139 @@ class WeatherNotificationService {
     if (uv < 8) return 'hoog';
     if (uv < 11) return 'zeer hoog';
     return 'extreem';
+  }
+
+  /// Plan de dagelijkse ochtendbriefing in
+  Future<void> scheduleMorningBriefing(TimeOfDay time) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('morning_briefing', true);
+    await prefs.setInt('briefing_hour', time.hour);
+    await prefs.setInt('briefing_minute', time.minute);
+
+    // Plan daily recurring notificatie
+    await _plugin.zonedSchedule(
+      id: _morningBriefingNotifId,
+      title: '🌤 Ochtendbriefing',
+      body: 'Weeroverzicht voor vandaag — tik om te bekijken',
+      scheduledDate: _nextInstanceOf(time),
+      notificationDetails: const NotificationDetails(
+        android: AndroidNotificationDetails(
+          _morningBriefingChannelId,
+          'Ochtendbriefing',
+          channelDescription: 'Dagelijkse weerbriefing op instelbare tijd',
+          importance: Importance.defaultImportance,
+          priority: Priority.defaultPriority,
+          category: AndroidNotificationCategory.reminder,
+        ),
+        iOS: DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: false,
+          presentSound: true,
+        ),
+      ),
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      matchDateTimeComponents: DateTimeComponents.time,
+    );
+  }
+
+  /// Annuleer de ochtendbriefing
+  Future<void> cancelMorningBriefing() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('morning_briefing', false);
+    await _plugin.cancel(id: _morningBriefingNotifId);
+  }
+
+  /// Stuur de ochtendbriefing direct (geprobeerd bij app-open)
+  Future<void> sendMorningBriefingIfDue(WeatherData data) async {
+    final prefs = await SharedPreferences.getInstance();
+    final enabled = prefs.getBool('morning_briefing') ?? false;
+    if (!enabled) return;
+
+    final today = DateTime.now();
+    final todayKey = 'briefing_sent_${today.year}${today.month}${today.day}';
+    final alreadySent = prefs.getBool(todayKey) ?? false;
+    if (alreadySent) return;
+
+    final bh = prefs.getInt('briefing_hour') ?? 7;
+    final bm = prefs.getInt('briefing_minute') ?? 0;
+    final nowMinutes = today.hour * 60 + today.minute;
+    final briefingMinutes = bh * 60 + bm;
+
+    // Stuur alleen in het uur ná de ingestelde tijd
+    if (nowMinutes < briefingMinutes || nowMinutes > briefingMinutes + 60) return;
+
+    final current = data.current;
+    final day = data.daily.isNotEmpty ? data.daily.first : null;
+    if (day == null) return;
+
+    final lines = <String>[];
+    lines.add('🌡 ${current.temperature.toStringAsFixed(0)}°C nu, max ${day.tempMax.toStringAsFixed(0)}°');
+    lines.add('☁️ ${current.weatherDescription}');
+
+    // Regen verwachting
+    final nextHours = data.nextHours(12);
+    bool rainToday = false;
+    for (final h in nextHours) {
+      if (h.precipitationProbability > 30) {
+        rainToday = true;
+        break;
+      }
+    }
+    if (rainToday) {
+      lines.add('🌧 Regen verwacht vandaag');
+    } else {
+      lines.add('☀️ Vandaag droog');
+    }
+
+    // UV
+    if (current.uvIndex >= 6) {
+      lines.add('🔆 UV ${current.uvIndex.toStringAsFixed(0)} (${_uvLabel(current.uvIndex)}) — smeer in!');
+    } else if (current.uvIndex >= 3) {
+      lines.add('🔆 UV ${current.uvIndex.toStringAsFixed(0)} (${_uvLabel(current.uvIndex)})');
+    }
+
+    // Wind
+    if (current.windSpeed > 7) {
+      lines.add('💨 Harde wind: ${current.windSpeed.toStringAsFixed(1)} m/s');
+    }
+
+    const androidDetails = AndroidNotificationDetails(
+      _morningBriefingChannelId,
+      'Ochtendbriefing',
+      channelDescription: 'Dagelijkse weerbriefing op instelbare tijd',
+      importance: Importance.defaultImportance,
+      priority: Priority.defaultPriority,
+      category: AndroidNotificationCategory.reminder,
+    );
+    const iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: false,
+      presentSound: true,
+    );
+
+    await _plugin.show(
+      id: _morningBriefingNotifId,
+      title: '🌤 Ochtendbriefing — ${day.tempMax.toStringAsFixed(0)}° / ${day.tempMin.toStringAsFixed(0)}°',
+      body: lines.join('\n'),
+      notificationDetails: const NotificationDetails(android: androidDetails, iOS: iosDetails),
+    );
+
+    await prefs.setBool(todayKey, true);
+  }
+
+  tz.TZDateTime _nextInstanceOf(TimeOfDay time) {
+    final now = tz.TZDateTime.now(tz.local);
+    var scheduled = tz.TZDateTime(
+      tz.local,
+      now.year,
+      now.month,
+      now.day,
+      time.hour,
+      time.minute,
+    );
+    if (scheduled.isBefore(now)) {
+      scheduled = scheduled.add(const Duration(days: 1));
+    }
+    return scheduled;
   }
 }

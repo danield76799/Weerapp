@@ -18,6 +18,7 @@ import '../widgets/buien_card.dart';
 import '../widgets/air_quality_card.dart';
 import '../widgets/details_card.dart';
 import '../widgets/weather_history_card.dart';
+import '../widgets/weather_comparison_card.dart';
 import 'location_search_screen.dart';
 import 'rain_radar_screen.dart';
 import 'settings_screen.dart';
@@ -167,6 +168,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             weatherService: context.read<WeatherService>(),
           );
           await notif.checkThresholds(provider.data!);
+          await notif.sendMorningBriefingIfDue(provider.data!);
         } catch (_) {}
       }
     }
@@ -461,6 +463,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       const SizedBox(height: 16),
                     if (data.pastDaily.length >= 2) ...[
                       WeatherHistoryCard(pastDaily: data.pastDaily, daily: data.daily),
+                      const SizedBox(height: 16),
+                    ],
+                    if (data.pastDaily.length >= 7) ...[
+                      WeatherComparisonCard(pastDaily: data.pastDaily, daily: data.daily),
                       const SizedBox(height: 16),
                     ],
                     Padding(

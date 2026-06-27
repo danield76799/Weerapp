@@ -9,8 +9,9 @@ import 'services/weather_notification_service.dart';
 import 'services/weather_provider.dart';
 import 'services/weather_service.dart';
 
-// Global notifier voor thema changes
+// Global notifiers voor thema changes
 final ValueNotifier<String> themeModeNotifier = ValueNotifier<String>('system');
+final ValueNotifier<int> accentColorNotifier = ValueNotifier<int>(0xFF49AFC2);
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,6 +22,7 @@ void main() async {
 
   final prefs = await SharedPreferences.getInstance();
   themeModeNotifier.value = prefs.getString('theme_mode') ?? 'system';
+  accentColorNotifier.value = prefs.getInt('accent_color') ?? 0xFF49AFC2;
 
   runApp(WeerApp(weatherService: weatherService));
 }
@@ -32,22 +34,27 @@ class WeerApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<String>(
-      valueListenable: themeModeNotifier,
-      builder: (context, themeMode, _) {
-        return MultiProvider(
-          providers: [
-            Provider<WeatherService>.value(value: weatherService),
-            ChangeNotifierProvider(create: (_) => WeatherProvider(weatherService)),
-          ],
-          child: MaterialApp(
-            title: 'Weer',
-            debugShowCheckedModeBanner: false,
-            theme: _buildTheme(Brightness.light),
-            darkTheme: _buildTheme(Brightness.dark),
-            themeMode: _themeModeFromString(themeMode),
-            home: const _SplashGate(),
-          ),
+    return ValueListenableBuilder<int>(
+      valueListenable: accentColorNotifier,
+      builder: (context, accentColor, _) {
+        return ValueListenableBuilder<String>(
+          valueListenable: themeModeNotifier,
+          builder: (context, themeMode, _) {
+            return MultiProvider(
+              providers: [
+                Provider<WeatherService>.value(value: weatherService),
+                ChangeNotifierProvider(create: (_) => WeatherProvider(weatherService)),
+              ],
+              child: MaterialApp(
+                title: 'Weer',
+                debugShowCheckedModeBanner: false,
+                theme: _buildTheme(Brightness.light, Color(accentColor)),
+                darkTheme: _buildTheme(Brightness.dark, Color(accentColor)),
+                themeMode: _themeModeFromString(themeMode),
+                home: const _SplashGate(),
+              ),
+            );
+          },
         );
       },
     );
@@ -64,9 +71,9 @@ class WeerApp extends StatelessWidget {
     }
   }
 
-  ThemeData _buildTheme(Brightness brightness) {
+  ThemeData _buildTheme(Brightness brightness, Color accentColor) {
     final colorScheme = ColorScheme.fromSeed(
-      seedColor: const Color(0xFF49AFC2),
+      seedColor: accentColor,
       brightness: brightness,
     );
     return ThemeData(

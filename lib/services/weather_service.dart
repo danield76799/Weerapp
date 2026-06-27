@@ -18,7 +18,7 @@ class WeatherService {
   static const _cacheMaxAge = Duration(hours: 1);
   /// Verhoog dit nummer bij elke wijziging aan het data-model.
   /// Oude caches met een lager versienummer worden automatisch genegeerd.
-  static const _cacheVersion = 3;
+  static const _cacheVersion = 4;
 
   static const _forecastBaseUrl = 'https://api.open-meteo.com';
   static const _airQualityUrl =
