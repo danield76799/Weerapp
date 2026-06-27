@@ -30,11 +30,15 @@ class LocationService {
     }
 
     final pos = await Geolocator.getCurrentPosition(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.medium,
-        timeLimit: Duration(seconds: 15),
-      ),
-    );
+      desiredAccuracy: LocationAccuracy.low,
+      timeLimit: const Duration(seconds: 30),
+    ).catchError((e) {
+      // Probeer last known position als fallback
+      return Geolocator.getLastKnownPosition().then((last) {
+        if (last != null) return last;
+        throw LocationException('GPS-timeout: kan locatie niet bepalen. Controleer of GPS aan staat.');
+      });
+    });
 
     final name = await _reverseGeocode(pos.latitude, pos.longitude);
     return LocationResult(

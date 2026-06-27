@@ -144,7 +144,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       if (!mounted) return;
       setState(() => _loading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Locatie: $e')),
+        SnackBar(
+          content: Text(e is LocationException ? e.message : 'Locatie opgevraagd...'),
+          duration: const Duration(seconds: 4),
+        ),
       );
       _openSearch();
     }
