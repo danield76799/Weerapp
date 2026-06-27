@@ -184,6 +184,15 @@ class _HourlyForecastSheetState extends State<HourlyForecastSheet> {
                           color: tempColor,
                         ),
                       ),
+                      // Gevoelstemperatuur
+                      if ((h.apparentTemperature - h.temperature).abs() >= 1)
+                        Text(
+                          '${h.apparentTemperature.toStringAsFixed(0)}°',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: theme.colorScheme.onSurface.withAlpha(120),
+                          ),
+                        ),
                       // Windrichting pijl
                       Transform.rotate(
                         angle: h.windDirection.toDouble() * 3.1415926535 / 180,

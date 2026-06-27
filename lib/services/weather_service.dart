@@ -98,6 +98,7 @@ class WeatherService {
           ].join(','),
           'hourly': [
             'temperature_2m',
+            'apparent_temperature',
             'precipitation_probability',
             'weather_code',
             'uv_index',
@@ -321,6 +322,7 @@ class WeatherService {
     if (hourlyJson != null) {
       final hTimes = hourlyJson['time'] as List;
       final hTemp = hourlyJson['temperature_2m'] as List;
+      final hAppTemp = hourlyJson['apparent_temperature'] as List?;
       final hPop = hourlyJson['precipitation_probability'] as List?;
       final hWeather = hourlyJson['weather_code'] as List;
       final hUv = hourlyJson['uv_index'] as List;
@@ -335,6 +337,7 @@ class WeatherService {
         hourly.add(HourlyForecast(
           time: DateTime.parse(hTimes[i] as String),
           temperature: (hTemp[i] as num?)?.toDouble() ?? 0,
+          apparentTemperature: (hAppTemp?[i] as num?)?.toDouble() ?? (hTemp[i] as num?)?.toDouble() ?? 0,
           precipitationProbability: ((hPop?[i] as num?) ?? 0).toInt(),
           weatherCode: (hWeather[i] as num?)?.toInt() ?? 0,
           uvIndex: correctedUv,

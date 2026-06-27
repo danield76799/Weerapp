@@ -184,6 +184,7 @@ class DailyForecast {
 class HourlyForecast {
   final DateTime time;
   final double temperature;
+  final double apparentTemperature;
   final int precipitationProbability;
   final int weatherCode;
   final double uvIndex;
@@ -193,6 +194,7 @@ class HourlyForecast {
   HourlyForecast({
     required this.time,
     required this.temperature,
+    required this.apparentTemperature,
     required this.precipitationProbability,
     required this.weatherCode,
     required this.uvIndex,
@@ -364,6 +366,7 @@ class WeatherData {
         hourly.add(HourlyForecast(
           time: DateTime.parse(m['time'] as String),
           temperature: (m['temperature'] as num).toDouble(),
+          apparentTemperature: (m['apparent_temperature'] as num?)?.toDouble() ?? (m['temperature'] as num).toDouble(),
           precipitationProbability: (m['precipitation_probability'] as num).toInt(),
           weatherCode: (m['weather_code'] as num).toInt(),
           uvIndex: (m['uv_index'] as num).toDouble(),
