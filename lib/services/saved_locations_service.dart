@@ -6,12 +6,14 @@ class SavedLocation {
   final double lon;
   final String name;
   final int sortOrder;
+  final bool isCurrentLocation;
 
   SavedLocation({
     required this.lat,
     required this.lon,
     required this.name,
     this.sortOrder = 0,
+    this.isCurrentLocation = false,
   });
 
   Map<String, dynamic> toJson() => {
@@ -19,6 +21,7 @@ class SavedLocation {
         'lon': lon,
         'name': name,
         'sortOrder': sortOrder,
+        'isCurrentLocation': isCurrentLocation,
       };
 
   factory SavedLocation.fromJson(Map<String, dynamic> json) {
@@ -27,6 +30,7 @@ class SavedLocation {
       lon: (json['lon'] as num).toDouble(),
       name: json['name'] as String,
       sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
+      isCurrentLocation: (json['isCurrentLocation'] as bool?) ?? false,
     );
   }
 }
@@ -52,18 +56,40 @@ class SavedLocationsService {
 
   Future<void> addLocation(SavedLocation loc) async {
     final locations = await getLocations();
+    // If this is a current location, unmark any previous current location
+    if (loc.isCurrentLocation) {
+      for (var i = 0; i < locations.length; i++) {
+        if (locations[i].isCurrentLocation) {
+          locations[i] = SavedLocation(
+            lat: locations[i].lat,
+            lon: locations[i].lon,
+            name: locations[i].name,
+            sortOrder: locations[i].sortOrder,
+            isCurrentLocation: false,
+          );
+        }
+      }
+    }
     // Avoid duplicates
     final exists = locations.any((l) =>
         (l.lat - loc.lat).abs() < 0.01 && (l.lon - loc.lon).abs() < 0.01);
     if (!exists) {
-      locations.add(SavedLocation(
-        lat: loc.lat,
-        lon: loc.lon,
-        name: loc.name,
-        sortOrder: locations.length,
-      ));
-      await _save(locations);
+      locations.add(loc);
+    } else {
+      // Update existing with isCurrentLocation flag
+      final idx = locations.indexWhere((l) =>
+          (l.lat - loc.lat).abs() < 0.01 && (l.lon - loc.lon).abs() < 0.01);
+      if (idx >= 0) {
+        locations[idx] = SavedLocation(
+          lat: locations[idx].lat,
+          lon: locations[idx].lon,
+          name: loc.name.isNotEmpty ? loc.name : locations[idx].name,
+          sortOrder: locations[idx].sortOrder,
+          isCurrentLocation: loc.isCurrentLocation,
+        );
+      }
     }
+    await _save(locations);
   }
 
   Future<void> removeLocation(double lat, double lon) async {

@@ -121,7 +121,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     // Load weather for first location
     if (locations.isNotEmpty) {
       final loc = locations.first;
-      await _loadLocation(loc.lat, loc.lon, loc.name);
+      await _loadLocation(loc.lat, loc.lon, loc.name, isCurrentLocation: loc.isCurrentLocation);
     }
     _startAutoRefresh();
   }
@@ -131,14 +131,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       final loc = await _locationService.getCurrentLocation();
       if (!mounted) return;
       // Save as a location
-      final saved = SavedLocation(lat: loc.lat, lon: loc.lon, name: loc.name);
+      final saved = SavedLocation(lat: loc.lat, lon: loc.lon, name: loc.name, isCurrentLocation: true);
       await _savedLocations.addLocation(saved);
       final locations = await _savedLocations.getLocations();
       setState(() {
         _locations = locations;
         _loading = false;
       });
-      await _loadLocation(loc.lat, loc.lon, loc.name);
+      await _loadLocation(loc.lat, loc.lon, loc.name, isCurrentLocation: true);
       _startAutoRefresh();
     } catch (e) {
       if (!mounted) return;
@@ -150,10 +150,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _loadLocation(double lat, double lon, String name) async {
+  Future<void> _loadLocation(double lat, double lon, String name, {bool isCurrentLocation = false}) async {
     final provider = context.read<WeatherProvider>();
     await provider.loadWeather(lat: lat, lon: lon, locationName: name);
-    if (provider.hasData) {
+    if (provider.hasData && isCurrentLocation) {
       try {
         final notif = WeatherNotificationService(
           weatherService: context.read<WeatherService>(),
@@ -169,7 +169,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final provider = context.read<WeatherProvider>();
     final service = context.read<WeatherService>();
     await provider.silentRefresh(loc.lat, loc.lon, loc.name);
-    if (provider.hasData) {
+    if (provider.hasData && loc.isCurrentLocation) {
       try {
         final notif = WeatherNotificationService(weatherService: service);
         await notif.checkThresholds(provider.data!);
@@ -181,7 +181,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     setState(() => _currentPage = page);
     if (page < _locations.length) {
       final loc = _locations[page];
-      await _loadLocation(loc.lat, loc.lon, loc.name);
+      await _loadLocation(loc.lat, loc.lon, loc.name, isCurrentLocation: loc.isCurrentLocation);
     }
   }
 
@@ -251,12 +251,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (newName != null && newName.isNotEmpty && newName != loc.name) {
       // Remove old, add with new name
       await _savedLocations.removeLocation(loc.lat, loc.lon);
-      await _savedLocations.addLocation(SavedLocation(lat: loc.lat, lon: loc.lon, name: newName));
+      await _savedLocations.addLocation(SavedLocation(lat: loc.lat, lon: loc.lon, name: newName, isCurrentLocation: loc.isCurrentLocation));
       final locations = await _savedLocations.getLocations();
       if (!mounted) return;
       setState(() => _locations = locations);
       // Reload weather with new name
-      await _loadLocation(loc.lat, loc.lon, newName);
+      await _loadLocation(loc.lat, loc.lon, newName, isCurrentLocation: loc.isCurrentLocation);
     }
   }
 
@@ -299,7 +299,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     if (locations.isNotEmpty) {
       final newLoc = locations[_currentPage];
-      await _loadLocation(newLoc.lat, newLoc.lon, newLoc.name);
+      await _loadLocation(newLoc.lat, newLoc.lon, newLoc.name, isCurrentLocation: newLoc.isCurrentLocation);
     }
   }
 
@@ -399,7 +399,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               if (provider.status == WeatherStatus.error && !provider.hasData) {
                 return _ErrorState(
                   message: provider.errorMessage ?? 'Onbekende fout',
-                  onRetry: () => _loadLocation(loc.lat, loc.lon, loc.name),
+                  onRetry: () => _loadLocation(loc.lat, loc.lon, loc.name, isCurrentLocation: loc.isCurrentLocation),
                 );
               }
               if (!provider.hasData) {
