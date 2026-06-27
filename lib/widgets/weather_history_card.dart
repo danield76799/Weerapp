@@ -67,7 +67,7 @@ class WeatherHistoryCard extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           SizedBox(
-            height: 120,
+            height: 140,
             child: CustomPaint(
               size: Size.infinite,
               painter: _TempChartPainter(
@@ -136,30 +136,56 @@ class _TempChartPainter extends CustomPainter {
 
     final w = size.width;
     final h = size.height;
-    final stepX = w / (data.length - 1);
-    final padding = h * 0.15;
-    final chartH = h - padding * 2;
+
+    // Reserve space for Y-axis labels on the left
+    final leftPad = 28.0;
+    final topPad = 8.0;
+    final bottomPad = 18.0;
+    final chartW = w - leftPad;
+    final chartH = h - topPad - bottomPad;
+    final stepX = chartW / (data.length - 1);
 
     double tempToY(double temp) {
       final ratio = (temp - minTemp) / (maxTemp - minTemp);
-      return padding + chartH * (1 - ratio.clamp(0.0, 1.0));
+      return topPad + chartH * (1 - ratio.clamp(0.0, 1.0));
     }
 
-    // Grid lines
+    // Y-axis scale: generate nice round temperature values
+    final axisStyle = TextStyle(
+      fontSize: 9,
+      color: Colors.black54,
+      fontWeight: FontWeight.w500,
+    );
     final gridPaint = Paint()
-      ..color = Colors.white.withAlpha(15)
+      ..color = Colors.black.withAlpha(12)
       ..strokeWidth = 0.5;
-    for (var i = 0; i <= 3; i++) {
-      final y = padding + (chartH / 3) * i;
-      canvas.drawLine(Offset(0, y), Offset(w, y), gridPaint);
+
+    // Calculate nice step for Y-axis labels (aim for ~4 labels)
+    final range = maxTemp - minTemp;
+    final rawStep = range / 4;
+    final niceSteps = [1, 2, 3, 5, 10];
+    double niceStep = niceSteps
+        .firstWhere((s) => s >= rawStep, orElse: () => (rawStep * 10).ceil())
+        .toDouble();
+    final startVal = (minTemp / niceStep).ceil() * niceStep;
+    final endVal = maxTemp;
+
+    for (var v = startVal; v <= endVal + 0.01; v += niceStep) {
+      final y = tempToY(v);
+      final tp = TextPainter(
+        text: TextSpan(text: '${v.toStringAsFixed(v % 1 == 0 ? 0 : 1)}°', style: axisStyle),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      tp.paint(canvas, Offset(0, y - tp.height / 2));
+      canvas.drawLine(Offset(leftPad, y), Offset(w, y), gridPaint);
     }
 
-    // Max temp line (filled area)
+    // Max temp line + min temp line paths
     final maxPath = Path();
     final minPath = Path();
 
     for (var i = 0; i < data.length; i++) {
-      final x = i * stepX;
+      final x = leftPad + i * stepX;
       final maxY = tempToY(data[i].tempMax);
       final minY = tempToY(data[i].tempMin);
       if (i == 0) {
@@ -174,7 +200,7 @@ class _TempChartPainter extends CustomPainter {
     // Fill between max and min
     final fillPath = Path();
     for (var i = 0; i < data.length; i++) {
-      final x = i * stepX;
+      final x = leftPad + i * stepX;
       final y = tempToY(data[i].tempMax);
       if (i == 0) {
         fillPath.moveTo(x, y);
@@ -183,14 +209,14 @@ class _TempChartPainter extends CustomPainter {
       }
     }
     for (var i = data.length - 1; i >= 0; i--) {
-      final x = i * stepX;
+      final x = leftPad + i * stepX;
       final y = tempToY(data[i].tempMin);
       fillPath.lineTo(x, y);
     }
     fillPath.close();
 
     final fillPaint = Paint()
-      ..color = maxColor.withAlpha(30)
+      ..color = maxColor.withAlpha(25)
       ..style = PaintingStyle.fill;
     canvas.drawPath(fillPath, fillPaint);
 
@@ -210,20 +236,17 @@ class _TempChartPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round;
     canvas.drawPath(minPath, minPaint);
 
-    // Dots + labels
+    // Dots + day labels
     final dotPaint = Paint()..color = maxColor;
     final dotPaintMin = Paint()..color = minColor;
-    final labelStyle = TextStyle(
+    final dayLabelStyle = TextStyle(
       fontSize: 9,
-      color: Colors.white.withAlpha(120),
-    );
-    final tempStyle = TextStyle(
-      fontSize: 8,
-      color: Colors.white.withAlpha(100),
+      color: Colors.black54,
+      fontWeight: FontWeight.w500,
     );
 
     for (var i = 0; i < data.length; i++) {
-      final x = i * stepX;
+      final x = leftPad + i * stepX;
       final maxY = tempToY(data[i].tempMax);
       final minY = tempToY(data[i].tempMin);
 
@@ -231,24 +254,14 @@ class _TempChartPainter extends CustomPainter {
       canvas.drawCircle(Offset(x, maxY), 3, dotPaint);
       canvas.drawCircle(Offset(x, minY), 3, dotPaintMin);
 
-      // Day name
+      // Day name below x-axis
       final dayName = dayNames[data[i].date.weekday - 1];
       TextPainter(
-        text: TextSpan(text: dayName, style: labelStyle),
+        text: TextSpan(text: dayName, style: dayLabelStyle),
         textDirection: TextDirection.ltr,
       )
         ..layout()
-        ..paint(canvas, Offset(x - 6, h - padding + 4));
-
-      // Temp labels (only first and last to avoid clutter)
-      if (i == 0 || i == data.length - 1) {
-        TextPainter(
-          text: TextSpan(text: '${data[i].tempMax.toStringAsFixed(0)}°', style: tempStyle),
-          textDirection: TextDirection.ltr,
-        )
-          ..layout()
-          ..paint(canvas, Offset(x - 8, maxY - 14));
-      }
+        ..paint(canvas, Offset(x - 6, h - bottomPad + 3));
     }
   }
 
