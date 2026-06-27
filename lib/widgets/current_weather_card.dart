@@ -39,8 +39,13 @@ class CurrentWeatherCard extends StatelessWidget {
         ),
         borderRadius: BorderRadius.circular(24),
       ),
-      padding: const EdgeInsets.all(20),
-      child: Column(
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.black.withAlpha(60),
+          borderRadius: BorderRadius.circular(24),
+        ),
+        padding: const EdgeInsets.all(20),
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
@@ -76,15 +81,29 @@ class CurrentWeatherCard extends StatelessWidget {
                           style: theme.textTheme.displayLarge?.copyWith(
                             fontSize: 72,
                             fontWeight: FontWeight.w200,
-                            color: tempColor,
+                            color: Colors.white,
                             height: 1,
+                            shadows: const [
+                              Shadow(
+                                color: Colors.black38,
+                                blurRadius: 4,
+                                offset: Offset(0, 1),
+                              ),
+                            ],
                           ),
                         ),
                         Padding(
                           padding: const EdgeInsets.only(top: 12),
                           child: Text('°C',
                               style: theme.textTheme.titleLarge?.copyWith(
-                                color: theme.colorScheme.onSurface.withAlpha(180),
+                                color: Colors.white70,
+                                shadows: const [
+                                  Shadow(
+                                    color: Colors.black38,
+                                    blurRadius: 3,
+                                    offset: Offset(0, 1),
+                                  ),
+                                ],
                               )),
                         ),
                       ],
@@ -92,13 +111,27 @@ class CurrentWeatherCard extends StatelessWidget {
                     Text(
                       current.weatherDescription,
                       style: theme.textTheme.bodyLarge?.copyWith(
-                        color: theme.colorScheme.onSurface.withAlpha(200),
+                        color: Colors.white.withAlpha(235),
+                        shadows: const [
+                          Shadow(
+                            color: Colors.black38,
+                            blurRadius: 3,
+                            offset: Offset(0, 1),
+                          ),
+                        ],
                       ),
                     ),
                     Text(
                       'Voelt als ${current.feelsLike.toStringAsFixed(0)}°C',
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurface.withAlpha(150),
+                        color: Colors.white.withAlpha(200),
+                        shadows: const [
+                          Shadow(
+                            color: Colors.black38,
+                            blurRadius: 2,
+                            offset: Offset(0, 1),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -156,7 +189,7 @@ class CurrentWeatherCard extends StatelessWidget {
               child: Text(
                 uv.advice,
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurface.withAlpha(150),
+                  color: Colors.white.withAlpha(200),
                   fontStyle: FontStyle.italic,
                 ),
               ),
