@@ -43,11 +43,25 @@ class WeatherNotificationService {
   /// Controleer weer op drempelwaarden en stuur notificatie
   Future<void> checkThresholds(WeatherData data) async {
     final prefs = await SharedPreferences.getInstance();
+    final notificationsEnabled = prefs.getBool('weather_notifications') ?? true;
+    if (!notificationsEnabled) return;
+
     final current = data.current;
     final today = data.daily.isNotEmpty ? data.daily.first : null;
     if (today == null) return;
 
-    // Check for rain in next 60 minutes
+    // Lees drempelwaarden uit instellingen
+    final notifRain = prefs.getBool('notif_rain') ?? true;
+    final notifUV = prefs.getBool('notif_uv') ?? true;
+    final notifFrost = prefs.getBool('notif_frost') ?? true;
+    final notifHeat = prefs.getBool('notif_heat') ?? true;
+
+    final uvThreshold = prefs.getDouble('notif_uv_threshold') ?? 7;
+    final heatThreshold = prefs.getDouble('notif_heat_threshold') ?? 30;
+    final frostThreshold = prefs.getDouble('notif_frost_threshold') ?? 0;
+    final rainThreshold = prefs.getDouble('notif_rain_threshold') ?? 40;
+
+    // Check for rain in next 4 hours
     bool rainSoon = false;
     int rainMinutes = 0;
     final nextHours = data.nextHours(4);
@@ -55,7 +69,7 @@ class WeatherNotificationService {
       final h = nextHours[i];
       final precip = h.precipitation ?? 0;
       final precipProb = h.precipitationProbability;
-      if (precip > 0.2 || precipProb > 40) {
+      if (precip > 0.2 || precipProb > rainThreshold) {
         rainSoon = true;
         rainMinutes = i * 60;
         break;
@@ -68,18 +82,16 @@ class WeatherNotificationService {
 
     final reasons = <String>[];
 
-    // Rain notification (only once per day)
-    if (rainSoon && !alreadyNotified.contains('rain')) {
+    if (notifRain && rainSoon && !alreadyNotified.contains('rain')) {
       reasons.add('rain');
     }
-
-    if ((current.uvIndex >= 7 || (today.tempMax >= 33)) && !alreadyNotified.contains('uv')) {
-      if (!reasons.contains('uv')) reasons.add('uv');
+    if (notifUV && (current.uvIndex >= uvThreshold || (today.tempMax >= heatThreshold)) && !alreadyNotified.contains('uv')) {
+      reasons.add('uv');
     }
-    if (current.temperature <= 0 && !alreadyNotified.contains('freeze')) {
+    if (notifFrost && current.temperature <= frostThreshold && !alreadyNotified.contains('freeze')) {
       reasons.add('freeze');
     }
-    if (current.temperature >= 30 && !alreadyNotified.contains('heat')) {
+    if (notifHeat && current.temperature >= heatThreshold && !alreadyNotified.contains('heat')) {
       reasons.add('heat');
     }
 
@@ -104,9 +116,8 @@ class WeatherNotificationService {
         lines.add('🌧 Regen verwacht binnen ${(rainMinutes / 60).ceil()} uur');
       }
     }
-    if (reasons.contains('uv') || reasons.contains('hot')) {
-      lines
-          .add('☀️ UV-index ${current.uvIndex.toStringAsFixed(1)} (${_uvLabel(current.uvIndex)})');
+    if (reasons.contains('uv') || reasons.contains('heat')) {
+      lines.add('☀️ UV-index ${current.uvIndex.toStringAsFixed(1)} (${_uvLabel(current.uvIndex)})');
     }
     if (reasons.contains('freeze') || reasons.contains('heat')) {
       lines.add('🌡 ${current.temperature.toStringAsFixed(0)}°C');
@@ -128,13 +139,9 @@ class WeatherNotificationService {
 
     await _plugin.show(
       id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
-      title:
-          'Weer alert: ${today.tempMax.toStringAsFixed(0)}° / ${today.tempMin.toStringAsFixed(0)}°',
+      title: 'Weer alert: ${today.tempMax.toStringAsFixed(0)}° / ${today.tempMin.toStringAsFixed(0)}°',
       body: lines.join('\n'),
-      notificationDetails: const NotificationDetails(
-        android: androidDetails,
-        iOS: iosDetails,
-      ),
+      notificationDetails: const NotificationDetails(android: androidDetails, iOS: iosDetails),
     );
   }
 
