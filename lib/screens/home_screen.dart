@@ -213,6 +213,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
+  /// Kort locatienaam in: "Bardolino, Provincia di Verona" → "Bardolino"
+  String _shortName(String name) {
+    final comma = name.indexOf(',');
+    if (comma > 0) return name.substring(0, comma).trim();
+    return name;
+  }
+
   Future<void> _renameLocation() async {
     if (_locations.isEmpty || _currentPage >= _locations.length) return;
     final loc = _locations[_currentPage];
@@ -312,10 +319,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                _locations.isNotEmpty
-                    ? _locations[_currentPage.clamp(0, _locations.length - 1)].name
-                    : 'Weer',
+              Flexible(
+                child: Text(
+                  _locations.isNotEmpty
+                      ? _shortName(_locations[_currentPage.clamp(0, _locations.length - 1)].name)
+                      : 'Weer',
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
               ),
               const SizedBox(width: 6),
               Icon(Icons.edit_outlined, size: 14, color: Theme.of(context).colorScheme.onSurface.withAlpha(120)),
