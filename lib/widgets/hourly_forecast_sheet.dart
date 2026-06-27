@@ -163,79 +163,125 @@ class _HourlyForecastSheetState extends State<HourlyForecastSheet> {
                         : null,
                   ),
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      Text(
-                        isCurrentHour ? 'NU' : '${h.time.hour.toString().padLeft(2, '0')}:00',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: isCurrentHour ? FontWeight.w700 : FontWeight.w400,
-                          color: isCurrentHour
-                              ? theme.colorScheme.primary
-                              : theme.colorScheme.onSurface.withAlpha(180),
-                        ),
-                      ),
-                      Icon(icon, color: iconColor, size: 22),
-                      Text(
-                        '${h.temperature.toStringAsFixed(0)}°',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: tempColor,
-                        ),
-                      ),
-                      // Gevoelstemperatuur
-                      if ((h.apparentTemperature - h.temperature).abs() >= 1)
-                        Text(
-                          '${h.apparentTemperature.toStringAsFixed(0)}°',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: theme.colorScheme.onSurface.withAlpha(120),
-                          ),
-                        ),
-                      // Windrichting pijl
-                      Transform.rotate(
-                        angle: h.windDirection.toDouble() * 3.1415926535 / 180,
-                        child: Icon(
-                          Icons.arrow_upward,
-                          size: 14,
-                          color: theme.colorScheme.onSurface.withAlpha(180),
-                        ),
-                      ),
-                      if (h.precipitationProbability > 10)
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.water_drop,
-                                size: 10, color: theme.colorScheme.onSurface.withAlpha(150)),
-                            const SizedBox(width: 2),
-                            Text(
-                              '${h.precipitationProbability}%',
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: theme.colorScheme.onSurface.withAlpha(150),
-                              ),
-                            ),
-                          ],
-                        ),
-                      if (h.uvIndex >= 3)
-                        Container(
-                          width: 18,
-                          height: 18,
-                          decoration: BoxDecoration(
-                            color: WeatherUtils.uvInfo(h.uvIndex).color,
-                            shape: BoxShape.circle,
-                          ),
-                          alignment: Alignment.center,
+                      // Tijd / NU
+                      SizedBox(
+                        height: 16,
+                        child: Center(
                           child: Text(
-                            h.uvIndex.toStringAsFixed(0),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 9,
-                              fontWeight: FontWeight.w700,
+                            isCurrentHour ? 'NU' : '${h.time.hour.toString().padLeft(2, '0')}:00',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: isCurrentHour ? FontWeight.w700 : FontWeight.w400,
+                              color: isCurrentHour
+                                  ? theme.colorScheme.primary
+                                  : theme.colorScheme.onSurface.withAlpha(180),
                             ),
                           ),
                         ),
+                      ),
+                      const SizedBox(height: 4),
+                      // Weer icoon
+                      SizedBox(
+                        height: 22,
+                        child: Center(child: Icon(icon, color: iconColor, size: 22)),
+                      ),
+                      const SizedBox(height: 4),
+                      // Temperatuur
+                      SizedBox(
+                        height: 20,
+                        child: Center(
+                          child: Text(
+                            '${h.temperature.toStringAsFixed(0)}°',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: tempColor,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      // Gevoelstemperatuur (vast slot — leeg indien geen verschil)
+                      SizedBox(
+                        height: 12,
+                        child: Center(
+                          child: (h.apparentTemperature - h.temperature).abs() >= 1
+                              ? Text(
+                                  '${h.apparentTemperature.toStringAsFixed(0)}°',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: theme.colorScheme.onSurface.withAlpha(120),
+                                  ),
+                                )
+                              : null,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      // Windrichting pijl (vast slot)
+                      SizedBox(
+                        height: 14,
+                        child: Center(
+                          child: Transform.rotate(
+                            angle: h.windDirection.toDouble() * 3.1415926535 / 180,
+                            child: Icon(
+                              Icons.arrow_upward,
+                              size: 14,
+                              color: theme.colorScheme.onSurface.withAlpha(180),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      // Neerslagkans (vast slot — leeg indien < 10%)
+                      SizedBox(
+                        height: 14,
+                        child: Center(
+                          child: h.precipitationProbability > 10
+                              ? Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.water_drop,
+                                        size: 10, color: theme.colorScheme.onSurface.withAlpha(150)),
+                                    const SizedBox(width: 2),
+                                    Text(
+                                      '${h.precipitationProbability}%',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: theme.colorScheme.onSurface.withAlpha(150),
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : null,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      // UV-index (vast slot — leeg indien < 3)
+                      SizedBox(
+                        height: 18,
+                        child: Center(
+                          child: h.uvIndex >= 3
+                              ? Container(
+                                  width: 18,
+                                  height: 18,
+                                  decoration: BoxDecoration(
+                                    color: WeatherUtils.uvInfo(h.uvIndex).color,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    h.uvIndex.toStringAsFixed(0),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                )
+                              : null,
+                        ),
+                      ),
                     ],
                   ),
                 );
