@@ -29,16 +29,23 @@ class LocationService {
           'Locatie permissie permanent geweigerd. Ga naar instellingen om dit aan te passen');
     }
 
-    final pos = await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.low,
-      timeLimit: const Duration(seconds: 30),
-    ).catchError((e) {
-      // Probeer last known position als fallback
-      return Geolocator.getLastKnownPosition().then((last) {
-        if (last != null) return last;
+    Position pos;
+    try {
+      pos = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.low,
+          timeLimit: Duration(seconds: 30),
+        ),
+      );
+    } catch (e) {
+      // Fallback: probeer last known position
+      final last = await Geolocator.getLastKnownPosition();
+      if (last != null) {
+        pos = last;
+      } else {
         throw LocationException('GPS-timeout: kan locatie niet bepalen. Controleer of GPS aan staat.');
-      });
-    });
+      }
+    }
 
     final name = await _reverseGeocode(pos.latitude, pos.longitude);
     return LocationResult(
