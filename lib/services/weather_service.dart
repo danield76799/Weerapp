@@ -18,7 +18,7 @@ class WeatherService {
   static const _cacheMaxAge = Duration(hours: 1);
   /// Verhoog dit nummer bij elke wijziging aan het data-model.
   /// Oude caches met een lager versienummer worden automatisch genegeerd.
-  static const _cacheVersion = 4;
+  static const _cacheVersion = 5;
 
   static const _forecastBaseUrl = 'https://api.open-meteo.com';
   static const _airQualityUrl =
@@ -300,13 +300,17 @@ class WeatherService {
     final today = DateTime.now();
     for (var i = 0; i < dates.length; i++) {
       final date = DateTime.parse(dates[i] as String);
+      // Skip incomplete forecast days (API returns null for unavailable days)
+      final maxTemp = tMax[i] as num?;
+      final minTemp = tMin[i] as num?;
+      if (maxTemp == null || minTemp == null) continue;
       final wmoCode = (weatherCodes[i] as num?)?.toInt() ?? 0;
       final day = DailyForecast(
         date: date,
-        tempMin: (tMin[i] as num?)?.toDouble() ?? 0,
-        tempMax: (tMax[i] as num?)?.toDouble() ?? 0,
-        tempDay: (tMax[i] as num?)?.toDouble() ?? 0,
-        tempNight: (tMin[i] as num?)?.toDouble() ?? 0,
+        tempMin: minTemp.toDouble(),
+        tempMax: maxTemp.toDouble(),
+        tempDay: maxTemp.toDouble(),
+        tempNight: minTemp.toDouble(),
         weatherCode: _wmoCode(wmoCode),
         weatherDescription: _wmoDescription(wmoCode),
         precipitationProbability:
@@ -341,6 +345,9 @@ class WeatherService {
       final hCloud = hourlyJson['cloud_cover'] as List?;
       final hWindDir = hourlyJson['wind_direction_10m'] as List?;
       for (var i = 0; i < hTimes.length; i++) {
+        // Skip incomplete hourly data (API returns null for future unavailable hours)
+        final temp = hTemp[i] as num?;
+        if (temp == null) continue;
         final apiUv = ((hUv[i] as num?) ?? 0).toDouble();
         final cloudCover = ((hCloud?[i] as num?) ?? 0).toInt();
         // Clouds block UV: 0% = full UV, 100% = ~50% UV
@@ -348,8 +355,8 @@ class WeatherService {
         final correctedUv = apiUv * cloudFactor;
         hourly.add(HourlyForecast(
           time: DateTime.parse(hTimes[i] as String),
-          temperature: (hTemp[i] as num?)?.toDouble() ?? 0,
-          apparentTemperature: (hAppTemp?[i] as num?)?.toDouble() ?? (hTemp[i] as num?)?.toDouble() ?? 0,
+          temperature: temp.toDouble(),
+          apparentTemperature: (hAppTemp?[i] as num?)?.toDouble() ?? temp.toDouble(),
           precipitationProbability: ((hPop?[i] as num?) ?? 0).toInt(),
           weatherCode: (hWeather[i] as num?)?.toInt() ?? 0,
           uvIndex: correctedUv,
