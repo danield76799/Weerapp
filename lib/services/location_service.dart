@@ -31,19 +31,30 @@ class LocationService {
 
     Position pos;
     try {
+      // medium accuracy needed — low doesn't trigger GPS on some Android devices
       pos = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.low,
-          timeLimit: Duration(seconds: 60),
+          accuracy: LocationAccuracy.medium,
+          timeLimit: Duration(seconds: 30),
         ),
       );
-    } catch (e) {
-      // Fallback: probeer last known position
+    } catch (_) {
+      // Fallback 1: probeer last known position
       final last = await Geolocator.getLastKnownPosition();
       if (last != null) {
         pos = last;
       } else {
-        throw LocationException('GPS-timeout: kan locatie niet bepalen.\nControleer of GPS aan staat en probeer het opnieuw.');
+        // Fallback 2: nogmaals proberen met hoge accuracy
+        try {
+          pos = await Geolocator.getCurrentPosition(
+            locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.high,
+              timeLimit: Duration(seconds: 30),
+            ),
+          );
+        } catch (_) {
+          throw LocationException('GPS-timeout: kan locatie niet bepalen.\nControleer of GPS aan staat en probeer het opnieuw.');
+        }
       }
     }
 
