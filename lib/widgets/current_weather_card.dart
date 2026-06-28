@@ -37,7 +37,7 @@ class CurrentWeatherCard extends StatelessWidget {
       ),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.black,
+          color: Colors.black.withAlpha(102), // 40% opacity overlay for readability
           borderRadius: BorderRadius.circular(24),
         ),
         padding: const EdgeInsets.all(20),

@@ -396,6 +396,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             );
           }
 
+          // No weather data yet — show loading or retry
+          if (!provider.hasData) {
+            if (provider.status == WeatherStatus.error) {
+              return _ErrorState(
+                message: provider.errorMessage ?? 'Onbekende fout',
+                onRetry: () {
+                  final loc = _locations[_currentPage.clamp(0, _locations.length - 1)];
+                  _loadLocation(loc.lat, loc.lon, loc.name, isCurrentLocation: loc.isCurrentLocation);
+                },
+              );
+            }
+            return const Center(child: CircularProgressIndicator());
+          }
+
           return PageView.builder(
             controller: _pageController ??= PageController(),
             itemCount: _locations.length,
@@ -403,21 +417,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             itemBuilder: (context, index) {
               final loc = _locations[index];
               // Only show weather for current page
-              if (_locations.indexOf(loc) != _currentPage) {
+              if (index != _currentPage) {
                 return const SizedBox.shrink();
-              }
-
-              if (provider.status == WeatherStatus.loading && !provider.hasData) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              if (provider.status == WeatherStatus.error && !provider.hasData) {
-                return _ErrorState(
-                  message: provider.errorMessage ?? 'Onbekende fout',
-                  onRetry: () => _loadLocation(loc.lat, loc.lon, loc.name, isCurrentLocation: loc.isCurrentLocation),
-                );
-              }
-              if (!provider.hasData) {
-                return const Center(child: Text('Geen data'));
               }
 
               final data = provider.data!;
