@@ -179,15 +179,40 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final loc = _locations[_currentPage];
     final provider = context.read<WeatherProvider>();
     final service = context.read<WeatherService>();
-    await provider.silentRefresh(loc.lat, loc.lon, loc.name);
+
+    double lat = loc.lat;
+    double lon = loc.lon;
+    String name = loc.name;
+
+    // Als isCurrentLocation, haal verse GPS-coördinaten op
+    if (loc.isCurrentLocation) {
+      try {
+        final gps = await _locationService.getCurrentLocation();
+        lat = gps.lat;
+        lon = gps.lon;
+        name = gps.name;
+        // Update opgeslagen locatie met nieuwe GPS-positie
+        final updated = SavedLocation(
+          lat: lat, lon: lon, name: name,
+          sortOrder: loc.sortOrder, isCurrentLocation: true,
+        );
+        await _savedLocations.addLocation(updated);
+        final locations = await _savedLocations.getLocations();
+        if (mounted) setState(() => _locations = locations);
+      } catch (_) {
+        // GPS faalt — gebruik oude coördinaten
+      }
+    }
+
+    await provider.silentRefresh(lat, lon, name);
     if (provider.hasData) {
       WidgetService.updateWeather(provider.data!);
-      // Update locatienaam als GPS-locatie een andere naam retourneert
+      // Update naam als API andere naam retourneert dan GPS
       if (loc.isCurrentLocation) {
         final weatherName = provider.data!.locationName;
-        if (weatherName.isNotEmpty && weatherName != loc.name) {
+        if (weatherName.isNotEmpty && weatherName != name) {
           final updated = SavedLocation(
-            lat: loc.lat, lon: loc.lon, name: weatherName,
+            lat: lat, lon: lon, name: weatherName,
             sortOrder: loc.sortOrder, isCurrentLocation: true,
           );
           await _savedLocations.addLocation(updated);
@@ -206,7 +231,24 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     setState(() => _currentPage = page);
     if (page < _locations.length) {
       final loc = _locations[page];
-      await _loadLocation(loc.lat, loc.lon, loc.name, isCurrentLocation: loc.isCurrentLocation);
+      if (loc.isCurrentLocation) {
+        // GPS-locatie: haal verse coördinaten op
+        try {
+          final gps = await _locationService.getCurrentLocation();
+          final updated = SavedLocation(
+            lat: gps.lat, lon: gps.lon, name: gps.name,
+            sortOrder: loc.sortOrder, isCurrentLocation: true,
+          );
+          await _savedLocations.addLocation(updated);
+          final locations = await _savedLocations.getLocations();
+          if (mounted) setState(() => _locations = locations);
+          await _loadLocation(gps.lat, gps.lon, gps.name, isCurrentLocation: true);
+        } catch (_) {
+          await _loadLocation(loc.lat, loc.lon, loc.name, isCurrentLocation: true);
+        }
+      } else {
+        await _loadLocation(loc.lat, loc.lon, loc.name, isCurrentLocation: false);
+      }
     }
   }
 
