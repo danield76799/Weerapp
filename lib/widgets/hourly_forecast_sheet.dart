@@ -48,7 +48,7 @@ class _HourlyForecastSheetState extends State<HourlyForecastSheet> {
     }
 
     // Each item is ~80px wide (72 + 8 margin)
-    const itemWidth = 80.0;
+    const itemWidth = 88.0;
     final offset = (targetIndex * itemWidth) - 60.0; // slight left padding
     _scrollController.animateTo(
       offset.clamp(0.0, double.infinity),
@@ -133,7 +133,7 @@ class _HourlyForecastSheetState extends State<HourlyForecastSheet> {
             ),
           ),
           SizedBox(
-            height: 180,
+            height: 220,
             child: ListView.builder(
               controller: _scrollController,
               scrollDirection: Axis.horizontal,
@@ -150,9 +150,9 @@ class _HourlyForecastSheetState extends State<HourlyForecastSheet> {
                 final isCurrentHour = isToday && h.time.hour == now.hour;
 
                 return Container(
-                  width: 72,
+                  width: 80,
                   margin: const EdgeInsets.symmetric(horizontal: 4),
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
                   decoration: BoxDecoration(
                     color: isCurrentHour
                         ? theme.colorScheme.primary.withAlpha(40)
@@ -166,13 +166,13 @@ class _HourlyForecastSheetState extends State<HourlyForecastSheet> {
                     children: [
                       // Tijd / NU
                       SizedBox(
-                        height: 16,
+                        height: 18,
                         child: Center(
                           child: Text(
                             isCurrentHour ? 'NU' : '${h.time.hour.toString().padLeft(2, '0')}:00',
                             style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: isCurrentHour ? FontWeight.w700 : FontWeight.w400,
+                              fontSize: 12,
+                              fontWeight: isCurrentHour ? FontWeight.w700 : FontWeight.w500,
                               color: isCurrentHour
                                   ? theme.colorScheme.primary
                                   : theme.colorScheme.onSurface.withAlpha(180),
@@ -183,18 +183,18 @@ class _HourlyForecastSheetState extends State<HourlyForecastSheet> {
                       const SizedBox(height: 4),
                       // Weer icoon
                       SizedBox(
-                        height: 22,
-                        child: Center(child: Icon(icon, color: iconColor, size: 22)),
+                        height: 26,
+                        child: Center(child: Icon(icon, color: iconColor, size: 26)),
                       ),
                       const SizedBox(height: 4),
                       // Temperatuur
                       SizedBox(
-                        height: 20,
+                        height: 22,
                         child: Center(
                           child: Text(
                             '${h.temperature.toStringAsFixed(0)}°',
                             style: TextStyle(
-                              fontSize: 16,
+                              fontSize: 17,
                               fontWeight: FontWeight.w600,
                               color: tempColor,
                             ),
@@ -204,13 +204,13 @@ class _HourlyForecastSheetState extends State<HourlyForecastSheet> {
                       const SizedBox(height: 2),
                       // Gevoelstemperatuur (vast slot — leeg indien geen verschil)
                       SizedBox(
-                        height: 12,
+                        height: 14,
                         child: Center(
                           child: (h.apparentTemperature - h.temperature).abs() >= 1
                               ? Text(
                                   '${h.apparentTemperature.toStringAsFixed(0)}°',
                                   style: TextStyle(
-                                    fontSize: 10,
+                                    fontSize: 11,
                                     color: theme.colorScheme.onSurface.withAlpha(120),
                                   ),
                                 )
@@ -220,13 +220,13 @@ class _HourlyForecastSheetState extends State<HourlyForecastSheet> {
                       const SizedBox(height: 4),
                       // Windrichting pijl (vast slot)
                       SizedBox(
-                        height: 14,
+                        height: 16,
                         child: Center(
                           child: Transform.rotate(
                             angle: h.windDirection.toDouble() * 3.1415926535 / 180,
                             child: Icon(
                               Icons.arrow_upward,
-                              size: 14,
+                              size: 16,
                               color: theme.colorScheme.onSurface.withAlpha(180),
                             ),
                           ),
@@ -235,19 +235,19 @@ class _HourlyForecastSheetState extends State<HourlyForecastSheet> {
                       const SizedBox(height: 4),
                       // Neerslagkans (vast slot — leeg indien < 10%)
                       SizedBox(
-                        height: 14,
+                        height: 16,
                         child: Center(
                           child: h.precipitationProbability > 10
                               ? Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Icon(Icons.water_drop,
-                                        size: 10, color: theme.colorScheme.onSurface.withAlpha(150)),
+                                        size: 11, color: theme.colorScheme.onSurface.withAlpha(150)),
                                     const SizedBox(width: 2),
                                     Text(
                                       '${h.precipitationProbability}%',
                                       style: TextStyle(
-                                        fontSize: 10,
+                                        fontSize: 11,
                                         color: theme.colorScheme.onSurface.withAlpha(150),
                                       ),
                                     ),
@@ -259,12 +259,12 @@ class _HourlyForecastSheetState extends State<HourlyForecastSheet> {
                       const SizedBox(height: 4),
                       // UV-index (vast slot — leeg indien < 3)
                       SizedBox(
-                        height: 18,
+                        height: 20,
                         child: Center(
                           child: h.uvIndex >= 3
                               ? Container(
-                                  width: 18,
-                                  height: 18,
+                                  width: 20,
+                                  height: 20,
                                   decoration: BoxDecoration(
                                     color: WeatherUtils.uvInfo(h.uvIndex).color,
                                     shape: BoxShape.circle,
@@ -274,7 +274,7 @@ class _HourlyForecastSheetState extends State<HourlyForecastSheet> {
                                     h.uvIndex.toStringAsFixed(0),
                                     style: const TextStyle(
                                       color: Colors.white,
-                                      fontSize: 9,
+                                      fontSize: 10,
                                       fontWeight: FontWeight.w700,
                                     ),
                                   ),
