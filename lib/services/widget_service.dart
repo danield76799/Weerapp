@@ -52,6 +52,7 @@ class WidgetService {
       // Updated time
       final now = DateTime.now();
       final updated = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+      final date = '${now.day.toString().padLeft(2, '0')}-${now.month.toString().padLeft(2, '0')}';
 
       // Save to SharedPreferences for the Kotlin widget provider
       await HomeWidget.saveWidgetData('location', locationName);
@@ -62,6 +63,7 @@ class WidgetService {
       await HomeWidget.saveWidgetData('uv', uvInfo);
       await HomeWidget.saveWidgetData('wind', windInfo);
       await HomeWidget.saveWidgetData('updated', updated);
+      await HomeWidget.saveWidgetData('date', date);
 
       // Trigger widget update
       await HomeWidget.updateWidget(

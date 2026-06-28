@@ -25,13 +25,28 @@
             android:singleLine="true"
             android:ellipsize="end" />
 
-        <TextView
-            android:id="@+id/widget_updated"
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text=""
-            android:textColor="#88FFFFFF"
-            android:textSize="10sp" />
+            android:orientation="vertical"
+            android:gravity="end">
+
+            <TextView
+                android:id="@+id/widget_updated"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:textColor="#88FFFFFF"
+                android:textSize="10sp" />
+
+            <TextView
+                android:id="@+id/widget_date"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:textColor="#66FFFFFF"
+                android:textSize="9sp" />
+        </LinearLayout>
     </LinearLayout>
 
     <LinearLayout

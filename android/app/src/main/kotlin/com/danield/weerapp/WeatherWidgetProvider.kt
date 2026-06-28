@@ -40,6 +40,7 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         val uv = prefs.getString("uv", "") ?: ""
         val wind = prefs.getString("wind", "") ?: ""
         val updated = prefs.getString("updated", "") ?: ""
+        val date = prefs.getString("date", "") ?: ""
 
         val views = RemoteViews(context.packageName, R.layout.weather_widget)
         views.setTextViewText(R.id.widget_location, location)
@@ -50,6 +51,7 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         views.setTextViewText(R.id.widget_uv, uv)
         views.setTextViewText(R.id.widget_wind, wind)
         views.setTextViewText(R.id.widget_updated, updated)
+        views.setTextViewText(R.id.widget_date, date)
 
         // Tap opent de app
         val intent = Intent(context, MainActivity::class.java)
