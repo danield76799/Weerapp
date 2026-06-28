@@ -34,7 +34,7 @@ class LocationService {
       pos = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.low,
-          timeLimit: Duration(seconds: 30),
+          timeLimit: Duration(seconds: 60),
         ),
       );
     } catch (e) {
@@ -43,7 +43,7 @@ class LocationService {
       if (last != null) {
         pos = last;
       } else {
-        throw LocationException('GPS-timeout: kan locatie niet bepalen. Controleer of GPS aan staat.');
+        throw LocationException('GPS-timeout: kan locatie niet bepalen.\nControleer of GPS aan staat en probeer het opnieuw.');
       }
     }
 
