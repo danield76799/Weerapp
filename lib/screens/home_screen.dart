@@ -182,7 +182,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     await provider.silentRefresh(loc.lat, loc.lon, loc.name);
     if (provider.hasData) {
       WidgetService.updateWeather(provider.data!);
+      // Update locatienaam als GPS-locatie een andere naam retourneert
       if (loc.isCurrentLocation) {
+        final weatherName = provider.data!.locationName;
+        if (weatherName.isNotEmpty && weatherName != loc.name) {
+          final updated = SavedLocation(
+            lat: loc.lat, lon: loc.lon, name: weatherName,
+            sortOrder: loc.sortOrder, isCurrentLocation: true,
+          );
+          await _savedLocations.addLocation(updated);
+          final locations = await _savedLocations.getLocations();
+          if (mounted) setState(() => _locations = locations);
+        }
         try {
           final notif = WeatherNotificationService(weatherService: service);
           await notif.checkThresholds(provider.data!);
