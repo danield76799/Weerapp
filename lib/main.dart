@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'screens/home_screen.dart';
 import 'screens/onboarding_screen.dart';
+import 'services/battery_optimization_service.dart';
 import 'services/weather_notification_service.dart';
 import 'services/weather_provider.dart';
 import 'services/weather_service.dart';
@@ -23,6 +24,9 @@ void main() async {
   final prefs = await SharedPreferences.getInstance();
   themeModeNotifier.value = prefs.getString('theme_mode') ?? 'system';
   accentColorNotifier.value = prefs.getInt('accent_color') ?? 0xFF49AFC2;
+
+  // Ask user to disable battery optimization once
+  await BatteryOptimizationService.askOnceIfNeeded();
 
   runApp(WeerApp(weatherService: weatherService));
 }
