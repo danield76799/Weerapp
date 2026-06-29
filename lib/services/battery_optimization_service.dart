@@ -47,8 +47,8 @@ class BatteryOptimizationService {
     final alreadyAsked = prefs.getBool(_askedKey) ?? false;
     if (alreadyAsked) return;
 
-    final isIgnoring = await isIgnoring();
-    if (isIgnoring) return;
+    final alreadyIgnoring = await isIgnoring();
+    if (alreadyIgnoring) return;
 
     await requestIgnore();
 
