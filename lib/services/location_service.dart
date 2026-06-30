@@ -5,12 +5,24 @@ class LocationResult {
   final double lat;
   final double lon;
   final String name;
+  final LocationSource source;
 
-  LocationResult({required this.lat, required this.lon, required this.name});
+  LocationResult({
+    required this.lat,
+    required this.lon,
+    required this.name,
+    this.source = LocationSource.gps,
+  });
 }
 
+enum LocationSource { gps, network, cached, manual }
+
 class LocationService {
-  /// Vraag locatie permissie + huidige GPS
+  /// Haalt locatie op met multi-strategy fallback:
+  /// 1. Network (WiFi/cell) — snelst, werkt binnen
+  /// 2. GPS — accuraatst, duurt langer
+  /// 3. Last known — als alles faalt
+  /// 4. Error — geen enkele bron beschikbaar
   Future<LocationResult> getCurrentLocation() async {
     final serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
@@ -29,41 +41,74 @@ class LocationService {
           'Locatie permissie permanent geweigerd. Ga naar instellingen om dit aan te passen');
     }
 
-    Position pos;
+    // STRATEGIE 1: Network (WiFi + cell towers) — snel, binnen
+    Position? pos = await _tryNetworkLocation();
+    if (pos != null) {
+      final name = await _reverseGeocode(pos.latitude, pos.longitude);
+      return LocationResult(
+        lat: pos.latitude,
+        lon: pos.longitude,
+        name: name,
+        source: LocationSource.network,
+      );
+    }
+
+    // STRATEGIE 2: GPS — accuraat, traag
+    pos = await _tryGpsLocation();
+    if (pos != null) {
+      final name = await _reverseGeocode(pos.latitude, pos.longitude);
+      return LocationResult(
+        lat: pos.latitude,
+        lon: pos.longitude,
+        name: name,
+        source: LocationSource.gps,
+      );
+    }
+
+    // STRATEGIE 3: Last known position (cached)
+    pos = await Geolocator.getLastKnownPosition();
+    if (pos != null) {
+      final name = await _reverseGeocode(pos.latitude, pos.longitude);
+      return LocationResult(
+        lat: pos.latitude,
+        lon: pos.longitude,
+        name: name,
+        source: LocationSource.cached,
+      );
+    }
+
+    // Nikets werkte
+    throw LocationException(
+        'Kan locatie niet bepalen.\\nControleer of WiFi/GPS aan staat en probeer opnieuw.');
+  }
+
+  /// Probeer netwerk locatie (WiFi + cell towers) — werkt binnenshuis
+  Future<Position?> _tryNetworkLocation() async {
     try {
-      // medium accuracy needed — low doesn't trigger GPS on some Android devices
-      pos = await Geolocator.getCurrentPosition(
+      // low = network provider (WiFi + cell towers), geen GPS
+      return await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.medium,
-          timeLimit: Duration(seconds: 30),
+          accuracy: LocationAccuracy.low,
+          timeLimit: Duration(seconds: 5),
         ),
       );
     } catch (_) {
-      // Fallback 1: probeer last known position
-      final last = await Geolocator.getLastKnownPosition();
-      if (last != null) {
-        pos = last;
-      } else {
-        // Fallback 2: nogmaals proberen met hoge accuracy
-        try {
-          pos = await Geolocator.getCurrentPosition(
-            locationSettings: const LocationSettings(
-              accuracy: LocationAccuracy.high,
-              timeLimit: Duration(seconds: 30),
-            ),
-          );
-        } catch (_) {
-          throw LocationException('GPS-timeout: kan locatie niet bepalen.\nControleer of GPS aan staat en probeer het opnieuw.');
-        }
-      }
+      return null;
     }
+  }
 
-    final name = await _reverseGeocode(pos.latitude, pos.longitude);
-    return LocationResult(
-      lat: pos.latitude,
-      lon: pos.longitude,
-      name: name,
-    );
+  /// Probeer GPS — accuraat maar traag, werkt slecht binnen
+  Future<Position?> _tryGpsLocation() async {
+    try {
+      return await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          timeLimit: Duration(seconds: 15),
+        ),
+      );
+    } catch (_) {
+      return null;
+    }
   }
 
   /// Zoek een adres / stad op
@@ -73,7 +118,12 @@ class LocationService {
       if (results.isEmpty) return null;
       final pos = results.first;
       final name = await _reverseGeocode(pos.latitude, pos.longitude);
-      return LocationResult(lat: pos.latitude, lon: pos.longitude, name: name);
+      return LocationResult(
+        lat: pos.latitude,
+        lon: pos.longitude,
+        name: name,
+        source: LocationSource.manual,
+      );
     } catch (_) {
       return null;
     }
