@@ -350,7 +350,7 @@ class WeatherService {
       }
       return pastDaily;
     } catch (e) {
-      AppLogger.debug('Archive API fetch failed (non-fatal): $e');
+      debugPrint('Archive API fetch failed (non-fatal): $e');
       return null;
     }
   }
