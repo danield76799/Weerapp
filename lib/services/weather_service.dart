@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer' as developer;
 import 'dart:io';
 
 import 'package:dio/dio.dart';
@@ -350,7 +351,7 @@ class WeatherService {
       }
       return pastDaily;
     } catch (e) {
-      debugPrint('Archive API fetch failed (non-fatal): $e');
+      developer.log('Archive API fetch failed (non-fatal): $e');
       return null;
     }
   }
