@@ -20,11 +20,13 @@ class WeatherService {
   /// Oude caches met een lager versienummer worden automatisch genegeerd.
   static const _cacheVersion = 5;
 
+  static const _archiveBaseUrl = 'https://archive-api.open-meteo.com';
   static const _forecastBaseUrl = 'https://api.open-meteo.com';
   static const _airQualityUrl =
       'https://air-quality-api.open-meteo.com/v1/air-quality';
 
   final Dio _dio;
+  final Dio _archiveDio;
 
   WeatherService({Dio? dio})
       : _dio = dio ??
@@ -32,7 +34,12 @@ class WeatherService {
               baseUrl: _forecastBaseUrl,
               connectTimeout: const Duration(seconds: 10),
               receiveTimeout: const Duration(seconds: 15),
-            ));
+            )),
+        _archiveDio = Dio(BaseOptions(
+          baseUrl: _archiveBaseUrl,
+          connectTimeout: const Duration(seconds: 10),
+          receiveTimeout: const Duration(seconds: 15),
+        ));
 
   // API key methods — kept for compatibility but not used with Open-Meteo
   Future<bool> setApiKey(String key) async => true;
@@ -126,7 +133,6 @@ class WeatherService {
             'sunshine_duration',
           ].join(','),
           'timezone': 'auto',
-          'past_days': 7,
           'forecast_days': 16,
           'wind_speed_unit': 'ms',
           'temperature_unit': 'celsius',
@@ -140,12 +146,17 @@ class WeatherService {
 
       final data = response.data as Map<String, dynamic>;
 
+      // Fetch accurate historical data from Archive API for exact GPS coordinates
+      // instead of using the forecast API's reanalysis grid point.
+      final historicalData = await _fetchHistoricalData(lat, lon);
+
       // Best-effort air quality + pollen fetch (separate API).
       final airQuality = await _fetchAirQuality(lat, lon);
 
       final weather = _parseOpenMeteo(
         data,
-        locationName,
+        historicalData: historicalData,
+        locationName: locationName,
         airQuality: airQuality.$1,
         pollen: airQuality.$2,
       );
@@ -245,10 +256,110 @@ class WeatherService {
     }
   }
 
+  /// Fetch historical data from Open-Meteo Archive API (ERA5 reanalysis).
+  /// This provides exact data for the GPS coordinates instead of the nearest grid point.
+  Future<List<DailyForecast>?> _fetchHistoricalData(double lat, double lon) async {
+    try {
+      final endDate = DateTime.now().subtract(const Duration(days: 1));
+      final startDate = endDate.subtract(const Duration(days: 7));
+
+      final response = await _archiveDio.get(
+        '/v1/archive',
+        queryParameters: {
+          'latitude': lat,
+          'longitude': lon,
+          'start_date':
+              '${startDate.year}-${startDate.month.toString().padLeft(2, '0')}-${startDate.day.toString().padLeft(2, '0')}',
+          'end_date':
+              '${endDate.year}-${endDate.month.toString().padLeft(2, '0')}-${endDate.day.toString().padLeft(2, '0')}',
+          'daily': [
+            'weather_code',
+            'temperature_2m_max',
+            'temperature_2m_min',
+            'apparent_temperature_max',
+            'apparent_temperature_min',
+            'sunrise',
+            'sunset',
+            'uv_index_max',
+            'precipitation_sum',
+            'precipitation_probability_max',
+            'wind_speed_10m_max',
+            'wind_gusts_10m_max',
+            'relative_humidity_2m_max',
+            'cloud_cover_max',
+            'sunshine_duration',
+          ].join(','),
+          'timezone': 'auto',
+          'wind_speed_unit': 'ms',
+          'temperature_unit': 'celsius',
+          'precipitation_unit': 'mm',
+        },
+      );
+
+      if (response.statusCode != 200) {
+        return null;
+      }
+
+      final body = response.data as Map<String, dynamic>;
+      final dailyJson = body['daily'] as Map<String, dynamic>?;
+      if (dailyJson == null) return null;
+
+      final dates = dailyJson['time'] as List;
+      final tMax = dailyJson['temperature_2m_max'] as List;
+      final tMin = dailyJson['temperature_2m_min'] as List;
+      final appMax = dailyJson['apparent_temperature_max'] as List;
+      final appMin = dailyJson['apparent_temperature_min'] as List;
+      final weatherCodes = dailyJson['weather_code'] as List;
+      final uvMax = dailyJson['uv_index_max'] as List;
+      final precipSum = dailyJson['precipitation_sum'] as List;
+      final precipProb = dailyJson['precipitation_probability_max'] as List;
+      final windMax = dailyJson['wind_speed_10m_max'] as List;
+      final humidityMax = dailyJson['relative_humidity_2m_max'] as List;
+      final gustsMax = dailyJson['wind_gusts_10m_max'] as List?;
+      final cloudCoverDaily = dailyJson['cloud_cover_max'] as List?;
+      final sunDurDaily = dailyJson['sunshine_duration'] as List?;
+      final sunrises = dailyJson['sunrise'] as List;
+      final sunsets = dailyJson['sunset'] as List;
+
+      final pastDaily = <DailyForecast>[];
+      for (var i = 0; i < dates.length; i++) {
+        final maxTemp = tMax[i] as num?;
+        final minTemp = tMin[i] as num?;
+        if (maxTemp == null || minTemp == null) continue;
+        final wmoCode = (weatherCodes[i] as num?)?.toInt() ?? 0;
+        pastDaily.add(DailyForecast(
+          date: DateTime.parse(dates[i] as String),
+          tempMin: minTemp.toDouble(),
+          tempMax: maxTemp.toDouble(),
+          tempDay: maxTemp.toDouble(),
+          tempNight: minTemp.toDouble(),
+          weatherCode: _wmoCode(wmoCode),
+          weatherDescription: _wmoDescription(wmoCode),
+          precipitationProbability:
+              ((precipProb[i] as num?) ?? 0).toDouble() / 100,
+          precipitationAmount: ((precipSum[i] as num?) ?? 0).toDouble(),
+          windSpeed: (windMax[i] as num?)?.toDouble() ?? 0,
+          windGustsMax: (gustsMax?[i] as num?)?.toDouble(),
+          uvIndex: (uvMax[i] as num?)?.toDouble() ?? 0,
+          cloudCover: (cloudCoverDaily?[i] as num?)?.toInt() ?? 0,
+          humidity: (humidityMax[i] as num?)?.toInt() ?? 0,
+          sunrise: DateTime.parse(sunrises[i] as String),
+          sunset: DateTime.parse(sunsets[i] as String),
+          sunshineDuration: (sunDurDaily?[i] as num?)?.toDouble(),
+        ));
+      }
+      return pastDaily;
+    } catch (e) {
+      AppLogger.debug('Archive API fetch failed (non-fatal): $e');
+      return null;
+    }
+  }
+
   /// Parse Open-Meteo response naar WeatherData
   WeatherData _parseOpenMeteo(
-    Map<String, dynamic> json,
-    String locationName, {
+    Map<String, dynamic> json, {
+    required List<DailyForecast>? historicalData,
+    required String locationName,
     AirQuality? airQuality,
     PollenInfo? pollen,
   }) {
@@ -296,7 +407,6 @@ class WeatherService {
     final sunsets = dailyJson['sunset'] as List;
 
     final daily = <DailyForecast>[];
-    final pastDaily = <DailyForecast>[];
     final today = DateTime.now();
     for (var i = 0; i < dates.length; i++) {
       final date = DateTime.parse(dates[i] as String);
@@ -325,13 +435,13 @@ class WeatherService {
         sunset: DateTime.parse(sunsets[i] as String),
         sunshineDuration: (sunDurDaily?[i] as num?)?.toDouble(),
       );
-      // Split: before today = past, from today onwards = forecast
-      if (date.isBefore(DateTime(today.year, today.month, today.day))) {
-        pastDaily.add(day);
-      } else if (daily.length < 16) {
+      // Use exact GPS historical data if available, otherwise fall back to forecast past_days
+      if (daily.length < 16) {
         daily.add(day);
       }
     }
+
+    final pastDaily = historicalData ?? [];
 
     // Hourly forecast — parse all hours
     final hourly = <HourlyForecast>[];
