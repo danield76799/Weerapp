@@ -18,6 +18,10 @@ class RainRadarScreen extends StatefulWidget {
 }
 
 class _RainRadarScreenState extends State<RainRadarScreen> {
+  static DateTime? _lastFetch;
+  static List<_PrecipFrame>? _cachedFrames;
+  static const Duration _cacheDuration = Duration(minutes: 5);
+
   final MapController _mapController = MapController();
   List<_PrecipFrame> _frames = [];
   int _currentFrame = 0;
@@ -26,12 +30,12 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
   bool _loading = true;
   String? _error;
 
-  static const _gridSize = 5; // 5x5 = 25 points
-  static const _gridSpacing = 0.25; // ~28km
-  static const _pastHours = 2;
-  static const _futureHours = 5;
+  static const _gridSize = 3; // 3x3 = 9 points
+  static const _gridSpacing = 0.5; // ~55km
+  static const _pastHours = 1;
+  static const _futureHours = 3;
   static const _totalHours = _pastHours + _futureHours;
-  static const _animDuration = Duration(milliseconds: 700);
+  static const _animDuration = Duration(milliseconds: 500);
 
   @override
   void initState() {
@@ -47,6 +51,19 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
   }
 
   Future<void> _fetchPrecipGrid() async {
+    // Use cached data if recent
+    final now = DateTime.now();
+    if (_lastFetch != null &&
+        _cachedFrames != null &&
+        now.difference(_lastFetch!) < _cacheDuration) {
+      setState(() {
+        _frames = _cachedFrames!;
+        _currentFrame = _pastHours;
+        _loading = false;
+      });
+      _startAnimation();
+      return;
+    }
     try {
       final dio = Dio();
       final centerLat = widget.location.lat;
@@ -137,6 +154,9 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
         }).toList();
         frames.add(_PrecipFrame(time: frameTime, points: framePoints));
       }
+      // Cache the result
+      _lastFetch = now;
+      _cachedFrames = frames;
 
       setState(() {
         _frames = frames;
@@ -414,17 +434,23 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
                                       ),
                                     ),
                                     Positioned(
-                                      left: 0, top: 14, bottom: 14,
+                                      left: 0,
+                                      top: 14,
+                                      bottom: 14,
                                       width: barWidth * (_pastHours / _totalHours),
                                       child: Container(decoration: BoxDecoration(color: theme.colorScheme.primary.withAlpha(120), borderRadius: BorderRadius.circular(2))),
                                     ),
                                     Positioned(
-                                      right: 0, top: 14, bottom: 14,
+                                      right: 0,
+                                      top: 14,
+                                      bottom: 14,
                                       width: barWidth * (_futureHours / _totalHours),
                                       child: Container(decoration: BoxDecoration(color: const Color(0xFFFF9800).withAlpha(120), borderRadius: BorderRadius.circular(2))),
                                     ),
                                     Positioned(
-                                      left: barWidth * (_pastHours / _totalHours) - 1, top: 10, bottom: 10,
+                                      left: barWidth * (_pastHours / _totalHours) - 1,
+                                      top: 10,
+                                      bottom: 10,
                                       child: Container(width: 2, color: const Color(0xFF4CAF50)),
                                     ),
                                     AnimatedPositioned(
@@ -433,7 +459,8 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
                                       left: (_currentFrame / (_frames.length - 1)) * barWidth - 8,
                                       top: 8,
                                       child: Container(
-                                        width: 16, height: 16,
+                                        width: 16,
+                                        height: 16,
                                         decoration: BoxDecoration(
                                           color: isFuture ? const Color(0xFFFF9800) : (isNow ? const Color(0xFF4CAF50) : theme.colorScheme.primary),
                                           shape: BoxShape.circle,
@@ -495,12 +522,12 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
       builder: (context) => AlertDialog(
         title: const Text('Neerslagkaart'),
         content: const Text(
-          'Deze kaart toont een animatie van neerslag:\n\n'
-          '• Blauwe cirkels = afgelopen 2 uur\n'
-          '• Oranje cirkels = komende 5 uur voorspelling\n'
-          '• Groene streep = nu\n\n'
+          'Deze kaart toont een animatie van neerslag:\\n\\n'
+          '• Blauwe cirkels = afgelopen 2 uur\\n'
+          '• Oranje cirkels = komende 5 uur voorspelling\\n'
+          '• Groene streep = nu\\n\\n'
           'Druk op play/pause om de animatie te starten of stoppen. '
-          'Schuif over de balk om naar een specifiek tijdstip te gaan.\n\n'
+          'Schuif over de balk om naar een specifiek tijdstip te gaan.\\n\\n'
           'Data: Open-Meteo (25 punten raster)',
         ),
         actions: [
