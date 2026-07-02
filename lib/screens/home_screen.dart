@@ -160,7 +160,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Future<void> _loadLocation(double lat, double lon, String name, {bool isCurrentLocation = false}) async {
     final provider = context.read<WeatherProvider>();
     await provider.loadWeather(lat: lat, lon: lon, locationName: name);
-    if (provider.hasData) {
+    if (provider.hasData && isCurrentLocation) {
       // Update home screen widget
       WidgetService.updateWeather(provider.data!);
       if (isCurrentLocation) {
@@ -206,7 +206,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
 
     await provider.silentRefresh(lat, lon, name);
-    if (provider.hasData) {
+    if (provider.hasData && loc.isCurrentLocation) {
       WidgetService.updateWeather(provider.data!);
       // Update naam als API andere naam retourneert dan GPS
       if (loc.isCurrentLocation) {
