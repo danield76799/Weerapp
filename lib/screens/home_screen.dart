@@ -52,6 +52,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    _pageController = PageController();
     WidgetsBinding.instance.addObserver(this);
     _loadSettings();
     _bootstrap();
@@ -464,7 +465,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           }
 
           return PageView.builder(
-            controller: _pageController ??= PageController(),
+            controller: _pageController,
             itemCount: _locations.length,
             onPageChanged: _onPageChanged,
             itemBuilder: (context, index) {
