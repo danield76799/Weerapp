@@ -112,16 +112,19 @@ class _DailyTile extends StatelessWidget {
             Icon(icon, color: iconColor, size: 32),
             const SizedBox(width: 8),
             SizedBox(
-              width: 50,
+              width: 60,
               child: day.precipitationProbability > 0.1
-                  ? Row(children: [
-                      Icon(Icons.water_drop,
-                          size: 14,
-                          color: theme.colorScheme.onSurface.withAlpha(150)),
-                      const SizedBox(width: 2),
-                      Text('${(day.precipitationProbability * 100).toInt()}%',
-                          style: theme.textTheme.bodySmall),
-                    ])
+                  ? FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Row(children: [
+                        Icon(Icons.water_drop,
+                            size: 14,
+                            color: theme.colorScheme.onSurface.withAlpha(150)),
+                        const SizedBox(width: 2),
+                        Text('${(day.precipitationProbability * 100).toInt()}%',
+                            style: theme.textTheme.bodySmall),
+                      ]),
+                    )
                   : const SizedBox.shrink(),
             ),
             Container(
