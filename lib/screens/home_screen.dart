@@ -232,24 +232,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     setState(() => _currentPage = page);
     if (page < _locations.length) {
       final loc = _locations[page];
-      if (loc.isCurrentLocation) {
-        // GPS-locatie: haal verse coördinaten op
-        try {
-          final gps = await _locationService.getCurrentLocation();
-          final updated = SavedLocation(
-            lat: gps.lat, lon: gps.lon, name: gps.name,
-            sortOrder: loc.sortOrder, isCurrentLocation: true,
-          );
-          await _savedLocations.addLocation(updated);
-          final locations = await _savedLocations.getLocations();
-          if (mounted) setState(() => _locations = locations);
-          await _loadLocation(gps.lat, gps.lon, gps.name, isCurrentLocation: true);
-        } catch (_) {
-          await _loadLocation(loc.lat, loc.lon, loc.name, isCurrentLocation: true);
-        }
-      } else {
-        await _loadLocation(loc.lat, loc.lon, loc.name, isCurrentLocation: false);
-      }
+      // Gebruik memory cache voor snelle switch — geen GPS bij swipen
+      await _loadLocation(loc.lat, loc.lon, loc.name, isCurrentLocation: loc.isCurrentLocation);
     }
   }
 

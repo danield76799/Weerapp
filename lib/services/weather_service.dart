@@ -147,12 +147,14 @@ class WeatherService {
 
       final data = response.data as Map<String, dynamic>;
 
-      // Fetch accurate historical data from Archive API for exact GPS coordinates
-      // instead of using the forecast API's reanalysis grid point.
-      final historicalData = await _fetchHistoricalData(lat, lon);
+      // Haal historical data en air quality PARALLEL op (was: sequentieel)
+      final results = await Future.wait([
+        _fetchHistoricalData(lat, lon),
+        _fetchAirQuality(lat, lon),
+      ]);
 
-      // Best-effort air quality + pollen fetch (separate API).
-      final airQuality = await _fetchAirQuality(lat, lon);
+      final historicalData = results[0] as List<DailyForecast>?;
+      final airQuality = results[1] as (AirQuality?, PollenInfo?);
 
       final weather = _parseOpenMeteo(
         data,

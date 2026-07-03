@@ -14,6 +14,10 @@ class WeatherProvider extends ChangeNotifier {
   bool _isFromCache = false;
   DateTime? _lastRefresh;
 
+  // Memory cache: key = "lat,lon" → WeatherData
+  // Zorgt voor instant locatie-switches zonder API call of disk cache lezen
+  final Map<String, WeatherData> _memoryCache = {};
+
   WeatherProvider(this._service);
 
   WeatherData? get data => _data;
@@ -23,12 +27,37 @@ class WeatherProvider extends ChangeNotifier {
   bool get hasData => _data != null;
   DateTime? get lastRefresh => _lastRefresh;
 
+  /// Haal gecachte data op voor een specifieke locatie (uit memory)
+  WeatherData? getCachedData(String key) => _memoryCache[key];
+
   Future<void> loadWeather({
     required double lat,
     required double lon,
     required String locationName,
     bool force = false,
   }) async {
+    final key = '${lat.toStringAsFixed(2)},${lon.toStringAsFixed(2)}';
+
+    // 1. Memory cache? → toon direct, refresh op achtergrond als nodig
+    if (!force && _memoryCache.containsKey(key)) {
+      final cached = _memoryCache[key]!;
+      final age = DateTime.now().difference(cached.fetchedAt);
+      _data = cached;
+      _currentLocationKey = key;
+      _status = WeatherStatus.loaded;
+      _isFromCache = age > const Duration(minutes: 10);
+      _lastRefresh = cached.fetchedAt;
+      notifyListeners();
+
+      // Als cache jonger dan 10 min is, niet opnieuw ophalen
+      if (!_isFromCache) return;
+
+      // Cache is oud — refresh op achtergrond (zonder loading state)
+      _refreshFromMemory(key, lat, lon, locationName);
+      return;
+    }
+
+    // 2. Geen memory cache — laad met loading state
     _status = WeatherStatus.loading;
     _errorMessage = null;
     _isFromCache = false;
@@ -42,6 +71,8 @@ class WeatherProvider extends ChangeNotifier {
         force: force,
       );
       _data = data;
+      _memoryCache[key] = data;
+      _currentLocationKey = key;
       _status = WeatherStatus.loaded;
       _lastRefresh = DateTime.now();
       _isFromCache = DateTime.now().difference(data.fetchedAt) > const Duration(minutes: 5);
@@ -52,8 +83,37 @@ class WeatherProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  String? _currentLocationKey;
+
+  /// Refresh op achtergrond terwijl oude data getoond wordt
+  Future<void> _refreshFromMemory(
+    String key,
+    double lat,
+    double lon,
+    String locationName,
+  ) async {
+    try {
+      final data = await _service.fetchWeather(
+        lat: lat,
+        lon: lon,
+        locationName: locationName,
+        force: true,
+      );
+      _memoryCache[key] = data;
+      if (_currentLocationKey == key) {
+        _data = data;
+        _lastRefresh = DateTime.now();
+        _isFromCache = false;
+        notifyListeners();
+      }
+    } catch (_) {
+      // Silent fail — oude data blijft getoond
+    }
+  }
+
   /// Silent refresh — no loading state, just update data in background
   Future<void> silentRefresh(double lat, double lon, String name) async {
+    final key = '${lat.toStringAsFixed(2)},${lon.toStringAsFixed(2)}';
     try {
       final data = await _service.fetchWeather(
         lat: lat,
@@ -62,6 +122,8 @@ class WeatherProvider extends ChangeNotifier {
         force: true,
       );
       _data = data;
+      _memoryCache[key] = data;
+      _currentLocationKey = key;
       _lastRefresh = DateTime.now();
       _isFromCache = false;
       notifyListeners();
