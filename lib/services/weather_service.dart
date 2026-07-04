@@ -7,7 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/weather.dart';
 
-/// Open-Meteo API — gratis, geen API key, 16-daagse forecast met UV-index.
+/// Open-Meteo API — gratis, geen API key, 14-daagse forecast met UV-index.
 ///
 /// Docs: https://open-meteo.com/en/docs
 /// Forecast API: https://api.open-meteo.com/v1/forecast
@@ -71,7 +71,7 @@ class WeatherService {
     }
   }
 
-  /// Haal huidige + 16-daagse forecast op via Open-Meteo
+  /// Haal huidige + 14-daagse forecast op via Open-Meteo
   Future<WeatherData> fetchWeather({
     required double lat,
     required double lon,
@@ -134,7 +134,7 @@ class WeatherService {
             'sunshine_duration',
           ].join(','),
           'timezone': 'auto',
-          'forecast_days': 16,
+          'forecast_days': 14,
           'wind_speed_unit': 'ms',
           'temperature_unit': 'celsius',
           'precipitation_unit': 'mm',

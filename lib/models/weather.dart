@@ -231,8 +231,8 @@ class AirQuality {
 
   String get advice {
     final aqi = europeanAqi ?? pm25;
-    if (aqi <= 20) return 'Geen bezorgenheid';
-    if (aqi <= 40) return 'Geen bezorgenheid voor de meesten';
+    if (aqi <= 20) return 'Geen bezorgdheid';
+    if (aqi <= 40) return 'Geen bezorgdheid voor de meesten';
     if (aqi <= 60) return 'Gevoelige groepen kunnen klachten krijgen';
     if (aqi <= 80) return 'Iedereen kan klachten krijgen';
     return 'Vermijd buitenactiviteiten';
