@@ -184,20 +184,30 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     String name = loc.name;
 
     // Als isCurrentLocation, haal verse GPS-coördinaten op
+    // Maar doe dit maximaal elke 30 minuten — de 10-min timer draait wel,
+    // maar GPS is te zwaar voor elke tick. De weather data wordt wel ververst.
     if (loc.isCurrentLocation) {
+      final lastGpsKey = 'last_gps_refresh_${loc.lat}_${loc.lon}';
       try {
-        final gps = await _locationService.getCurrentLocation();
-        lat = gps.lat;
-        lon = gps.lon;
-        name = gps.name;
-        // Update opgeslagen locatie met nieuwe GPS-positie
-        final updated = SavedLocation(
-          lat: lat, lon: lon, name: name,
-          sortOrder: loc.sortOrder, isCurrentLocation: true,
-        );
-        await _savedLocations.addLocation(updated);
-        final locations = await _savedLocations.getLocations();
-        if (mounted) setState(() => _locations = locations);
+        final prefs = await SharedPreferences.getInstance();
+        final lastGps = prefs.getInt(lastGpsKey) ?? 0;
+        final now = DateTime.now().millisecondsSinceEpoch;
+        final gpsInterval = const Duration(minutes: 30).inMilliseconds;
+        if (now - lastGps > gpsInterval) {
+          final gps = await _locationService.getCurrentLocation();
+          lat = gps.lat;
+          lon = gps.lon;
+          name = gps.name;
+          await prefs.setInt(lastGpsKey, now);
+          // Update opgeslagen locatie met nieuwe GPS-positie
+          final updated = SavedLocation(
+            lat: lat, lon: lon, name: name,
+            sortOrder: loc.sortOrder, isCurrentLocation: true,
+          );
+          await _savedLocations.addLocation(updated);
+          final locations = await _savedLocations.getLocations();
+          if (mounted) setState(() => _locations = locations);
+        }
       } catch (_) {
         // GPS faalt — gebruik oude coördinaten
       }

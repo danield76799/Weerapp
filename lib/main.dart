@@ -19,16 +19,21 @@ void main() async {
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
   final weatherService = WeatherService();
-  await WeatherNotificationService(weatherService: weatherService).initialize();
 
   final prefs = await SharedPreferences.getInstance();
   themeModeNotifier.value = prefs.getString('theme_mode') ?? 'system';
   accentColorNotifier.value = prefs.getInt('accent_color') ?? 0xFF49AFC2;
 
-  // Ask user to disable battery optimization once
-  await BatteryOptimizationService.askOnceIfNeeded();
-
   runApp(WeerApp(weatherService: weatherService));
+
+  // Post-startup init — fire-and-forget, niet blokkeren van eerste frame.
+  // Notif init (timezone) en battery-opt prompt zijn niet nodig voor UI.
+  // HomeScreen checkThresholds heeft eigen try/catch, dus een gemiste notif
+  // bij cold-start is veilig.
+  WeatherNotificationService(weatherService: weatherService)
+      .initialize()
+      .catchError((_) {});
+  BatteryOptimizationService.askOnceIfNeeded().catchError((_) {});
 }
 
 class WeerApp extends StatelessWidget {

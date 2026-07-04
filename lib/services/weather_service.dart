@@ -33,13 +33,13 @@ class WeatherService {
       : _dio = dio ??
             Dio(BaseOptions(
               baseUrl: _forecastBaseUrl,
-              connectTimeout: const Duration(seconds: 10),
-              receiveTimeout: const Duration(seconds: 15),
+              connectTimeout: const Duration(seconds: 5),
+              receiveTimeout: const Duration(seconds: 8),
             )),
         _archiveDio = Dio(BaseOptions(
           baseUrl: _archiveBaseUrl,
-          connectTimeout: const Duration(seconds: 10),
-          receiveTimeout: const Duration(seconds: 15),
+          connectTimeout: const Duration(seconds: 5),
+          receiveTimeout: const Duration(seconds: 8),
         ));
 
   // API key methods — kept for compatibility but not used with Open-Meteo
@@ -87,74 +87,77 @@ class WeatherService {
     }
 
     try {
-      final response = await _dio.get(
-        '/v1/forecast',
-        queryParameters: {
-          'latitude': lat,
-          'longitude': lon,
-          'current': [
-            'temperature_2m',
-            'apparent_temperature',
-            'relative_humidity_2m',
-            'precipitation',
-            'weather_code',
-            'wind_speed_10m',
-            'pressure_msl',
-            'cloud_cover',
-            'uv_index',
-            'dew_point_2m',
-            'visibility',
-            'wind_gusts_10m',
-            'sunshine_duration',
-          ].join(','),
-          'hourly': [
-            'temperature_2m',
-            'apparent_temperature',
-            'precipitation_probability',
-            'weather_code',
-            'uv_index',
-            'cloud_cover',
-            'wind_direction_10m',
-          ].join(','),
-          'daily': [
-            'weather_code',
-            'temperature_2m_max',
-            'temperature_2m_min',
-            'apparent_temperature_max',
-            'apparent_temperature_min',
-            'sunrise',
-            'sunset',
-            'uv_index_max',
-            'precipitation_sum',
-            'precipitation_probability_max',
-            'wind_speed_10m_max',
-            'wind_gusts_10m_max',
-            'relative_humidity_2m_max',
-            'cloud_cover_max',
-            'sunshine_duration',
-          ].join(','),
-          'timezone': 'auto',
-          'forecast_days': 14,
-          'wind_speed_unit': 'ms',
-          'temperature_unit': 'celsius',
-          'precipitation_unit': 'mm',
-        },
-      );
+      // Alle 3 calls tegelijk: forecast + historical + air quality.
+      // _fetchHistoricalData en _fetchAirQuality hebben interne try/catch
+      // en gooien nooit — dus Future.wait faalt alleen als forecast faalt,
+      // wat hetzelfde gedrag is als de oude sequentiële code.
+      final results = await Future.wait([
+        _dio.get(
+          '/v1/forecast',
+          queryParameters: {
+            'latitude': lat,
+            'longitude': lon,
+            'current': [
+              'temperature_2m',
+              'apparent_temperature',
+              'relative_humidity_2m',
+              'precipitation',
+              'weather_code',
+              'wind_speed_10m',
+              'pressure_msl',
+              'cloud_cover',
+              'uv_index',
+              'dew_point_2m',
+              'visibility',
+              'wind_gusts_10m',
+              'sunshine_duration',
+            ].join(','),
+            'hourly': [
+              'temperature_2m',
+              'apparent_temperature',
+              'precipitation_probability',
+              'weather_code',
+              'uv_index',
+              'cloud_cover',
+              'wind_direction_10m',
+            ].join(','),
+            'daily': [
+              'weather_code',
+              'temperature_2m_max',
+              'temperature_2m_min',
+              'apparent_temperature_max',
+              'apparent_temperature_min',
+              'sunrise',
+              'sunset',
+              'uv_index_max',
+              'precipitation_sum',
+              'precipitation_probability_max',
+              'wind_speed_10m_max',
+              'wind_gusts_10m_max',
+              'relative_humidity_2m_max',
+              'cloud_cover_max',
+              'sunshine_duration',
+            ].join(','),
+            'timezone': 'auto',
+            'forecast_days': 14,
+            'wind_speed_unit': 'ms',
+            'temperature_unit': 'celsius',
+            'precipitation_unit': 'mm',
+          },
+        ),
+        _fetchHistoricalData(lat, lon),
+        _fetchAirQuality(lat, lon),
+      ]);
+
+      final response = results[0] as Response;
+      final historicalData = results[1] as List<DailyForecast>?;
+      final airQuality = results[2] as (AirQuality?, PollenInfo?);
 
       if (response.statusCode != 200) {
         throw WeatherApiException('API error ${response.statusCode}');
       }
 
       final data = response.data as Map<String, dynamic>;
-
-      // Haal historical data en air quality PARALLEL op (was: sequentieel)
-      final results = await Future.wait([
-        _fetchHistoricalData(lat, lon),
-        _fetchAirQuality(lat, lon),
-      ]);
-
-      final historicalData = results[0] as List<DailyForecast>?;
-      final airQuality = results[1] as (AirQuality?, PollenInfo?);
 
       final weather = _parseOpenMeteo(
         data,
@@ -480,16 +483,20 @@ class WeatherService {
 
     // Update daily UV with the max hourly UV for each day
     // This ensures daily UV matches what's shown in the hourly forecast
+    // O(n) single pass: group hourly by day-date string, track max UV per day.
+    final uvMaxByDay = <String, double>{};
+    for (final h in hourly) {
+      final key = '${h.time.year}-${h.time.month}-${h.time.day}';
+      final current = uvMaxByDay[key];
+      if (current == null || h.uvIndex > current) {
+        uvMaxByDay[key] = h.uvIndex;
+      }
+    }
     for (final day in daily) {
-      final dayHours = hourly.where((h) =>
-          h.time.year == day.date.year &&
-          h.time.month == day.date.month &&
-          h.time.day == day.date.day);
-      if (dayHours.isNotEmpty) {
-        final maxHourlyUv = dayHours
-            .map((h) => h.uvIndex)
-            .reduce((a, b) => a > b ? a : b);
-        day.uvIndexFromHourly = maxHourlyUv;
+      final key = '${day.date.year}-${day.date.month}-${day.date.day}';
+      final maxUv = uvMaxByDay[key];
+      if (maxUv != null) {
+        day.uvIndexFromHourly = maxUv;
       }
     }
 
