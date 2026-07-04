@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/weather.dart';
+import '../utils/sky_gradient.dart';
 import '../utils/string_extensions.dart';
 import '../utils/weather_utils.dart';
 
