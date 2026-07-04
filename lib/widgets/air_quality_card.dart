@@ -117,7 +117,7 @@ class AirQualityCard extends StatelessWidget {
     if (aqi <= 20) return const Color(0xFF4CAF50);
     if (aqi <= 40) return const Color(0xFFFFC107);
     if (aqi <= 60) return const Color(0xFFFF9800);
-    if (aqi <= 80) return const Color(0xFFF4433 laT);
+    if (aqi <= 80) return const Color(0xFFF44336);
     return const Color(0xFF9C27B0);
   }
 
