@@ -32,7 +32,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       icon: Icons.notifications_active,
       iconColor: const Color(0xFF4CAF50),
       title: 'Blijf op de hoogte',
-      body: 'Ontvang eenMelding bij regen, hitte of een hoge UV-index.',
+      body: 'Ontvang een melding bij regen, hitte of een hoge UV-index.',
     ),
     _OnboardPage(
       icon: Icons.cloud_queue,

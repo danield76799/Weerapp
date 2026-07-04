@@ -393,13 +393,15 @@ class WeatherData {
       pollen: json['pollen'] != null
           ? PollenInfo.fromJson(json['pollen'])
           : null,
-      fetchedAt: DateTime.now(),
+      fetchedAt: json['fetchedAt'] != null
+          ? DateTime.parse(json['fetchedAt'] as String)
+          : DateTime.now(),
       locationName: locationName,
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'cache_version': 4,
+        'cache_version': 5,
         'current': current.toJson(),
         'daily': daily.map((d) => d.toJson()).toList(),
         'past_daily': pastDaily.map((d) => d.toJson()).toList(),

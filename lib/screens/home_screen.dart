@@ -163,15 +163,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (provider.hasData && isCurrentLocation) {
       // Update home screen widget
       WidgetService.updateWeather(provider.data!);
-      if (isCurrentLocation) {
-        try {
-          final notif = WeatherNotificationService(
-            weatherService: context.read<WeatherService>(),
-          );
-          await notif.checkThresholds(provider.data!);
-          await notif.sendMorningBriefingIfDue(provider.data!);
-        } catch (_) {}
-      }
+      try {
+        final notif = WeatherNotificationService(
+          weatherService: context.read<WeatherService>(),
+        );
+        await notif.checkThresholds(provider.data!);
+        await notif.sendMorningBriefingIfDue(provider.data!);
+      } catch (_) {}
     }
   }
 

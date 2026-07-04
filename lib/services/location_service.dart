@@ -79,7 +79,7 @@ class LocationService {
 
     // Nikets werkte
     throw LocationException(
-        'Kan locatie niet bepalen.\\nControleer of WiFi/GPS aan staat en probeer opnieuw.');
+        'Kan locatie niet bepalen.\nControleer of WiFi/GPS aan staat en probeer opnieuw.');
   }
 
   /// Probeer netwerk locatie (WiFi + cell towers) — werkt binnenshuis
