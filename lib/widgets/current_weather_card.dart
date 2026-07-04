@@ -115,59 +115,61 @@ class CurrentWeatherCard extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
               decoration: BoxDecoration(
                 color: Colors.white24,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: Colors.white38, width: 1),
               ),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.wb_sunny, color: Colors.amber, size: 22),
-                  const SizedBox(width: 8),
-                  const Text('UV-index', style: TextStyle(color: Colors.white)),
-                  const Spacer(),
-                  Text(
-                    current.uvIndex.toStringAsFixed(1),
-                    style: const TextStyle(
-                      color: Colors.amber,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                    ),
+                  Row(
+                    children: [
+                      const Icon(Icons.wb_sunny, color: Colors.amber, size: 22),
+                      const SizedBox(width: 8),
+                      const Text('UV-index', style: TextStyle(color: Colors.white)),
+                      const Spacer(),
+                      Text(
+                        current.uvIndex.toStringAsFixed(1),
+                        style: const TextStyle(
+                          color: Colors.amber,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.amber,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          uv.label.toUpperCase(),
+                          style: const TextStyle(
+                            color: Colors.black,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: Colors.amber,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      uv.label.toUpperCase(),
+                  if (uv.advice.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      uv.advice,
                       style: const TextStyle(
-                        color: Colors.black,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),
-            if (uv.advice.isNotEmpty) ...[
-              const SizedBox(height: 6),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: Text(
-                  uv.advice,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
-              ),
-            ],
             const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
