@@ -482,13 +482,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     if (provider.lastRefresh != null)
                       Padding(
                         padding: const EdgeInsets.only(top: 6, bottom: 4),
-                        child: Text(
-                          'Bijgewerkt om ${provider.lastRefresh!.hour.toString().padLeft(2, '0')}:${provider.lastRefresh!.minute.toString().padLeft(2, '0')}',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Theme.of(context).colorScheme.onSurface.withAlpha(120),
-                          ),
-                          textAlign: TextAlign.center,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.update, size: 16),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Bijgewerkt om ${provider.lastRefresh!.hour.toString().padLeft(2, '0')}:${provider.lastRefresh!.minute.toString().padLeft(2, '0')}',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Theme.of(context).colorScheme.onSurface.withAlpha(120),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     const SizedBox(height: 12),
@@ -516,11 +522,21 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       WeatherComparisonCard(pastDaily: data.pastDaily, daily: data.daily),
                       const SizedBox(height: 16),
                     ],
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: Text(
-                        '14-daagse verwachting',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primaryContainer,
+                        borderRadius: BorderRadius.horizontal(left: Radius.circular(16)),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.calendar_today, size: 20, color: Theme.of(context).colorScheme.primary),
+                          const SizedBox(width: 8),
+                          Text(
+                            '14-daagse verwachting',
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 8),
