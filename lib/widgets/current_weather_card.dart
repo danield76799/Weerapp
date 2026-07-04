@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../models/weather.dart';
-import '../utils/sky_gradient.dart';
+import '../utils/string_extensions.dart';
 import '../utils/weather_utils.dart';
+
 
 class CurrentWeatherCard extends StatelessWidget {
   final CurrentWeather current;
@@ -88,7 +89,7 @@ class CurrentWeatherCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        current.weatherDescription,
+                        current.weatherDescription.capitalize(),
                         style: const TextStyle(
                           fontSize: 18,
                           color: Colors.white,
@@ -159,9 +160,9 @@ class CurrentWeatherCard extends StatelessWidget {
                 child: Text(
                   uv.advice,
                   style: const TextStyle(
-                    color: Colors.white70,
-                    fontStyle: FontStyle.italic,
+                    color: Colors.white,
                     fontSize: 13,
+                    fontWeight: FontWeight.w400,
                   ),
                 ),
               ),
@@ -272,7 +273,7 @@ class _DetailChip extends StatelessWidget {
                     label,
                     style: TextStyle(fontSize: 11, color: Colors.white.withAlpha(200)),
                     maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                    overflow: TextOverflow.fade, // Subtieler dan ellipsis voor korte chips
                   ),
                 ),
               ],
