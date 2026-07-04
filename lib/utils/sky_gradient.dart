@@ -3,9 +3,21 @@ import 'package:flutter/material.dart';
 /// Berekent lucht-achtergrond kleuren op basis van tijd van dag
 /// Nacht: donkerblauw → ochtend: oranje/roze → dag: blauw → avond: paars/oranje
 class SkyGradient {
-  /// Geeft gradient kleuren voor een bepaald tijdstip
-  static List<Color> getColors(DateTime time) {
+  /// Geeft gradient kleuren voor een bepaald tijdstip en weertype
+  static List<Color> getColors(DateTime time, int weatherCode) {
     final hour = time.hour + time.minute / 60.0;
+    
+    // Overstijrende kleuren op basis van weertype voor een "mood"
+    // WMO codes: 0=Klaar, 1-3=Matig, 45-48=Mist, 51-67=Regen, 71-77=Sneeuw, 80-82=Regenbuien, 95-99=Onweer
+    if (weatherCode >= 51 && weatherCode <= 67) {
+      // Regen/Bewolkt: Zachte blauw/grijze tinten
+      return [const Color(0xFF607D8B), const Color(0xFF90A4AE)];
+    } else if (weatherCode >= 95) {
+      // Onweer: Donkerder, dramatischer
+      return [const Color(0xFF37474F), const Color(0xFF263238)];
+    } else if (weatherCode == 0) {
+      // Zon: Versterk de warme tinten van de tijd
+    }
 
     if (hour < 5) {
       // Diepe nacht

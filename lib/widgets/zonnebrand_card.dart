@@ -18,13 +18,20 @@ class ZonnebrandCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: uv.color.withAlpha(40),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: uv.color.withAlpha(120), width: 1.5),
+        color: uv.color.withAlpha(30),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: uv.color.withAlpha(40),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(color: uv.color.withAlpha(120), width: 1.2),
       ),
       child: Row(
         children: [
-          Icon(Icons.wb_sunny, size: 36, color: uv.color),
+          Icon(Icons.wb_sunny, size: 32, color: uv.color),
           const SizedBox(width: 12),
           Expanded(
             child: Column(

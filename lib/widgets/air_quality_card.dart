@@ -22,7 +22,14 @@ class AirQualityCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHigh.withAlpha(120),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(20),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -32,9 +39,7 @@ class AirQualityCard extends StatelessWidget {
               children: [
                 Icon(Icons.air, size: 20, color: theme.colorScheme.primary),
                 const SizedBox(width: 8),
-                Text('Luchtkwaliteit',
-                    style: theme.textTheme.titleSmall
-                        ?.copyWith(fontWeight: FontWeight.w600)),
+                Text('Luchtkwaliteit',\n                    style: theme.textTheme.titleSmall\n                        ?.copyWith(fontWeight: FontWeight.w600)),
                 const Spacer(),
                 _aqiBadge(context, airQuality!),
               ],
@@ -51,19 +56,14 @@ class AirQualityCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-            Text(airQuality!.advice,
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(color: theme.colorScheme.onSurface.withAlpha(180))),
-          ],
+            Text(airQuality!.advice,\n                style: theme.textTheme.bodySmall\n                    ?.copyWith(color: theme.colorScheme.onSurface.withAlpha(180))),\n          ],
           if (airQuality != null && pollen != null) const SizedBox(height: 16),
           if (pollen != null) ...[
             Row(
               children: [
                 Icon(Icons.grass, size: 20, color: theme.colorScheme.primary),
                 const SizedBox(width: 8),
-                Text('Pollen / Hooikoorts',
-                    style: theme.textTheme.titleSmall
-                        ?.copyWith(fontWeight: FontWeight.w600)),
+                Text('Pollen / Hooikoorts',\n                    style: theme.textTheme.titleSmall\n                        ?.copyWith(fontWeight: FontWeight.w600)),
               ],
             ),
             const SizedBox(height: 8),

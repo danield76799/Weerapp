@@ -498,12 +498,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         ),
                       ),
                     const SizedBox(height: 12),
-                    if (_showJas)
-                      JasAdviceCard(current: data.current, nextHours: data.nextHours(6)),
-                    if (_showJas) const SizedBox(height: 12),
-                    if (_showZonnebrand)
-                      ZonnebrandCard(current: data.current),
-                    if (_showZonnebrand) const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        if (_showJas)
+                          Expanded(
+                            child: JasAdviceCard(current: data.current, nextHours: data.nextHours(6)),
+                          ),
+                        if (_showJas) const SizedBox(width: 12),
+                        if (_showZonnebrand)
+                          Expanded(
+                            child: ZonnebrandCard(current: data.current),
+                          ),
+                      ],
+                    ),
+                    if (_showJas || _showZonnebrand) const SizedBox(height: 12),
                     if (_showBuien)
                       BuienCard(nextHours: data.nextHours(12)),
                     if (_showBuien) const SizedBox(height: 12),

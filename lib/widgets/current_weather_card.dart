@@ -24,7 +24,7 @@ class CurrentWeatherCard extends StatelessWidget {
     final icon = WeatherUtils.iconForWmoCode(current.weatherCode);
     final iconColor = WeatherUtils.colorForWmoCode(current.weatherCode);
 
-    final skyColors = SkyGradient.getColors(DateTime.now());
+    final skyColors = SkyGradient.getColors(DateTime.now(), current.weatherCode);
 
     return Container(
       decoration: BoxDecoration(
@@ -34,10 +34,17 @@ class CurrentWeatherCard extends StatelessWidget {
           colors: skyColors,
         ),
         borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(30),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.black.withAlpha(102), // 40% opacity overlay for readability
+          color: Colors.black.withAlpha(60), // Slightly stronger overlay for contrast
           borderRadius: BorderRadius.circular(24),
         ),
         padding: const EdgeInsets.all(20),
@@ -63,10 +70,8 @@ class CurrentWeatherCard extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Icon(icon, size: 72, color: iconColor),
-                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -74,18 +79,20 @@ class CurrentWeatherCard extends StatelessWidget {
                       Text(
                         '${current.temperature.toStringAsFixed(0)}°C',
                         style: const TextStyle(
-                          fontSize: 72,
-                          fontWeight: FontWeight.w200,
+                          fontSize: 84,
+                          fontWeight: FontWeight.w800,
                           color: Colors.white,
                           height: 1,
+                          letterSpacing: -2,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         current.weatherDescription,
                         style: const TextStyle(
-                          fontSize: 16,
+                          fontSize: 18,
                           color: Colors.white,
+                          fontWeight: FontWeight.w400,
                         ),
                       ),
                       Text(
@@ -97,6 +104,10 @@ class CurrentWeatherCard extends StatelessWidget {
                       ),
                     ],
                   ),
+                ),
+                SizedBox(
+                  width: 120,
+                  child: Icon(icon, size: 100, color: iconColor),
                 ),
               ],
             ),
@@ -150,6 +161,7 @@ class CurrentWeatherCard extends StatelessWidget {
                   style: const TextStyle(
                     color: Colors.white70,
                     fontStyle: FontStyle.italic,
+                    fontSize: 13,
                   ),
                 ),
               ),
@@ -197,18 +209,21 @@ class CurrentWeatherCard extends StatelessWidget {
                   icon: Icons.air,
                   label: WeatherUtils.windDescription(current.windSpeed),
                   value: '${current.windSpeed.toStringAsFixed(1)} m/s',
+                  color: const Color(0xFF42A5F5),
                 ),
                 const SizedBox(width: 8),
                 _DetailChip(
                   icon: Icons.water_drop_outlined,
                   label: 'Luchtvochtigheid',
                   value: '${current.humidity}%',
+                  color: const Color(0xFF26C6DA),
                 ),
                 const SizedBox(width: 8),
                 _DetailChip(
                   icon: Icons.cloud_outlined,
                   label: 'Bewolking',
                   value: '${current.clouds}%',
+                  color: const Color(0xFF90A4AE),
                 ),
               ],
             ),
@@ -218,6 +233,7 @@ class CurrentWeatherCard extends StatelessWidget {
                 icon: Icons.umbrella,
                 label: 'Neerslag laatste uur',
                 value: '${current.precipitation!.toStringAsFixed(1)} mm',
+                color: const Color(0xFF1976D2),
               ),
             ],
           ],
@@ -231,7 +247,8 @@ class _DetailChip extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
-  const _DetailChip({required this.icon, required this.label, required this.value});
+  final Color color;
+  const _DetailChip({required this.icon, required this.label, required this.value, required this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -239,21 +256,21 @@ class _DetailChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
-          color: Colors.white.withAlpha(25),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.white38, width: 1),
+          color: color.withAlpha(30),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withAlpha(60), width: 1),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Icon(icon, size: 14, color: Colors.white),
+                Icon(icon, size: 14, color: color),
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
                     label,
-                    style: const TextStyle(fontSize: 11, color: Colors.white),
+                    style: TextStyle(fontSize: 11, color: Colors.white.withAlpha(200)),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -265,7 +282,7 @@ class _DetailChip extends StatelessWidget {
               value,
               style: const TextStyle(
                 fontSize: 13,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w700,
                 color: Colors.white,
               ),
             ),
