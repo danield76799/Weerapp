@@ -51,7 +51,9 @@ class ZonnebrandCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 6),
-                Row(
+                Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 8,
                   children: [
                     Text(
                       'UV ${current.uvIndex.toStringAsFixed(1)}',
@@ -60,7 +62,6 @@ class ZonnebrandCard extends StatelessWidget {
                         color: uv.color,
                       ),
                     ),
-                    const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
