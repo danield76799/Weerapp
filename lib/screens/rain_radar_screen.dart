@@ -135,7 +135,7 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
           if (j >= 0 && j < precip.length) {
             final p = (precip[j] as num?)?.toDouble() ?? 0;
             final pr = (prob?[j] as num?)?.toDouble() ?? 0;
-            values.add(p > 0 ? p : (pr > 40 ? pr / 100 * 0.5 : 0));
+            values.add(p > 0 ? p : 0);
           } else {
             values.add(0);
           }
@@ -522,12 +522,12 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
       builder: (context) => AlertDialog(
         title: const Text('Neerslagkaart'),
         content: const Text(
-          'Deze kaart toont een animatie van neerslag:\\n\\n'
-          '• Blauwe cirkels = afgelopen 2 uur\\n'
-          '• Oranje cirkels = komende 5 uur voorspelling\\n'
-          '• Groene streep = nu\\n\\n'
+          'Deze kaart toont een animatie van neerslag:\n\n'
+          '• Blauwe cirkels = afgelopen 2 uur\n'
+          '• Oranje cirkels = komende 5 uur voorspelling\n'
+          '• Groene streep = nu\n\n'
           'Druk op play/pause om de animatie te starten of stoppen. '
-          'Schuif over de balk om naar een specifiek tijdstip te gaan.\\n\\n'
+          'Schuif over de balk om naar een specifiek tijdstip te gaan.\n\n'
           'Data: Open-Meteo (25 punten raster)',
         ),
         actions: [

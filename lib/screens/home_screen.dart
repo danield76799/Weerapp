@@ -491,7 +491,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     if (_showBuien)
                       BuienCard(nextHours: data.nextHours(12)),
                     if (_showBuien) const SizedBox(height: 12),
-                    if (_showDetails)
+                    if (_showDetails && data.daily.isNotEmpty)
                       DetailsCard(current: data.current, today: data.daily.first),
                     if (_showDetails) const SizedBox(height: 12),
                     if (_showAirQuality && (data.airQuality != null || data.pollen != null))

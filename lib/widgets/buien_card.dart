@@ -38,7 +38,11 @@ class BuienCard extends StatelessWidget {
     IconData icon;
     Color color;
 
-    if (!anyRain) {
+    if (nextHours.isEmpty) {
+      advies = 'Geen gegevens beschikbaar.';
+      icon = Icons.cloud_off;
+      color = Colors.grey;
+    } else if (!anyRain) {
       advies = 'Het blijft droog de komende ${nextHours.length} uur.';
       icon = Icons.umbrella_outlined;
       color = const Color(0xFF4CAF50);
@@ -47,8 +51,15 @@ class BuienCard extends StatelessWidget {
       icon = Icons.umbrella;
       color = const Color(0xFF1976D2);
     } else {
-      final hoursUntilRain = firstRain!.time.hour;
-      advies = 'Regen verwacht rond ${hoursUntilRain.toString().padLeft(2, '0')}:00 uur.';
+      final now = DateTime.now();
+      final diffMinutes = firstRain!.time.difference(now).inMinutes;
+      final hoursUntilRain = diffMinutes ~/ 60;
+      final minutesUntilRain = diffMinutes % 60;
+      if (hoursUntilRain > 0) {
+        advies = 'Regen verwacht over ${hoursUntilRain}u${minutesUntilRain > 0 ? ' ${minutesUntilRain}min' : ''}.';
+      } else {
+        advies = 'Regen verwacht over ${minutesUntilRain} min.';
+      }
       icon = Icons.umbrella;
       color = const Color(0xFFFF9800);
     }

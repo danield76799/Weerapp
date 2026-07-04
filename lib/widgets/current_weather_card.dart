@@ -169,14 +169,14 @@ class CurrentWeatherCard extends StatelessWidget {
                     icon: Icons.wb_sunny,
                     iconColor: const Color(0xFFFFB74D),
                     label: 'Op',
-                    time: current.sunrise,
+                    time: sunrise ?? current.sunrise,
                   ),
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 8),
                       child: _DayProgressBar(
-                        sunrise: current.sunrise,
-                        sunset: current.sunset,
+                        sunrise: sunrise ?? current.sunrise,
+                        sunset: sunset ?? current.sunset,
                         now: DateTime.now(),
                       ),
                     ),
@@ -185,7 +185,7 @@ class CurrentWeatherCard extends StatelessWidget {
                     icon: Icons.nights_stay_outlined,
                     iconColor: const Color(0xFF7E57C2),
                     label: 'Onder',
-                    time: current.sunset,
+                    time: sunset ?? current.sunset,
                   ),
                 ],
               ),

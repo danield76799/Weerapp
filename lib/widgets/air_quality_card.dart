@@ -112,11 +112,10 @@ class AirQualityCard extends StatelessWidget {
   }
 
   Widget _pollutantChip(String name, String value, String unit) {
-    final theme = ThemeData();
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.grey.shade800.withAlpha(100),
+        color: Colors.white.withAlpha(20),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(

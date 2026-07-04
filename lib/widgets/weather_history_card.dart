@@ -77,6 +77,7 @@ class WeatherHistoryCard extends StatelessWidget {
                 maxColor: const Color(0xFFE53935),
                 minColor: const Color(0xFF1E88E5),
                 dayNames: dayNames,
+                textColor: theme.colorScheme.onSurface,
               ),
             ),
           ),
@@ -120,6 +121,7 @@ class _TempChartPainter extends CustomPainter {
   final Color maxColor;
   final Color minColor;
   final List<String> dayNames;
+  final Color textColor;
 
   _TempChartPainter({
     required this.data,
@@ -128,6 +130,7 @@ class _TempChartPainter extends CustomPainter {
     required this.maxColor,
     required this.minColor,
     required this.dayNames,
+    required this.textColor,
   });
 
   @override
@@ -153,11 +156,11 @@ class _TempChartPainter extends CustomPainter {
     // Y-axis scale: generate nice round temperature values
     final axisStyle = TextStyle(
       fontSize: 9,
-      color: Colors.black54,
+      color: textColor.withAlpha(140),
       fontWeight: FontWeight.w500,
     );
     final gridPaint = Paint()
-      ..color = Colors.black.withAlpha(12)
+      ..color = textColor.withAlpha(12)
       ..strokeWidth = 0.5;
 
     // Calculate nice step for Y-axis labels (aim for ~4 labels)
@@ -241,7 +244,7 @@ class _TempChartPainter extends CustomPainter {
     final dotPaintMin = Paint()..color = minColor;
     final dayLabelStyle = TextStyle(
       fontSize: 9,
-      color: Colors.black54,
+      color: textColor.withAlpha(140),
       fontWeight: FontWeight.w500,
     );
 
@@ -266,5 +269,9 @@ class _TempChartPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _TempChartPainter oldDelegate) =>
+      oldDelegate.data != data ||
+      oldDelegate.minTemp != minTemp ||
+      oldDelegate.maxTemp != maxTemp ||
+      oldDelegate.textColor != textColor;
 }
