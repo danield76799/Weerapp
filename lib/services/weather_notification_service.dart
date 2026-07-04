@@ -68,13 +68,14 @@ class WeatherNotificationService {
     bool rainSoon = false;
     int rainMinutes = 0;
     final nextHours = data.nextHours(4);
+    final now = DateTime.now();
     for (var i = 0; i < nextHours.length && i < 4; i++) {
       final h = nextHours[i];
       final precip = h.precipitation ?? 0;
       final precipProb = h.precipitationProbability;
       if (precip > 0.2 || precipProb > rainThreshold) {
         rainSoon = true;
-        rainMinutes = i * 60;
+        rainMinutes = h.time.difference(now).inMinutes;
         break;
       }
     }
@@ -88,8 +89,11 @@ class WeatherNotificationService {
     if (notifRain && rainSoon && !alreadyNotified.contains('rain')) {
       reasons.add('rain');
     }
-    if (notifUV && (current.uvIndex >= uvThreshold || (today.tempMax >= heatThreshold)) && !alreadyNotified.contains('uv')) {
+    if (notifUV && current.uvIndex >= uvThreshold && !alreadyNotified.contains('uv')) {
       reasons.add('uv');
+    }
+    if (notifHeat && (current.temperature >= heatThreshold || today.tempMax >= heatThreshold) && !alreadyNotified.contains('heat')) {
+      reasons.add('heat');
     }
     if (notifFrost && current.temperature <= frostThreshold && !alreadyNotified.contains('freeze')) {
       reasons.add('freeze');
@@ -119,11 +123,14 @@ class WeatherNotificationService {
         lines.add('🌧 Regen verwacht binnen ${(rainMinutes / 60).ceil()} uur');
       }
     }
-    if (reasons.contains('uv') || reasons.contains('heat')) {
+    if (reasons.contains('uv')) {
       lines.add('☀️ UV-index ${current.uvIndex.toStringAsFixed(1)} (${_uvLabel(current.uvIndex)})');
     }
-    if (reasons.contains('freeze') || reasons.contains('heat')) {
-      lines.add('🌡 ${current.temperature.toStringAsFixed(0)}°C');
+    if (reasons.contains('heat')) {
+      lines.add('🌡 ${current.temperature.toStringAsFixed(0)}°C — heet!');
+    }
+    if (reasons.contains('freeze')) {
+      lines.add('🥶 ${current.temperature.toStringAsFixed(0)}°C — vorst!');
     }
 
     const androidDetails = AndroidNotificationDetails(
@@ -141,7 +148,7 @@ class WeatherNotificationService {
     );
 
     await _plugin.show(
-      id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      id: 2001, // Fixed ID voor threshold alerts (overschrijft vorige i.p.v. stacken)
       title: 'Weer alert: ${today.tempMax.toStringAsFixed(0)}° / ${today.tempMin.toStringAsFixed(0)}°',
       body: lines.join('\n'),
       notificationDetails: const NotificationDetails(android: androidDetails, iOS: iosDetails),
@@ -203,7 +210,7 @@ class WeatherNotificationService {
     if (!enabled) return;
 
     final today = DateTime.now();
-    final todayKey = 'briefing_sent_${today.year}${today.month}${today.day}';
+    final todayKey = 'briefing_sent_${today.year}${today.month.toString().padLeft(2, '0')}${today.day.toString().padLeft(2, '0')}';
     final alreadySent = prefs.getBool(todayKey) ?? false;
     if (alreadySent) return;
 
