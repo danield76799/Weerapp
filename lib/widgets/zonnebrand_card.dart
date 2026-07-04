@@ -18,7 +18,7 @@ class ZonnebrandCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: uv.color.withAlpha(30),
+        color: uv.color.withAlpha(60),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
@@ -27,7 +27,10 @@ class ZonnebrandCard extends StatelessWidget {
             offset: const Offset(0, 4),
           ),
         ],
-        border: Border.all(color: uv.color.withAlpha(120), width: 1.2),
+        border: Border.all(
+          color: Colors.white.withAlpha(120),
+          width: 1.2,
+        ),
       ),
       child: Row(
         children: [
@@ -41,13 +44,15 @@ class ZonnebrandCard extends StatelessWidget {
                   'Moet ik me insmeren?',
                   style: theme.textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w700,
+                    fontSize: 14,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   advies,
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withAlpha(200),
+                    color: theme.colorScheme.onSurface.withAlpha(220),
+                    fontSize: 13,
                   ),
                 ),
                 const SizedBox(height: 6),

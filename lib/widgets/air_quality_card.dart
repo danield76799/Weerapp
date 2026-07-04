@@ -14,84 +14,93 @@ class AirQualityCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    if (airQuality == null && pollen == null) return const SizedBox.shrink();
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHigh.withAlpha(120),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(20),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+  return Container(
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: theme.colorScheme.surfaceContainerHigh.withAlpha(120),
+      borderRadius: BorderRadius.circular(20),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withAlpha(30),
+          blurRadius: 12,
+          offset: const Offset(0, 4),
+        ),
+      ],
+      border: Border.all(
+        color: Colors.white.withAlpha(120),
+        width: 1.2,
+      ),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (airQuality != null) ...[
+          Row(
+            children: [
+              Icon(Icons.air, size: 20, color: theme.colorScheme.primary),
+              const SizedBox(width: 8),
+              Text(
+                'Luchtkwaliteit',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
+              ),
+              const Spacer(),
+              _aqiBadge(context, airQuality!),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 12,
+            runSpacing: 8,
+            children: [
+              _pollutantChip('PM2.5', '${airQuality!.pm25}', 'µg/m³'),
+              _pollutantChip('PM10', '${airQuality!.pm10}', 'µg/m³'),
+              _pollutantChip('NO₂', '${airQuality!.no2}', 'µg/m³'),
+              _pollutantChip('O₃', '${airQuality!.o3}', 'µg/m³'),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            airQuality!.advice,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurface.withAlpha(220),
+              fontSize: 13,
+            ),
           ),
         ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (airQuality != null) ...[
-            Row(
-              children: [
-                Icon(Icons.air, size: 20, color: theme.colorScheme.primary),
-                const SizedBox(width: 8),
-                Text(
-                  'Luchtkwaliteit',
-                  style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+        if (airQuality != null && pollen != null) const SizedBox(height: 16),
+        if (pollen != null) ...[
+          Row(
+            children: [
+              Icon(Icons.grass, size: 20, color: theme.colorScheme.primary),
+              const SizedBox(width: 8),
+              Text(
+                'Pollen / Hooikoorts',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
                 ),
-                const Spacer(),
-                _aqiBadge(context, airQuality!),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 12,
-              runSpacing: 8,
-              children: [
-                _pollutantChip('PM2.5', '${airQuality!.pm25}', 'µg/m³'),
-                _pollutantChip('PM10', '${airQuality!.pm10}', 'µg/m³'),
-                _pollutantChip('NO₂', '${airQuality!.no2}', 'µg/m³'),
-                _pollutantChip('O₃', '${airQuality!.o3}', 'µg/m³'),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              airQuality!.advice,
-              style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurface.withAlpha(180)),
-            ),
-          ],
-          if (airQuality != null && pollen != null) const SizedBox(height: 16),
-          if (pollen != null) ...[
-            Row(
-              children: [
-                Icon(Icons.grass, size: 20, color: theme.colorScheme.primary),
-                const SizedBox(width: 8),
-                Text(
-                  'Pollen / Hooikoorts',
-                  style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 12,
-              runSpacing: 8,
-              children: [
-                _pollenChip('Gras', pollen!.grassLabel(), pollen!.grass, const Color(0xFF8BC34A)),
-                _pollenChip('Berk', pollen!.birchLabel(), pollen!.birch, const Color(0xFFFFA726)),
-                _pollenChip('Els', pollen!.alderLabel(), pollen!.alder, const Color(0xFF42A5F5)),
-                _pollenChip('Bijvoet', pollen!.mugwortLabel(), pollen!.mugwort, const Color(0xFFAB47BC)),
-                _pollenChip('Ambrosia', pollen!.ragweedLabel(), pollen!.ragweed, const Color(0xFFEF5350)),
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 12,
+            runSpacing: 8,
+            children: [
+              _pollenChip('Gras', pollen!.grassLabel(), pollen!.grass, const Color(0xFF8BC34A)),
+              _pollenChip('Berk', pollen!.birchLabel(), pollen!.birch, const Color(0xFFFFA726)),
+              _pollenChip('Els', pollen!.alderLabel(), pollen!.alder, const Color(0xFF42A5F5)),
+              _pollenChip('Bijvoet', pollen!.mugwortLabel(), pollen!.mugwort, const Color(0xFFAB47BC)),
+              _pollenChip('Ambrosia', pollen!.ragweedLabel(), pollen!.ragweed, const Color(0xFFEF5350)),
+            ],
+          ),
         ],
-      ),
-    );
+      ],
+    ),
+  );
   }
 
   Widget _aqiBadge(BuildContext context, AirQuality aq) {

@@ -22,7 +22,7 @@ class JasAdviceCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: advies.color.withAlpha(30),
+        color: advies.color.withAlpha(60),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
@@ -31,7 +31,10 @@ class JasAdviceCard extends StatelessWidget {
             offset: const Offset(0, 4),
           ),
         ],
-        border: Border.all(color: advies.color.withAlpha(120), width: 1.2),
+        border: Border.all(
+          color: Colors.white.withAlpha(120),
+          width: 1.2,
+        ),
       ),
       child: Row(
         children: [
@@ -46,13 +49,15 @@ class JasAdviceCard extends StatelessWidget {
                   style: theme.textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w700,
                     color: advies.color,
+                    fontSize: 14,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   advies.body,
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withAlpha(200),
+                    color: theme.colorScheme.onSurface.withAlpha(220),
+                    fontSize: 13,
                   ),
                 ),
               ],
