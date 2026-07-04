@@ -504,7 +504,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           Expanded(
                             child: JasAdviceCard(current: data.current, nextHours: data.nextHours(6)),
                           ),
-                        if (_showJas) const SizedBox(width: 12),
+                        if (_showJas) const SizedBox(width: 8),
                         if (_showZonnebrand)
                           Expanded(
                             child: ZonnebrandCard(current: data.current),
