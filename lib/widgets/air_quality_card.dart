@@ -39,7 +39,10 @@ class AirQualityCard extends StatelessWidget {
               children: [
                 Icon(Icons.air, size: 20, color: theme.colorScheme.primary),
                 const SizedBox(width: 8),
-                Text('Luchtkwaliteit',\n                    style: theme.textTheme.titleSmall\n                        ?.copyWith(fontWeight: FontWeight.w600)),
+                Text(
+                  'Luchtkwaliteit',
+                  style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+                ),
                 const Spacer(),
                 _aqiBadge(context, airQuality!),
               ],
@@ -56,14 +59,21 @@ class AirQualityCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-            Text(airQuality!.advice,\n                style: theme.textTheme.bodySmall\n                    ?.copyWith(color: theme.colorScheme.onSurface.withAlpha(180))),\n          ],
+            Text(
+              airQuality!.advice,
+              style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurface.withAlpha(180)),
+            ),
+          ],
           if (airQuality != null && pollen != null) const SizedBox(height: 16),
           if (pollen != null) ...[
             Row(
               children: [
                 Icon(Icons.grass, size: 20, color: theme.colorScheme.primary),
                 const SizedBox(width: 8),
-                Text('Pollen / Hooikoorts',\n                    style: theme.textTheme.titleSmall\n                        ?.copyWith(fontWeight: FontWeight.w600)),
+                Text(
+                  'Pollen / Hooikoorts',
+                  style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+                ),
               ],
             ),
             const SizedBox(height: 8),
@@ -107,7 +117,7 @@ class AirQualityCard extends StatelessWidget {
     if (aqi <= 20) return const Color(0xFF4CAF50);
     if (aqi <= 40) return const Color(0xFFFFC107);
     if (aqi <= 60) return const Color(0xFFFF9800);
-    if (aqi <= 80) return const Color(0xFFF44336);
+    if (aqi <= 80) return const Color(0xFFF4433 laT);
     return const Color(0xFF9C27B0);
   }
 
