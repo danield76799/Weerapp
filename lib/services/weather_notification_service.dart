@@ -98,9 +98,6 @@ class WeatherNotificationService {
     if (notifFrost && current.temperature <= frostThreshold && !alreadyNotified.contains('freeze')) {
       reasons.add('freeze');
     }
-    if (notifHeat && current.temperature >= heatThreshold && !alreadyNotified.contains('heat')) {
-      reasons.add('heat');
-    }
 
     if (reasons.isNotEmpty) {
       await _showNotification(current, today, reasons, rainMinutes);

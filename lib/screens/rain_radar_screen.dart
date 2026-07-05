@@ -347,7 +347,7 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
                       decoration: BoxDecoration(
                         color: theme.colorScheme.primary,
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
+                        border: Border.all(color: theme.colorScheme.onPrimary, width: 2),
                         boxShadow: [BoxShadow(color: Colors.black.withAlpha(100), blurRadius: 4)],
                       ),
                       width: 16,
@@ -408,7 +408,7 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
                           width: 36,
                           height: 36,
                           decoration: BoxDecoration(color: theme.colorScheme.primary, shape: BoxShape.circle),
-                          child: Icon(_playing ? Icons.pause : Icons.play_arrow, color: Colors.white, size: 20),
+                          child: Icon(_playing ? Icons.pause : Icons.play_arrow, color: theme.colorScheme.onPrimary, size: 20),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -464,7 +464,7 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
                                         decoration: BoxDecoration(
                                           color: isFuture ? const Color(0xFFFF9800) : (isNow ? const Color(0xFF4CAF50) : theme.colorScheme.primary),
                                           shape: BoxShape.circle,
-                                          border: Border.all(color: Colors.white, width: 2),
+                                          border: Border.all(color: theme.colorScheme.surface, width: 2),
                                         ),
                                       ),
                                     ),
