@@ -334,7 +334,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Annuleren')),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: theme.colorScheme.error),
+            style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.error),
             child: const Text('Verwijderen'),
           ),
         ],

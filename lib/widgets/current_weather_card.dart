@@ -99,7 +99,7 @@ class CurrentWeatherCard extends StatelessWidget {
                       ),
                       Text(
                         'Voelt als ${current.feelsLike.toStringAsFixed(0)}°C',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
                           color: Colors.white.withAlpha(210),
                         ),
