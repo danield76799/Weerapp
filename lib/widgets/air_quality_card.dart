@@ -94,11 +94,11 @@ class AirQualityCard extends StatelessWidget {
               spacing: 12,
               runSpacing: 8,
               children: [
-                _pollenChip('Gras', pollen!.grassLabel(), pollen!.grass, const Color(0xFF8BC34A)),
-                _pollenChip('Berk', pollen!.birchLabel(), pollen!.birch, const Color(0xFFFFA726)),
-                _pollenChip('Els', pollen!.alderLabel(), pollen!.alder, const Color(0xFF42A5F5)),
-                _pollenChip('Bijvoet', pollen!.mugwortLabel(), pollen!.mugwort, const Color(0xFFAB47BC)),
-                _pollenChip('Ambrosia', pollen!.ragweedLabel(), pollen!.ragweed, const Color(0xFFEF5350)),
+                _pollenChip(theme, 'Gras', pollen!.grassLabel(), pollen!.grass, const Color(0xFF8BC34A)),
+                _pollenChip(theme, 'Berk', pollen!.birchLabel(), pollen!.birch, const Color(0xFFFFA726)),
+                _pollenChip(theme, 'Els', pollen!.alderLabel(), pollen!.alder, const Color(0xFF42A5F5)),
+                _pollenChip(theme, 'Bijvoet', pollen!.mugwortLabel(), pollen!.mugwort, const Color(0xFFAB47BC)),
+                _pollenChip(theme, 'Ambrosia', pollen!.ragweedLabel(), pollen!.ragweed, const Color(0xFFEF5350)),
               ],
             ),
           ],
@@ -152,8 +152,7 @@ class AirQualityCard extends StatelessWidget {
     );
   }
 
-  Widget _pollenChip(String name, String label, int value, Color color) {
-    final theme = Theme.of(context);
+  Widget _pollenChip(ThemeData theme, String name, String label, int value, Color color) {
     if (value == 0) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
