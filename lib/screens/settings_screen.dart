@@ -23,6 +23,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _notificaties = true;
   bool _loading = true;
 
+  WeatherNotificationService? _notifService;
+
   // Notificatie types
   bool _notifRain = true;
   bool _notifUV = true;
@@ -370,13 +372,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             value: _morningBriefing,
             onChanged: (v) async {
               setState(() => _morningBriefing = v);
-              final notif = WeatherNotificationService(
+              _notifService ??= WeatherNotificationService(
                 weatherService: context.read<WeatherService>(),
               );
               if (v) {
-                await notif.scheduleMorningBriefing(_briefingTime);
+                await _notifService!.scheduleMorningBriefing(_briefingTime);
               } else {
-                await notif.cancelMorningBriefing();
+                await _notifService!.cancelMorningBriefing();
               }
             },
           ),
@@ -397,10 +399,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       );
                       if (picked != null) {
                         setState(() => _briefingTime = picked);
-                        final notif = WeatherNotificationService(
+                        _notifService ??= WeatherNotificationService(
                           weatherService: context.read<WeatherService>(),
                         );
-                        await notif.scheduleMorningBriefing(picked);
+                        await _notifService!.scheduleMorningBriefing(picked);
                       }
                     },
                     child: Text(

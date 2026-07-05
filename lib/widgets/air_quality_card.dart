@@ -153,19 +153,20 @@ class AirQualityCard extends StatelessWidget {
   }
 
   Widget _pollenChip(String name, String label, int value, Color color) {
+    final theme = Theme.of(context);
     if (value == 0) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: Colors.grey.shade800.withAlpha(50),
+          color: theme.colorScheme.surfaceContainerHighest.withAlpha(80),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(name, style: const TextStyle(fontSize: 12)),
+            Text(name, style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurface)),
             const SizedBox(width: 4),
-            Text('geen', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+            Text('geen', style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant)),
           ],
         ),
       );
@@ -184,7 +185,7 @@ class AirQualityCard extends StatelessWidget {
           const SizedBox(width: 4),
           Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: color)),
           const SizedBox(width: 4),
-          Text('$value/m³', style: TextStyle(fontSize: 10, color: Colors.grey.shade500)),
+          Text('$value/m³', style: TextStyle(fontSize: 10, color: theme.colorScheme.onSurfaceVariant)),
         ],
       ),
     );

@@ -72,15 +72,12 @@ class JasAdviceCard extends StatelessWidget {
     final temp = current.feelsLike;
     final rain = nextHours.any((h) => h.precipitation != null && h.precipitation! > 0.1);
 
-    // Helper om titels consistent te houden
-    String formatTitle(String t) => t; 
-
     if (temp >= 27) {
       return (
         title: 'Kan ik zonder jas? Ja!',
         body: 'Het voelt als ${temp.toStringAsFixed(0)}° en het blijft ${rain ? 'niet' : 'droog'}. Je jas kan thuisblijven.',
         icon: Icons.wb_sunny,
-        color: const Color(0xFFE65100), // Donkerder oranje voor contrast
+        color: const Color(0xFFE65100),
       );
     }
     if (temp >= 20) {
@@ -88,18 +85,25 @@ class JasAdviceCard extends StatelessWidget {
         title: 'Kan ik zonder jas? Ja',
         body: 'Het voelt als ${temp.toStringAsFixed(0)}° en het blijft ${rain ? 'niet helemaal' : 'droog'}. Je jas kan thuisblijven.',
         icon: Icons.wb_sunny_outlined,
-        color: const Color(0xFF2E7D32), // Donkergroen voor contrast
+        color: const Color(0xFF2E7D32),
       );
     }
     if (temp >= 12) {
       return (
         title: 'Een trui is genoeg',
         body: 'Het voelt als ${temp.toStringAsFixed(0)}°. Geen jas nodig, maar een trui is prettig.',
-        icon: Icons.checkroom, // Intuïtiever icoon
+        icon: Icons.checkroom,
         color: const Color(0xFF558B2F),
       );
     }
-    // ... overige checks blijven hetzelfde, maar kleuren worden donkerder
+    if (temp >= 0) {
+      return (
+        title: 'Jas aan!',
+        body: 'Het voelt als ${temp.toStringAsFixed(0)}°. Een jas is nodig — het is koud buiten.',
+        icon: Icons.checkroom_outlined,
+        color: const Color(0xFF1565C0),
+      );
+    }
     return (
         title: 'Blijf binnen!',
         body: 'Het voelt als ${temp.toStringAsFixed(0)}°. Het vriest — warm aankleden of binnen blijven.',

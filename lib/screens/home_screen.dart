@@ -36,6 +36,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Timer? _autoRefreshTimer;
   static const _refreshInterval = Duration(minutes: 10);
 
+  WeatherNotificationService? _notifService;
+
   List<SavedLocation> _locations = [];
   int _currentPage = 0;
   PageController? _pageController;
@@ -164,11 +166,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       // Update home screen widget
       WidgetService.updateWeather(provider.data!);
       try {
-        final notif = WeatherNotificationService(
+        _notifService ??= WeatherNotificationService(
           weatherService: context.read<WeatherService>(),
         );
-        await notif.checkThresholds(provider.data!);
-        await notif.sendMorningBriefingIfDue(provider.data!);
+        await _notifService!.checkThresholds(provider.data!);
+        await _notifService!.sendMorningBriefingIfDue(provider.data!);
       } catch (_) {}
     }
   }
@@ -229,8 +231,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           if (mounted) setState(() => _locations = locations);
         }
         try {
-          final notif = WeatherNotificationService(weatherService: service);
-          await notif.checkThresholds(provider.data!);
+          _notifService ??= WeatherNotificationService(weatherService: service);
+          await _notifService!.checkThresholds(provider.data!);
         } catch (_) {}
       }
     }
