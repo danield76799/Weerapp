@@ -41,7 +41,7 @@ class BuienCard extends StatelessWidget {
     if (nextHours.isEmpty) {
       advies = 'Geen gegevens beschikbaar.';
       icon = Icons.cloud_off;
-      color = Colors.grey;
+      color = const Color(0xFF9E9E9E);
     } else if (!anyRain) {
       advies = 'Het blijft droog de komende ${nextHours.length} uur.';
       icon = Icons.umbrella_outlined;

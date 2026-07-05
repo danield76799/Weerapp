@@ -32,7 +32,7 @@ class JasAdviceCard extends StatelessWidget {
           ),
         ],
         border: Border.all(
-          color: Colors.white.withAlpha(120),
+          color: theme.colorScheme.outline.withAlpha(80),
           width: 1.2,
         ),
       ),

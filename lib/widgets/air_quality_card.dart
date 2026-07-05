@@ -31,7 +31,7 @@ class AirQualityCard extends StatelessWidget {
           ),
         ],
         border: Border.all(
-          color: Colors.white.withAlpha(120),
+          color: theme.colorScheme.outline.withAlpha(80),
           width: 1.2,
         ),
       ),
@@ -138,7 +138,7 @@ class AirQualityCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white.withAlpha(20),
+        color: theme.colorScheme.surfaceContainerHighest.withAlpha(80),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(

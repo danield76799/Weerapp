@@ -28,7 +28,7 @@ class ZonnebrandCard extends StatelessWidget {
           ),
         ],
         border: Border.all(
-          color: Colors.white.withAlpha(120),
+          color: theme.colorScheme.outline.withAlpha(80),
           width: 1.2,
         ),
       ),
@@ -64,7 +64,7 @@ class ZonnebrandCard extends StatelessWidget {
                       'UV ${current.uvIndex.toStringAsFixed(1)}',
                       style: theme.textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w700,
-                        color: Color.lerp(uv.color, Colors.black, 0.6)!, // Maak de kleur donkerder voor WCAG contrast
+                        color: Color.lerp(uv.color, Colors.black, 0.6) ?? uv.color, // Maak de kleur donkerder voor WCAG contrast
                       ),
                     ),
                     Container(
