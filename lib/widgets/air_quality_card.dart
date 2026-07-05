@@ -59,10 +59,10 @@ class AirQualityCard extends StatelessWidget {
               spacing: 12,
               runSpacing: 8,
               children: [
-                _pollutantChip('PM2.5', '${airQuality!.pm25}', 'µg/m³'),
-                _pollutantChip('PM10', '${airQuality!.pm10}', 'µg/m³'),
-                _pollutantChip('NO₂', '${airQuality!.no2}', 'µg/m³'),
-                _pollutantChip('O₃', '${airQuality!.o3}', 'µg/m³'),
+                _pollutantChip(theme, 'PM2.5', '${airQuality!.pm25}', 'µg/m³'),
+                _pollutantChip(theme, 'PM10', '${airQuality!.pm10}', 'µg/m³'),
+                _pollutantChip(theme, 'NO₂', '${airQuality!.no2}', 'µg/m³'),
+                _pollutantChip(theme, 'O₃', '${airQuality!.o3}', 'µg/m³'),
               ],
             ),
             const SizedBox(height: 8),
@@ -134,7 +134,7 @@ class AirQualityCard extends StatelessWidget {
     return const Color(0xFF9C27B0);
   }
 
-  Widget _pollutantChip(String name, String value, String unit) {
+  Widget _pollutantChip(ThemeData theme, String name, String value, String unit) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
