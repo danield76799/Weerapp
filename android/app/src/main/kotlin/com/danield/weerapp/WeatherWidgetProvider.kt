@@ -13,8 +13,8 @@ import android.widget.RemoteViews
 class WeatherWidgetProvider : AppWidgetProvider() {
 
     companion object {
-        private const String ACTION_UPDATE_WIDGET = "com.danield.weerapp.UPDATE_WIDGET"
-        private const String EXTRA_APPWIDGET_IDS = "appWidgetIds"
+        private const val ACTION_UPDATE_WIDGET = "com.danield.weerapp.UPDATE_WIDGET"
+        private const val EXTRA_APPWIDGET_IDS = "appWidgetIds"
     }
 
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
@@ -25,7 +25,7 @@ class WeatherWidgetProvider : AppWidgetProvider() {
 
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
-        if (intent.action == Companion.ACTION_UPDATE_WIDGET) {
+        if (intent.action == ACTION_UPDATE_WIDGET) {
             val appWidgetManager = AppWidgetManager.getInstance(context)
             val ids = appWidgetManager.getAppWidgetIds(
                 ComponentName(context, WeatherWidgetProvider::class.java)
@@ -51,7 +51,7 @@ class WeatherWidgetProvider : AppWidgetProvider() {
     private fun scheduleWidgetUpdates(context: Context) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val updateIntent = Intent(context, WeatherWidgetProvider::class.java).apply {
-            action = Companion.ACTION_UPDATE_WIDGET
+            action = ACTION_UPDATE_WIDGET
         }
         val pendingIntent = PendingIntent.getBroadcast(
             context,
@@ -86,7 +86,7 @@ class WeatherWidgetProvider : AppWidgetProvider() {
     private fun cancelWidgetUpdates(context: Context) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val updateIntent = Intent(context, WeatherWidgetProvider::class.java).apply {
-            action = Companion.ACTION_UPDATE_WIDGET
+            action = ACTION_UPDATE_WIDGET
         }
         val pendingIntent = PendingIntent.getBroadcast(
             context,
