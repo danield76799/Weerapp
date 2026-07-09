@@ -7,6 +7,7 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.os.Build
 import android.widget.RemoteViews
 
@@ -15,6 +16,7 @@ class WeatherWidgetProvider : AppWidgetProvider() {
     companion object {
         private const val ACTION_UPDATE_WIDGET = "com.danield.weerapp.UPDATE_WIDGET"
         private const val EXTRA_APPWIDGET_IDS = "appWidgetIds"
+        private const val WIDGET_PREFS = "flutter_home_widget"
     }
 
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
@@ -102,7 +104,7 @@ class WeatherWidgetProvider : AppWidgetProvider() {
     }
 
     private fun updateWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int) {
-        val prefs = context.getSharedPreferences("HomeWidgetPreferences", Context.MODE_PRIVATE)
+        val prefs: SharedPreferences = context.getSharedPreferences(WIDGET_PREFS, Context.MODE_PRIVATE)
 
         val location = prefs.getString("location", "Weer") ?: "Weer"
         val temp = prefs.getString("temp", "--°") ?: "--°"
