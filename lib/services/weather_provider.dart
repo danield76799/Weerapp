@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import '../models/weather.dart';
 import '../services/weather_service.dart';
+import '../services/widget_service.dart';
 
 enum WeatherStatus { idle, loading, loaded, error }
 
@@ -14,7 +15,7 @@ class WeatherProvider extends ChangeNotifier {
   bool _isFromCache = false;
   DateTime? _lastRefresh;
 
-  // Memory cache: key = "lat,lon" → WeatherData
+  // Memory cache: key = "lat,lon" -> WeatherData
   // Zorgt voor instant locatie-switches zonder API call of disk cache lezen
   final Map<String, WeatherData> _memoryCache = {};
 
@@ -29,6 +30,16 @@ class WeatherProvider extends ChangeNotifier {
 
   /// Haal gecachte data op voor een specifieke locatie (uit memory)
   WeatherData? getCachedData(String key) => _memoryCache[key];
+
+  void _notifyListeners() {
+    notifyListeners();
+    _updateWidgetIfNeeded();
+  }
+
+  void _updateWidgetIfNeeded() {
+    if (_data == null) return;
+    WidgetService.updateWeather(_data!);
+  }
 
   Future<void> loadWeather({
     required double lat,
@@ -47,7 +58,7 @@ class WeatherProvider extends ChangeNotifier {
       _status = WeatherStatus.loaded;
       _isFromCache = age > const Duration(minutes: 10);
       _lastRefresh = cached.fetchedAt;
-      notifyListeners();
+      _notifyListeners();
 
       // Als cache jonger dan 10 min is, niet opnieuw ophalen
       if (!_isFromCache) return;
@@ -61,7 +72,7 @@ class WeatherProvider extends ChangeNotifier {
     _status = WeatherStatus.loading;
     _errorMessage = null;
     _isFromCache = false;
-    notifyListeners();
+    _notifyListeners();
 
     try {
       final data = await _service.fetchWeather(
@@ -80,7 +91,7 @@ class WeatherProvider extends ChangeNotifier {
       _errorMessage = e.toString();
       _status = WeatherStatus.error;
     }
-    notifyListeners();
+    _notifyListeners();
   }
 
   String? _currentLocationKey;
@@ -104,7 +115,7 @@ class WeatherProvider extends ChangeNotifier {
         _data = data;
         _lastRefresh = DateTime.now();
         _isFromCache = false;
-        notifyListeners();
+        _notifyListeners();
       }
     } catch (_) {
       // Silent fail — oude data blijft getoond
@@ -126,7 +137,7 @@ class WeatherProvider extends ChangeNotifier {
       _currentLocationKey = key;
       _lastRefresh = DateTime.now();
       _isFromCache = false;
-      notifyListeners();
+      _notifyListeners();
     } catch (e) {
       // Silent fail — keep old data
       debugPrint('Silent refresh failed: $e');
