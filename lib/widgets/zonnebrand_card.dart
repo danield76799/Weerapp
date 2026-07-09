@@ -93,10 +93,18 @@ class ZonnebrandCard extends StatelessWidget {
   }
 
   String _buildAdvice(double uv) {
-    if (uv < 3) return 'Nee — UV is laag. Je kan veilig naar buiten zonder bescherming.';
-    if (uv < 6) return 'Ja, bij lang verblijf buiten. Smeer je in als je langer dan een uur buiten bent.';
-    if (uv < 8) return 'Ja! Bescherming noodzakelijk. Smeer je in tussen 11:00 en 15:00.';
-    if (uv < 11) return 'Absoluut! Vermijd de middagzon. Smeer je in (en je kale kruin).';
-    return 'Ja! Blijf binnen tussen 11:00 en 15:00. UV is extreem.';
+    String advice;
+    if (uv < 3) {
+      advice = 'Nee — UV is laag. Je kan veilig naar buiten zonder bescherming.';
+    } else if (uv < 6) {
+      advice = 'Ja, bij lang verblijf buiten. Smeer je in als je langer dan een uur buiten bent.';
+    } else if (uv < 8) {
+      advice = 'Ja! Bescherming noodzakelijk. Smeer je in tussen 11:00 en 15:00.';
+    } else if (uv < 11) {
+      advice = 'Absoluut! Vermijd de middagzon. Smeer je in (en je kale kruin).';
+    } else {
+      advice = 'Ja! Blijf binnen tussen 11:00 en 15:00. UV is extreem.';
+    }
+    return advice + ' Herhaal elke 2 uur, ook na zweten of zwemmen.';
   }
 }
