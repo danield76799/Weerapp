@@ -74,6 +74,8 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         for (appWidgetId in appWidgetIds) {
             updateWidget(context, appWidgetManager, appWidgetId)
         }
+        // Schedule next update after this update
+        scheduleNextUpdate(context)
     }
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -94,7 +96,7 @@ class WeatherWidgetProvider : AppWidgetProvider() {
     /** Called when the first widget instance is created */
     override fun onEnabled(context: Context) {
         super.onEnabled(context)
-        scheduleNextUpdate(context)
+        // Do not schedule here - will be scheduled in onUpdate
     }
 
     /** Called when the last widget instance is removed */
