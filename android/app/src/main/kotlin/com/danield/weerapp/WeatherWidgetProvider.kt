@@ -7,7 +7,6 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
 import android.os.Build
 import android.widget.RemoteViews
 
@@ -17,6 +16,57 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         const val ACTION_UPDATE_WIDGET = "com.danield.weerapp.UPDATE_WIDGET"
         const val EXTRA_APPWIDGET_IDS = "appWidgetIds"
         private const val WIDGET_PREFS = "HomeWidgetPreferences"
+        private const val UPDATE_INTERVAL_MS = 15 * 60 * 1000L // 15 minutes
+        private const val REQUEST_CODE = 1001
+
+        fun scheduleNextUpdate(context: Context) {
+            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            val updateIntent = Intent(context, WeatherWidgetProvider::class.java).apply {
+                action = ACTION_UPDATE_WIDGET
+            }
+            val pendingIntent = PendingIntent.getBroadcast(
+                context,
+                REQUEST_CODE,
+                updateIntent,
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                } else {
+                    PendingIntent.FLAG_UPDATE_CURRENT
+                }
+            )
+            val triggerTime = System.currentTimeMillis() + UPDATE_INTERVAL_MS
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                alarmManager.setExactAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    triggerTime,
+                    pendingIntent
+                )
+            } else {
+                alarmManager.set(
+                    AlarmManager.RTC_WAKEUP,
+                    triggerTime,
+                    pendingIntent
+                )
+            }
+        }
+
+        fun cancelUpdateAlarm(context: Context) {
+            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            val updateIntent = Intent(context, WeatherWidgetProvider::class.java).apply {
+                action = ACTION_UPDATE_WIDGET
+            }
+            val pendingIntent = PendingIntent.getBroadcast(
+                context,
+                REQUEST_CODE,
+                updateIntent,
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                } else {
+                    PendingIntent.FLAG_UPDATE_CURRENT
+                }
+            )
+            alarmManager.cancel(pendingIntent)
+        }
     }
 
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
@@ -35,72 +85,21 @@ class WeatherWidgetProvider : AppWidgetProvider() {
             for (id in ids) {
                 updateWidget(context, appWidgetManager, id)
             }
+            // Schedule next update
+            scheduleNextUpdate(context)
         }
     }
 
     /** Called when the first widget instance is created */
     override fun onEnabled(context: Context) {
         super.onEnabled(context)
-        scheduleWidgetUpdates(context)
+        scheduleNextUpdate(context)
     }
 
     /** Called when the last widget instance is removed */
     override fun onDisabled(context: Context) {
         super.onDisabled(context)
-        cancelWidgetUpdates(context)
-    }
-
-    private fun scheduleWidgetUpdates(context: Context) {
-        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val updateIntent = Intent(context, WeatherWidgetProvider::class.java).apply {
-            action = ACTION_UPDATE_WIDGET
-        }
-        val pendingIntent = PendingIntent.getBroadcast(
-            context,
-            0,
-            updateIntent,
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            } else {
-                PendingIntent.FLAG_UPDATE_CURRENT
-            }
-        )
-        // Update every 30 minutes (1800000 ms). Use setInexactRepeating for better battery life.
-        val intervalMs = 30 * 60 * 1000L // 30 minutes
-        val triggerTime = System.currentTimeMillis() + intervalMs
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            alarmManager.setInexactRepeating(
-                AlarmManager.RTC_WAKEUP,
-                triggerTime,
-                intervalMs,
-                pendingIntent
-            )
-        } else {
-            alarmManager.setRepeating(
-                AlarmManager.RTC_WAKEUP,
-                triggerTime,
-                intervalMs,
-                pendingIntent
-            )
-        }
-    }
-
-    private fun cancelWidgetUpdates(context: Context) {
-        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val updateIntent = Intent(context, WeatherWidgetProvider::class.java).apply {
-            action = ACTION_UPDATE_WIDGET
-        }
-        val pendingIntent = PendingIntent.getBroadcast(
-            context,
-            0,
-            updateIntent,
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            } else {
-                PendingIntent.FLAG_UPDATE_CURRENT
-            }
-        )
-        alarmManager.cancel(pendingIntent)
+        cancelUpdateAlarm(context)
     }
 
     private fun updateWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int) {
