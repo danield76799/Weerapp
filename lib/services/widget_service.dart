@@ -54,8 +54,8 @@ class WidgetService {
       final updated = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
       final date = '${now.day.toString().padLeft(2, '0')}-${now.month.toString().padLeft(2, '0')}';
 
-      // Set app group for sharing data with widget
-      await HomeWidget.setAppGroupId(_appGroupId);
+      // Set app group for sharing data with widget (Android shared preferences suite name)
+      await HomeWidget.setAppGroupId(_prefKey);
 
       // Save to SharedPreferences for the Kotlin widget provider
       await HomeWidget.saveWidgetData('location', locationName);
