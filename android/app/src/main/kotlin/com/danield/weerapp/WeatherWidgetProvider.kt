@@ -16,7 +16,7 @@ class WeatherWidgetProvider : AppWidgetProvider() {
     companion object {
         const val ACTION_UPDATE_WIDGET = "com.danield.weerapp.UPDATE_WIDGET"
         const val EXTRA_APPWIDGET_IDS = "appWidgetIds"
-        private const val WIDGET_PREFS = "flutter_home_widget"
+        private const val WIDGET_PREFS = "HomeWidgetPreferences"
     }
 
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
