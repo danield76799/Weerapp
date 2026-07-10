@@ -66,7 +66,7 @@ class WeatherWidgetProvider : AppWidgetProvider() {
 
         fun cancelUpdateAlarm(context: Context) {
             val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-            val updateIntent = Intent(context::class.java).apply {
+            val updateIntent = Intent(context, WeatherWidgetProvider::class.java).apply {
                 action = ACTION_UPDATE_WIDGET
             }
             val pendingIntent = PendingIntent.getBroadcast(
