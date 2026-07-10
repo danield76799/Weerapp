@@ -9,11 +9,13 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Build
+import android.util.Log
 import android.widget.RemoteViews
 
 class WeatherWidgetProvider : AppWidgetProvider() {
 
     companion object {
+        private const val TAG = "WeatherWidgetProvider"
         const val ACTION_UPDATE_WIDGET = "com.danield.weerapp.UPDATE_WIDGET"
         const val EXTRA_APPWIDGET_IDS = "appWidgetIds"
         private const val WIDGET_PREFS = "HomeWidgetPreferences"
@@ -62,6 +64,7 @@ class WeatherWidgetProvider : AppWidgetProvider() {
                     )
                 }
             }
+            Log.d(TAG, "Scheduled next widget update at $triggerTime (in ${UPDATE_INTERVAL_MS / 1000 / 60} minutes)")
         }
 
         fun cancelUpdateAlarm(context: Context) {
@@ -80,6 +83,7 @@ class WeatherWidgetProvider : AppWidgetProvider() {
                 }
             )
             alarmManager.cancel(pendingIntent)
+            Log.d(TAG, "Cancelled widget update alarm")
         }
     }
 
@@ -89,6 +93,7 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         }
         // Schedule next update after this update
         scheduleNextUpdate(context)
+        Log.d(TAG, "onUpdate called for ${appWidgetIds.size} widget(s)")
     }
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -103,6 +108,7 @@ class WeatherWidgetProvider : AppWidgetProvider() {
             }
             // Schedule next update
             scheduleNextUpdate(context)
+            Log.d(TAG, "onReceived UPDATE_WIDGET for ${ids.size} widget(s)")
         }
     }
 
@@ -110,12 +116,14 @@ class WeatherWidgetProvider : AppWidgetProvider() {
     override fun onEnabled(context: Context) {
         super.onEnabled(context)
         // Do not schedule here - will be scheduled in onUpdate
+        Log.d(TAG, "onEnabled: first widget instance created")
     }
 
     /** Called when the last widget instance is removed */
     override fun onDisabled(context: Context) {
         super.onDisabled(context)
         cancelUpdateAlarm(context)
+        Log.d(TAG, "onDisabled: last widget instance removed")
     }
 
     private fun updateWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int) {
@@ -155,5 +163,6 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         views.setOnClickPendingIntent(R.id.widget_root, pendingAppIntent)
 
         appWidgetManager.updateAppWidget(appWidgetId, views)
+        Log.d(TAG, "Updated widget $appWidgetId")
     }
 }
