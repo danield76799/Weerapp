@@ -54,16 +54,19 @@ class WidgetService {
       final updated = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
       final date = '${now.day.toString().padLeft(2, '0')}-${now.month.toString().padLeft(2, '0')}';
 
+      // Set app group for sharing data with widget
+      await HomeWidget.setAppGroupId(_appGroupId);
+
       // Save to SharedPreferences for the Kotlin widget provider
-      await HomeWidget.saveWidgetData('location', locationName, suiteName: _prefKey);
-      await HomeWidget.saveWidgetData('temp', temp, suiteName: _prefKey);
-      await HomeWidget.saveWidgetData('condition', condition, suiteName: _prefKey);
-      await HomeWidget.saveWidgetData('feels', feels, suiteName: _prefKey);
-      await HomeWidget.saveWidgetData('rain', rainInfo, suiteName: _prefKey);
-      await HomeWidget.saveWidgetData('uv', uvInfo, suiteName: _prefKey);
-      await HomeWidget.saveWidgetData('wind', windInfo, suiteName: _prefKey);
-      await HomeWidget.saveWidgetData('updated', updated, suiteName: _prefKey);
-      await HomeWidget.saveWidgetData('date', date, suiteName: _prefKey);
+      await HomeWidget.saveWidgetData('location', locationName);
+      await HomeWidget.saveWidgetData('temp', temp);
+      await HomeWidget.saveWidgetData('condition', condition);
+      await HomeWidget.saveWidgetData('feels', feels);
+      await HomeWidget.saveWidgetData('rain', rainInfo);
+      await HomeWidget.saveWidgetData('uv', uvInfo);
+      await HomeWidget.saveWidgetData('wind', windInfo);
+      await HomeWidget.saveWidgetData('updated', updated);
+      await HomeWidget.saveWidgetData('date', date);
 
       // Trigger widget update
       await HomeWidget.updateWidget(
