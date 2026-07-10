@@ -36,24 +36,37 @@ class WeatherWidgetProvider : AppWidgetProvider() {
                 }
             )
             val triggerTime = System.currentTimeMillis() + UPDATE_INTERVAL_MS
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                alarmManager.setExactAndAllowWhileIdle(
-                    AlarmManager.RTC_WAKEUP,
-                    triggerTime,
-                    pendingIntent
-                )
-            } else {
-                alarmManager.set(
-                    AlarmManager.RTC_WAKEUP,
-                    triggerTime,
-                    pendingIntent
-                )
+            when {
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.M -> {
+                    // API 23+: Use exact and allow while idle for doze mode
+                    alarmManager.setExactAndAllowWhileIdle(
+                        AlarmManager.RTC_WAKEUP,
+                        triggerTime,
+                        pendingIntent
+                    )
+                }
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT -> {
+                    // API 19-22: Use exact (inexact in battery saver, but no doze before API 23)
+                    alarmManager.setExact(
+                        AlarmManager.RTC_WAKEUP,
+                        triggerTime,
+                        pendingIntent
+                    )
+                }
+                else -> {
+                    // API < 19: Use set (exact)
+                    alarmManager.set(
+                        AlarmManager.RTC_WAKEUP,
+                        triggerTime,
+                        pendingIntent
+                    )
+                }
             }
         }
 
         fun cancelUpdateAlarm(context: Context) {
             val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-            val updateIntent = Intent(context, WeatherWidgetProvider::class.java).apply {
+            val updateIntent = Intent(context::class.java).apply {
                 action = ACTION_UPDATE_WIDGET
             }
             val pendingIntent = PendingIntent.getBroadcast(
