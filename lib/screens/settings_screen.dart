@@ -244,7 +244,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           : null,
                     ),
                     child: isSelected
-                        ? const Icon(Icons.check, color: Colors.white, size: 20)
+                        ? Icon(Icons.check, color: _checkmarkColor(Color(c.value)), size: 20)
                         : null,
                   ),
                 );
@@ -439,6 +439,12 @@ class _AccentColor {
   final String name;
   final int value;
   const _AccentColor(this.name, this.value);
+}
+
+/// Bepaalt of wit of zwart beter leesbaar is op een gekleurde achtergrond.
+Color _checkmarkColor(Color background) {
+  final luminance = (0.299 * background.red + 0.587 * background.green + 0.114 * background.blue) / 255;
+  return luminance > 0.5 ? Colors.black : Colors.white;
 }
 
 class _SectionHeader extends StatelessWidget {

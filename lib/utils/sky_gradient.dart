@@ -61,6 +61,6 @@ class SkyGradient {
 
   static Color _lerp(Color a, Color b, double t) {
     t = t.clamp(0.0, 1.0);
-    return Color.lerp(a, b, t)!;
+    return Color.lerp(a, b, t) ?? a;
   }
 }

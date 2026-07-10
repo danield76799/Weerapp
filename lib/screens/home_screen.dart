@@ -309,6 +309,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         ],
       ),
     );
+    controller.dispose();
 
     if (newName != null && newName.isNotEmpty && newName != loc.name) {
       // Remove old, add with new name

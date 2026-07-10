@@ -4,7 +4,7 @@ class WeatherUtils {
   /// UV-index risico categorie + bijbehorende kleur
   static ({String label, Color color, String advice}) uvInfo(double uv) {
     if (uv < 0) {
-      return (label: 'Onbekend', color: Colors.grey, advice: '');
+      return (label: 'Onbekend', color: const Color(0xFF9E9E9E), advice: '');
     }
     if (uv < 3) {
       return (
