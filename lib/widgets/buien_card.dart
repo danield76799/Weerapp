@@ -12,6 +12,17 @@ class BuienCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
+    // Filter to the next 24 hours only
+    final now = DateTime.now();
+    final next24h = nextHours
+        .where((h) => !h.time.isBefore(now.subtract(const Duration(minutes: 30))))
+        .take(24)
+        .toList();
+
+    if (next24h.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
     // Find first rain hour
     HourlyForecast? firstRain;
     int firstRainIndex = -1;
@@ -19,8 +30,8 @@ class BuienCard extends StatelessWidget {
     final rainHours = <HourlyForecast>[];
     bool anyRain = false;
 
-    for (var i = 0; i < nextHours.length; i++) {
-      final h = nextHours[i];
+    for (var i = 0; i < next24h.length; i++) {
+      final h = next24h[i];
       final precip = h.precipitation ?? 0;
       final precipProb = h.precipitationProbability.toDouble();
       if (precip > 0.05 || precipProb > 20) {
@@ -38,12 +49,12 @@ class BuienCard extends StatelessWidget {
     IconData icon;
     Color color;
 
-    if (nextHours.isEmpty) {
+    if (next24h.isEmpty) {
       advies = 'Geen gegevens beschikbaar.';
       icon = Icons.cloud_off;
       color = const Color(0xFF9E9E9E);
     } else if (!anyRain) {
-      advies = 'Het blijft droog de komende ${nextHours.length} uur.';
+      advies = 'Het blijft droog de komende ${next24h.length} uur.';
       icon = Icons.umbrella_outlined;
       color = const Color(0xFF4CAF50);
     } else if (firstRainIndex == 0) {
@@ -101,15 +112,15 @@ class BuienCard extends StatelessWidget {
             height: 80,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
-              children: nextHours.map((h) {
+              children: next24h.map((h) {
                 final precip = h.precipitation ?? 0;
                 final prob = h.precipitationProbability.toDouble();
                 final isRain = precip > 0.05 || prob > 20;
                 final isFirst = h.time == firstRain?.time;
 
                 final barHeight = maxPrecip > 0
-                    ? ((precip / maxPrecip) * 60).clamp(4.0, 60.0)
-                    : 4.0;
+                    ? ((precip / maxPrecip) * 60).clamp(2.0, 60.0)
+                    : 2.0;
 
                 return Expanded(
                   child: Padding(
@@ -130,6 +141,7 @@ class BuienCard extends StatelessWidget {
                         const SizedBox(height: 2),
                         // Bar
                         Container(
+                          width: double.infinity,
                           height: barHeight,
                           decoration: BoxDecoration(
                             color: isRain
