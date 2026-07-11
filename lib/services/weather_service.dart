@@ -19,7 +19,7 @@ class WeatherService {
   static const _cacheMaxAge = Duration(hours: 1);
   /// Verhoog dit nummer bij elke wijziging aan het data-model.
   /// Oude caches met een lager versienummer worden automatisch genegeerd.
-  static const _cacheVersion = 5;
+  static const _cacheVersion = 7;
 
   static const _archiveBaseUrl = 'https://archive-api.open-meteo.com';
   static const _forecastBaseUrl = 'https://api.open-meteo.com';
@@ -121,6 +121,7 @@ class WeatherService {
               'uv_index',
               'cloud_cover',
               'wind_direction_10m',
+              'is_day',
             ].join(','),
             'daily': [
               'weather_code',
@@ -395,6 +396,43 @@ class WeatherService {
       sunshineDuration: (currentJson['sunshine_duration'] as num?)?.toDouble(),
     );
 
+    // Hourly forecast — parse all hours
+    final hourly = <HourlyForecast>[];
+    if (hourlyJson != null) {
+      final hTimes = hourlyJson['time'] as List;
+      final hTemp = hourlyJson['temperature_2m'] as List;
+      final hAppTemp = hourlyJson['apparent_temperature'] as List?;
+      final hPop = hourlyJson['precipitation_probability'] as List?;
+      final hPrecip = hourlyJson['precipitation'] as List?;
+      final hWeather = hourlyJson['weather_code'] as List;
+      final hUv = hourlyJson['uv_index'] as List;
+      final hCloud = hourlyJson['cloud_cover'] as List?;
+      final hWindDir = hourlyJson['wind_direction_10m'] as List?;
+      final hIsDay = hourlyJson['is_day'] as List?;
+      for (var i = 0; i < hTimes.length; i++) {
+        // Skip incomplete hourly data (API returns null for future unavailable hours)
+        final temp = hTemp[i] as num?;
+        if (temp == null) continue;
+        final apiUv = ((hUv[i] as num?) ?? 0).toDouble();
+        final cloudCover = ((hCloud?[i] as num?) ?? 0).toInt();
+        // Clouds block UV: 0% = full UV, 100% = ~50% UV
+        final cloudFactor = 1.0 - (cloudCover / 200.0);
+        final correctedUv = apiUv * cloudFactor;
+        hourly.add(HourlyForecast(
+          time: DateTime.parse(hTimes[i] as String),
+          temperature: temp.toDouble(),
+          apparentTemperature: (hAppTemp?[i] as num?)?.toDouble() ?? temp.toDouble(),
+          precipitationProbability: ((hPop?[i] as num?) ?? 0).toInt(),
+          precipitation: (hPrecip?[i] as num?)?.toDouble(),
+          weatherCode: (hWeather[i] as num?)?.toInt() ?? 0,
+          uvIndex: correctedUv,
+          windDirection: ((hWindDir?[i] as num?) ?? 0).toInt(),
+          isDay: ((hIsDay?[i] as num?) ?? 1) == 1,
+        ));
+      }
+    }
+
+
     // Daily forecast — 16 days
     final dates = dailyJson['time'] as List;
     final tMax = dailyJson['temperature_2m_max'] as List;
@@ -421,7 +459,14 @@ class WeatherService {
       final maxTemp = tMax[i] as num?;
       final minTemp = tMin[i] as num?;
       if (maxTemp == null || minTemp == null) continue;
-      final wmoCode = (weatherCodes[i] as num?)?.toInt() ?? 0;
+      final rawWmoCode = (weatherCodes[i] as num?)?.toInt() ?? 0;
+      final wmoCode = _daylightWeatherCodeForDay(
+        date,
+        hourly,
+        sunrise: DateTime.parse(sunrises[i] as String),
+        sunset: DateTime.parse(sunsets[i] as String),
+        fallback: rawWmoCode,
+      );
       final day = DailyForecast(
         date: date,
         tempMin: minTemp.toDouble(),
@@ -449,40 +494,6 @@ class WeatherService {
     }
 
     final pastDaily = historicalData ?? [];
-
-    // Hourly forecast — parse all hours
-    final hourly = <HourlyForecast>[];
-    if (hourlyJson != null) {
-      final hTimes = hourlyJson['time'] as List;
-      final hTemp = hourlyJson['temperature_2m'] as List;
-      final hAppTemp = hourlyJson['apparent_temperature'] as List?;
-      final hPop = hourlyJson['precipitation_probability'] as List?;
-      final hPrecip = hourlyJson['precipitation'] as List?;
-      final hWeather = hourlyJson['weather_code'] as List;
-      final hUv = hourlyJson['uv_index'] as List;
-      final hCloud = hourlyJson['cloud_cover'] as List?;
-      final hWindDir = hourlyJson['wind_direction_10m'] as List?;
-      for (var i = 0; i < hTimes.length; i++) {
-        // Skip incomplete hourly data (API returns null for future unavailable hours)
-        final temp = hTemp[i] as num?;
-        if (temp == null) continue;
-        final apiUv = ((hUv[i] as num?) ?? 0).toDouble();
-        final cloudCover = ((hCloud?[i] as num?) ?? 0).toInt();
-        // Clouds block UV: 0% = full UV, 100% = ~50% UV
-        final cloudFactor = 1.0 - (cloudCover / 200.0);
-        final correctedUv = apiUv * cloudFactor;
-        hourly.add(HourlyForecast(
-          time: DateTime.parse(hTimes[i] as String),
-          temperature: temp.toDouble(),
-          apparentTemperature: (hAppTemp?[i] as num?)?.toDouble() ?? temp.toDouble(),
-          precipitationProbability: ((hPop?[i] as num?) ?? 0).toInt(),
-          precipitation: (hPrecip?[i] as num?)?.toDouble(),
-          weatherCode: (hWeather[i] as num?)?.toInt() ?? 0,
-          uvIndex: correctedUv,
-          windDirection: ((hWindDir?[i] as num?) ?? 0).toInt(),
-        ));
-      }
-    }
 
     // Update daily UV with the max hourly UV for each day
     // This ensures daily UV matches what's shown in the hourly forecast
@@ -513,6 +524,37 @@ class WeatherService {
       fetchedAt: DateTime.now(),
       locationName: locationName,
     );
+  }
+
+
+  /// Bepaal de meest voorkomende weercode tijdens daglichturen.
+  /// De Open-Meteo dagelijkse `weather_code` is een 24-uurs samenvatting en kan
+  /// een paar bewolkte nachturen als 'bewolkt' laten zien terwijl de dag zelf
+  /// zonnig is. Deze helper kiest de modus van de uurlijkse codes tussen
+  /// zonsopgang en zonsondergang. Bij geen daglichturen wordt de API-waarde
+  /// gebruikt.
+  int _daylightWeatherCodeForDay(
+    DateTime date,
+    List<HourlyForecast> hourly, {
+    required DateTime sunrise,
+    required DateTime sunset,
+    required int fallback,
+  }) {
+    // Filter op zonsopgang 0026 zonsondergang, niet op kalenderdag
+    final codes = hourly
+        .where((h) =>
+            h.time.isAfter(sunrise.subtract(const Duration(seconds: 1))) &&
+            h.time.isBefore(sunset) &&
+            h.isDay)
+        .map((h) => h.weatherCode)
+        .toList();
+    if (codes.isEmpty) return fallback;
+
+    final counts = <int, int>{};
+    for (final code in codes) {
+      counts[code] = (counts[code] ?? 0) + 1;
+    }
+    return (counts.entries.toList()..sort((a, b) => b.value.compareTo(a.value))).first.key;
   }
 
   /// WMO weather code → simplified code (compatible with our icon system)

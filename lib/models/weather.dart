@@ -190,6 +190,7 @@ class HourlyForecast {
   final double uvIndex;
   final double? precipitation;
   final int windDirection;
+  final bool isDay;
 
   HourlyForecast({
     required this.time,
@@ -200,6 +201,7 @@ class HourlyForecast {
     required this.uvIndex,
     this.precipitation,
     this.windDirection = 0,
+    this.isDay = true,
   });
 }
 
@@ -374,6 +376,7 @@ class WeatherData {
           uvIndex: (m['uv_index'] as num).toDouble(),
           precipitation: (m['precipitation'] as num?)?.toDouble(),
           windDirection: (m['wind_direction'] as num?)?.toInt() ?? 0,
+          isDay: (m['is_day'] as num?)?.toInt() == 1,
         ));
       }
     }
@@ -401,7 +404,7 @@ class WeatherData {
   }
 
   Map<String, dynamic> toJson() => {
-        'cache_version': 5,
+        'cache_version': 7,
         'current': current.toJson(),
         'daily': daily.map((d) => d.toJson()).toList(),
         'past_daily': pastDaily.map((d) => d.toJson()).toList(),
@@ -414,6 +417,7 @@ class WeatherData {
           'uv_index': h.uvIndex,
           'precipitation': h.precipitation,
           'wind_direction': h.windDirection,
+          'is_day': h.isDay ? 1 : 0,
         }).toList(),
         'air_quality': airQuality?.toJson(),
         'pollen': pollen?.toJson(),
