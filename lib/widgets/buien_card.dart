@@ -109,17 +109,20 @@ class BuienCard extends StatelessWidget {
           const SizedBox(height: 12),
           // Bar chart
           SizedBox(
-            height: 80,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: next24h.map((h) {
+            height: 110,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final barAreaHeight = constraints.maxHeight - 34; // reserve 12 + 2 + 4 + 16
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: next24h.map((h) {
                 final precip = h.precipitation ?? 0;
                 final prob = h.precipitationProbability.toDouble();
                 final isRain = precip > 0.05 || prob > 20;
                 final isFirst = h.time == firstRain?.time;
 
                 final barHeight = maxPrecip > 0
-                    ? ((precip / maxPrecip) * 60).clamp(2.0, 60.0)
+                    ? ((precip / maxPrecip) * barAreaHeight).clamp(2.0, barAreaHeight)
                     : 2.0;
 
                 return Expanded(
@@ -128,16 +131,21 @@ class BuienCard extends StatelessWidget {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        // mm label at top if rain
+                // mm label at top if rain
                         if (isRain && precip >= 0.5)
-                          Text(
-                            '${precip.toStringAsFixed(1)}',
-                            style: TextStyle(
-                              fontSize: 9,
-                              fontWeight: isFirst ? FontWeight.w700 : FontWeight.w400,
-                              color: isFirst ? color : theme.colorScheme.onSurface.withAlpha(150),
+                          SizedBox(
+                            height: 12,
+                            child: Text(
+                              '${precip.toStringAsFixed(1)}',
+                              style: TextStyle(
+                                fontSize: 7,
+                                fontWeight: isFirst ? FontWeight.w700 : FontWeight.w400,
+                                color: isFirst ? color : theme.colorScheme.onSurface.withAlpha(150),
+                              ),
                             ),
-                          ),
+                          )
+                        else
+                          const SizedBox(height: 12),
                         const SizedBox(height: 2),
                         // Bar
                         Container(
@@ -155,12 +163,15 @@ class BuienCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         // Hour label
-                        Text(
-                          '${h.time.hour.toString().padLeft(2, '0')}',
-                          style: TextStyle(
-                            fontSize: 9,
-                            fontWeight: isFirst ? FontWeight.w700 : FontWeight.w400,
-                            color: isFirst ? color : theme.colorScheme.onSurface.withAlpha(120),
+                        SizedBox(
+                          height: 16,
+                          child: Text(
+                            '${h.time.hour.toString().padLeft(2, '0')}',
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: isFirst ? FontWeight.w700 : FontWeight.w400,
+                              color: isFirst ? color : theme.colorScheme.onSurface.withAlpha(120),
+                            ),
                           ),
                         ),
                       ],
@@ -168,6 +179,8 @@ class BuienCard extends StatelessWidget {
                   ),
                 );
               }).toList(),
+            );
+              },
             ),
           ),
           // Legend
