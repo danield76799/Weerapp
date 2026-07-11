@@ -133,20 +133,40 @@ class LocationService {
     try {
       final placemarks = await placemarkFromCoordinates(lat, lon);
       if (placemarks.isEmpty) return 'Onbekend';
-      final p = placemarks.first;
-      final parts = <String>[
-        if ((p.locality ?? '').isNotEmpty) p.locality!,
-        if ((p.subAdministrativeArea ?? '').isNotEmpty &&
-            p.subAdministrativeArea != p.locality)
-          p.subAdministrativeArea!,
-      ];
-      if (parts.isEmpty) {
-        return p.name ?? 'Locatie';
+      // Zoek het eerste placemark met een bruikbare naam
+      for (final p in placemarks) {
+        final name = _formatPlacemark(p);
+        if (name != null) return name;
       }
-      return parts.join(', ');
+      return 'Locatie';
     } catch (_) {
       return 'Lat ${lat.toStringAsFixed(2)}, Lon ${lon.toStringAsFixed(2)}';
     }
+  }
+
+  /// Formatteer een Placemark naar een leesbare plaatsnaam.
+  /// Geeft null terug als er geen bruikbare velden zijn.
+  String? _formatPlacemark(Placemark p) {
+    final locality = (p.locality ?? '').trim();
+    final subAdmin = (p.subAdministrativeArea ?? '').trim();
+    final name = (p.name ?? '').trim();
+    final thoroughfare = (p.thoroughfare ?? '').trim();
+    final admin = (p.administrativeArea ?? '').trim();
+    final country = (p.country ?? '').trim();
+
+    // Voorkeursvolgorde: stad/dorp, dan provincie/streek, dan straat/naam, land
+    if (locality.isNotEmpty) {
+      if (subAdmin.isNotEmpty && subAdmin != locality) {
+        return '$locality, $subAdmin';
+      }
+      return locality;
+    }
+    if (subAdmin.isNotEmpty) return subAdmin;
+    if (name.isNotEmpty && name != thoroughfare) return name;
+    if (thoroughfare.isNotEmpty) return thoroughfare;
+    if (admin.isNotEmpty) return admin;
+    if (country.isNotEmpty) return country;
+    return null;
   }
 }
 
