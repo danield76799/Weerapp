@@ -55,7 +55,7 @@ class WidgetService {
       final date = '${now.day.toString().padLeft(2, '0')}-${now.month.toString().padLeft(2, '0')}';
 
       // Set app group for sharing data with widget (Android shared preferences suite name)
-      await HomeWidget.setAppGroupId(_prefKey);
+      await HomeWidget.setAppGroupId(_appGroupId);
 
       // Save to SharedPreferences for the Kotlin widget provider
       await HomeWidget.saveWidgetData('location', locationName);
@@ -73,8 +73,17 @@ class WidgetService {
         iOSName: null,
         androidName: 'WeatherWidgetProvider',
       );
+      // Also send an explicit broadcast update in case home_widget updateWidget is not delivered
+      try {
+        await HomeWidget.updateWidget(
+          qualifiedAndroidName: 'com.danield.weerapp.WeatherWidgetProvider',
+        );
+      } catch (_) {
+        // home_widget may not support qualifiedAndroidName; ignore.
+      }
     } catch (e) {
       // Silent fail — widget is non-critical
+      // debugPrint('WidgetService updateWeather error: $e');
     }
   }
 
