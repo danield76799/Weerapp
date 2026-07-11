@@ -22,8 +22,8 @@ class BuienCard extends StatelessWidget {
     for (var i = 0; i < nextHours.length; i++) {
       final h = nextHours[i];
       final precip = h.precipitation ?? 0;
-      final precipProb = h.precipitationProbability;
-      if (precip > 0.2 || precipProb > 30) {
+      final precipProb = h.precipitationProbability.toDouble();
+      if (precip > 0.05 || precipProb > 20) {
         anyRain = true;
         rainHours.add(h);
         if (precip > maxPrecip) maxPrecip = precip;
@@ -103,8 +103,8 @@ class BuienCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: nextHours.map((h) {
                 final precip = h.precipitation ?? 0;
-                final prob = h.precipitationProbability;
-                final isRain = precip > 0.2 || prob > 30;
+                final prob = h.precipitationProbability.toDouble();
+                final isRain = precip > 0.05 || prob > 20;
                 final isFirst = h.time == firstRain?.time;
 
                 final barHeight = maxPrecip > 0
@@ -132,11 +132,9 @@ class BuienCard extends StatelessWidget {
                         Container(
                           height: barHeight,
                           decoration: BoxDecoration(
-                            color: isFirst
-                                ? color
-                                : isRain
-                                    ? color.withAlpha(120 + ((precip / (maxPrecip > 0 ? maxPrecip : 1)) * 100).toInt().clamp(0, 100))
-                                    : theme.colorScheme.surfaceContainerHigh.withAlpha(80),
+                            color: isRain
+                                ? color.withAlpha(120 + ((precip / (maxPrecip > 0 ? maxPrecip : 1)) * 100).toInt().clamp(0, 100))
+                                : theme.colorScheme.surfaceContainerHigh.withAlpha(80),
                             borderRadius: BorderRadius.circular(3),
                             border: isFirst
                                 ? Border.all(color: Colors.white, width: 1)

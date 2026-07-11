@@ -115,6 +115,7 @@ class WeatherService {
             'hourly': [
               'temperature_2m',
               'apparent_temperature',
+              'precipitation',
               'precipitation_probability',
               'weather_code',
               'uv_index',
@@ -456,6 +457,7 @@ class WeatherService {
       final hTemp = hourlyJson['temperature_2m'] as List;
       final hAppTemp = hourlyJson['apparent_temperature'] as List?;
       final hPop = hourlyJson['precipitation_probability'] as List?;
+      final hPrecip = hourlyJson['precipitation'] as List?;
       final hWeather = hourlyJson['weather_code'] as List;
       final hUv = hourlyJson['uv_index'] as List;
       final hCloud = hourlyJson['cloud_cover'] as List?;
@@ -474,6 +476,7 @@ class WeatherService {
           temperature: temp.toDouble(),
           apparentTemperature: (hAppTemp?[i] as num?)?.toDouble() ?? temp.toDouble(),
           precipitationProbability: ((hPop?[i] as num?) ?? 0).toInt(),
+          precipitation: (hPrecip?[i] as num?)?.toDouble(),
           weatherCode: (hWeather[i] as num?)?.toInt() ?? 0,
           uvIndex: correctedUv,
           windDirection: ((hWindDir?[i] as num?) ?? 0).toInt(),
