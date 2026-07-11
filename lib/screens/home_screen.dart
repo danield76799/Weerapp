@@ -162,9 +162,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Future<void> _loadLocation(double lat, double lon, String name, {bool isCurrentLocation = false}) async {
     final provider = context.read<WeatherProvider>();
     await provider.loadWeather(lat: lat, lon: lon, locationName: name);
+    // Update widget from current location, not from selected manual location
     if (provider.hasData && isCurrentLocation) {
-      // Update home screen widget
       WidgetService.updateWeather(provider.data!);
+    }
+    if (provider.hasData && isCurrentLocation) {
       try {
         _notifService ??= WeatherNotificationService(
           weatherService: context.read<WeatherService>(),
@@ -500,59 +502,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           ],
                         ),
                       ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        if (_showJas)
-                          Expanded(
-                            child: JasAdviceCard(current: data.current, nextHours: data.nextHours(6)),
-                          ),
-                        if (_showJas) const SizedBox(width: 8),
-                        if (_showZonnebrand)
-                          Expanded(
-                            child: ZonnebrandCard(current: data.current),
-                          ),
-                      ],
-                    ),
-                    if (_showJas || _showZonnebrand) const SizedBox(height: 12),
-                    if (_showBuien)
-                      BuienCard(nextHours: data.nextHours(12)),
-                    if (_showBuien) const SizedBox(height: 12),
-                    if (_showDetails && data.daily.isNotEmpty)
-                      DetailsCard(current: data.current, today: data.daily.first),
-                    if (_showDetails) const SizedBox(height: 12),
-                    if (_showAirQuality && (data.airQuality != null || data.pollen != null))
-                      AirQualityCard(airQuality: data.airQuality, pollen: data.pollen),
-                    if (_showAirQuality && (data.airQuality != null || data.pollen != null))
-                      const SizedBox(height: 16),
-                    if (data.pastDaily.length >= 2) ...[
-                      WeatherHistoryCard(pastDaily: data.pastDaily, daily: data.daily),
-                      const SizedBox(height: 16),
-                    ],
-                    if (data.pastDaily.length >= 7) ...[
-                      WeatherComparisonCard(pastDaily: data.pastDaily, daily: data.daily),
-                      const SizedBox(height: 16),
-                    ],
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primaryContainer,
-                        borderRadius: BorderRadius.horizontal(left: Radius.circular(16)),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.calendar_today, size: 20, color: Theme.of(context).colorScheme.primary),
-                          const SizedBox(width: 8),
-                          Text(
-                            '14-daagse verwachting',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-                          ),
-                        ],
-                      ),
-                    ),
+                    if (_showBuien) BuienCard(lat: loc.lat, lon: loc.lon, locationName: loc.name),
+                    if (_showDetails) DetailsCard(current: data.current),
+                    if (_showAirQuality && data.airQuality != null) AirQualityCard(airQuality: data.airQuality!),
+                    if (_showJas) JasAdviceCard(current: data.current, daily: data.daily),
+                    if (_showZonnebrand) ZonnebrandCard(uvIndex: data.current.uvIndex, daily: data.daily),
+                    WeatherHistoryCard(pastDaily: data.pastDaily),
                     const SizedBox(height: 8),
-                    DailyForecastList(days: data.daily, hourly: data.hourly, locationName: data.locationName),
-                    const SizedBox(height: 24),
+                    DailyForecastList(daily: data.daily),
+                    if (data.pastDaily.isNotEmpty)
+                      WeatherComparisonCard(
+                        today: data.daily.isNotEmpty ? data.daily.first : null,
+                        yesterday: data.pastDaily.isNotEmpty ? data.pastDaily.last : null,
+                      ),
                   ],
                 ),
               );
@@ -560,70 +522,42 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           );
         },
       ),
-      bottomNavigationBar: _locations.length > 1
-          ? SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(_locations.length, (i) {
-                    final isActive = i == _currentPage;
-                    return GestureDetector(
-                      onTap: () {
-                        _pageController?.animateToPage(
-                          i,
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.easeInOut,
-                        );
-                      },
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 4),
-                        width: isActive ? 24 : 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: isActive
-                              ? Theme.of(context).colorScheme.primary
-                              : Theme.of(context).colorScheme.onSurface.withAlpha(60),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                    );
-                  }),
-                ),
-              ),
-            )
-          : null,
     );
   }
 }
 
 class _ErrorState extends StatelessWidget {
   final String message;
-  final VoidCallback onRetry;
-  const _ErrorState({required this.message, required this.onRetry});
+  final VoidCallback? onRetry;
+
+  const _ErrorState({required this.message, this.onRetry});
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.cloud_off, size: 64,
-                color: Theme.of(context).colorScheme.onSurface.withAlpha(100)),
-            const SizedBox(height: 16),
-            Text('Weer ophalen mislukt', style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 8),
-            Text(message, textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyMedium),
-            const SizedBox(height: 16),
-            FilledButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Opnieuw proberen'),
-            ),
-          ],
+    return Scaffold(
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.error_outline, size: 64, color: Theme.of(context).colorScheme.error),
+              const SizedBox(height: 16),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              if (onRetry != null) ...[
+                const SizedBox(height: 24),
+                ElevatedButton.icon(
+                  onPressed: onRetry,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Opnieuw proberen'),
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );
