@@ -393,8 +393,12 @@ class WeatherService {
       pressure: (currentJson['pressure_msl'] as num?)?.toInt() ?? 1013,
       clouds: (currentJson['cloud_cover'] as num?)?.toInt() ?? 0,
       precipitation: (currentJson['precipitation'] as num?)?.toDouble(),
-      sunrise: DateTime.parse((dailyJson['sunrise'] as List).first as String),
-      sunset: DateTime.parse((dailyJson['sunset'] as List).first as String),
+      sunrise: (dailyJson['sunrise'] as List?)?.isNotEmpty == true
+          ? DateTime.parse((dailyJson['sunrise'] as List).first as String)
+          : DateTime.now(),
+      sunset: (dailyJson['sunset'] as List?)?.isNotEmpty == true
+          ? DateTime.parse((dailyJson['sunset'] as List).first as String)
+          : DateTime.now(),
       dewPoint: (currentJson['dew_point_2m'] as num?)?.toDouble(),
       visibility: (currentJson['visibility'] as num?)?.toInt(),
       sunshineDuration: (currentJson['sunshine_duration'] as num?)?.toDouble(),
@@ -403,13 +407,13 @@ class WeatherService {
     // Hourly forecast — parse all hours
     final hourly = <HourlyForecast>[];
     if (hourlyJson != null) {
-      final hTimes = hourlyJson['time'] as List;
-      final hTemp = hourlyJson['temperature_2m'] as List;
+      final hTimes = hourlyJson['time'] as List? ?? [];
+      final hTemp = hourlyJson['temperature_2m'] as List? ?? [];
       final hAppTemp = hourlyJson['apparent_temperature'] as List?;
       final hPop = hourlyJson['precipitation_probability'] as List?;
       final hPrecip = hourlyJson['precipitation'] as List?;
-      final hWeather = hourlyJson['weather_code'] as List;
-      final hUv = hourlyJson['uv_index'] as List;
+      final hWeather = hourlyJson['weather_code'] as List? ?? [];
+      final hUv = hourlyJson['uv_index'] as List? ?? [];
       final hCloud = hourlyJson['cloud_cover'] as List?;
       final hWindDir = hourlyJson['wind_direction_10m'] as List?;
       final hIsDay = hourlyJson['is_day'] as List?;

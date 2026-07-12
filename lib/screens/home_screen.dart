@@ -99,7 +99,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      _startAutoRefresh();
       _silentRefreshCurrent();
+    } else if (state == AppLifecycleState.paused ||
+               state == AppLifecycleState.inactive) {
+      _autoRefreshTimer?.cancel();
     }
   }
 
@@ -503,7 +507,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         ),
                       ),
                     if (_showBuien) BuienCard(nextHours: data.hourly),
-                    if (_showDetails) DetailsCard(current: data.current, today: data.daily.first),
+                    if (_showDetails && data.daily.isNotEmpty) DetailsCard(current: data.current, today: data.daily.first),
                     if (_showAirQuality && data.airQuality != null) AirQualityCard(airQuality: data.airQuality!, pollen: data.pollen),
                     if (_showJas) JasAdviceCard(current: data.current, nextHours: data.hourly),
                     if (_showZonnebrand) ZonnebrandCard(current: data.current),

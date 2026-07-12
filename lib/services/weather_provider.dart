@@ -13,9 +13,11 @@ class WeatherProvider extends ChangeNotifier {
   String? _errorMessage;
   bool _isFromCache = false;
   DateTime? _lastRefresh;
+  bool _disposed = false;
 
   // Memory cache: key = "lat,lon" -> WeatherData
-  // Zorgt voor instant locatie-switches zonder API call of disk cache lezen
+  // LRU cache with max 5 entries to prevent unbounded memory growth
+  static const int _maxCacheSize = 5;
   final Map<String, WeatherData> _memoryCache = {};
 
   WeatherProvider(this._service);
@@ -71,7 +73,7 @@ class WeatherProvider extends ChangeNotifier {
         force: force,
       );
       _data = data;
-      _memoryCache[key] = data;
+      _addToCache(key, data);
       _currentLocationKey = key;
       _isFromCache = DateTime.now().difference(data.fetchedAt) > const Duration(minutes: 5);
       _status = WeatherStatus.loaded;
@@ -99,7 +101,7 @@ class WeatherProvider extends ChangeNotifier {
         locationName: locationName,
         force: true,
       );
-      _memoryCache[key] = data;
+      _addToCache(key, data);
       if (_currentLocationKey == key) {
         _data = data;
         _lastRefresh = DateTime.now();
@@ -122,7 +124,7 @@ class WeatherProvider extends ChangeNotifier {
         force: true,
       );
       _data = data;
-      _memoryCache[key] = data;
+      _addToCache(key, data);
       _currentLocationKey = key;
       _lastRefresh = DateTime.now();
       _isFromCache = false;
@@ -135,5 +137,26 @@ class WeatherProvider extends ChangeNotifier {
 
   Future<void> refresh(double lat, double lon, String name) async {
     await loadWeather(lat: lat, lon: lon, locationName: name, force: true);
+  }
+
+  /// Add to cache with LRU eviction
+  void _addToCache(String key, WeatherData data) {
+    if (_memoryCache.length >= _maxCacheSize && !_memoryCache.containsKey(key)) {
+      _memoryCache.remove(_memoryCache.keys.first);
+    }
+    _memoryCache[key] = data;
+  }
+
+  @override
+  void notifyListeners() {
+    if (_disposed) return;
+    super.notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    _memoryCache.clear();
+    super.dispose();
   }
 }
