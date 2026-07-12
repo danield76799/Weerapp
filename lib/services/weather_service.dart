@@ -167,6 +167,8 @@ class WeatherService {
         locationName: locationName,
         airQuality: airQuality.$1,
         pollen: airQuality.$2,
+        lat: lat,
+        lon: lon,
       );
       await _writeCache(cacheKey, weather);
       await setLastLocation(lat, lon, locationName);
@@ -370,6 +372,8 @@ class WeatherService {
     required String locationName,
     AirQuality? airQuality,
     PollenInfo? pollen,
+    required double lat,
+    required double lon,
   }) {
     final currentJson = json['current'] as Map<String, dynamic>;
     final dailyJson = json['daily'] as Map<String, dynamic>;
@@ -523,6 +527,8 @@ class WeatherService {
       pollen: pollen,
       fetchedAt: DateTime.now(),
       locationName: locationName,
+      lat: lat,
+      lon: lon,
     );
   }
 

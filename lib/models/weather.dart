@@ -326,6 +326,8 @@ class WeatherData {
   final PollenInfo? pollen;
   final DateTime fetchedAt;
   final String locationName;
+  final double lat;
+  final double lon;
 
   WeatherData({
     required this.current,
@@ -336,6 +338,8 @@ class WeatherData {
     this.pollen,
     required this.fetchedAt,
     required this.locationName,
+    required this.lat,
+    required this.lon,
   });
   /// Get hourly forecasts for a specific date, starting from current hour if today
   List<HourlyForecast> hourlyForDay(DateTime date) {
@@ -400,6 +404,8 @@ class WeatherData {
           ? DateTime.parse(json['fetchedAt'] as String)
           : DateTime.now(),
       locationName: locationName,
+      lat: (json['lat'] as num?)?.toDouble() ?? 0.0,
+      lon: (json['lon'] as num?)?.toDouble() ?? 0.0,
     );
   }
 
@@ -423,5 +429,7 @@ class WeatherData {
         'pollen': pollen?.toJson(),
         'fetchedAt': fetchedAt.toIso8601String(),
         'locationName': locationName,
+        'lat': lat,
+        'lon': lon,
       };
 }
