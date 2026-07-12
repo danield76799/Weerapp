@@ -23,10 +23,15 @@ class CurrentWeatherCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final uv = WeatherUtils.uvInfo(current.uvIndex);
-    final icon = WeatherUtils.iconForWmoCode(current.weatherCode);
+    // Fix: use actual sunrise/sunset for day/night icon
+    final now = DateTime.now();
+    final isDay = sunrise != null && sunset != null
+        ? now.isAfter(sunrise!) && now.isBefore(sunset!)
+        : now.hour >= 6 && now.hour < 21;
+    final icon = WeatherUtils.iconForWmoCode(current.weatherCode, isDay: isDay);
     final iconColor = WeatherUtils.colorForWmoCode(current.weatherCode);
 
-    final skyColors = SkyGradient.getColors(DateTime.now(), current.weatherCode);
+    final skyColors = SkyGradient.getColors(now, current.weatherCode);
 
     return Container(
       decoration: BoxDecoration(
@@ -46,7 +51,7 @@ class CurrentWeatherCard extends StatelessWidget {
       ),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.black.withAlpha(60), // Slightly stronger overlay for contrast
+          color: Colors.black.withAlpha(100), // Stronger overlay for contrast
           borderRadius: BorderRadius.circular(24),
         ),
         padding: const EdgeInsets.all(20),

@@ -76,13 +76,16 @@ class _DailyTile extends StatelessWidget {
     final iconColor = WeatherUtils.colorForWmoCode(day.weatherCode);
     final uv = WeatherUtils.uvInfo(day.uvIndex);
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
         margin: const EdgeInsets.symmetric(vertical: 4),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerHigh.withAlpha(isToday ? 200 : 120),
+          color: theme.colorScheme.surfaceContainerHigh.withAlpha(isToday ? 220 : 180),
           borderRadius: BorderRadius.circular(14),
           border: isToday
               ? Border.all(color: theme.colorScheme.primary.withAlpha(120), width: 1.5)
@@ -157,6 +160,7 @@ class _DailyTile extends StatelessWidget {
                 )),
           ],
         ),
+      ),
       ),
     );
   }

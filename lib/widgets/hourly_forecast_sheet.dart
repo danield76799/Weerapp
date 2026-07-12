@@ -141,8 +141,8 @@ class _HourlyForecastSheetState extends State<HourlyForecastSheet> {
               itemCount: widget.hours.length,
               itemBuilder: (context, i) {
                 final h = widget.hours[i];
-                final isDay = h.time.hour >= 6 && h.time.hour < 21;
-                final icon = WeatherUtils.iconForWmoCode(h.weatherCode, isDay: isDay);
+                // Fix: use actual isDay from API data instead of fixed 6-21h range
+                final icon = WeatherUtils.iconForWmoCode(h.weatherCode, isDay: h.isDay);
                 final iconColor = WeatherUtils.colorForWmoCode(h.weatherCode);
                 final tempColor = WeatherUtils.tempColor(h.temperature);
 
@@ -156,7 +156,7 @@ class _HourlyForecastSheetState extends State<HourlyForecastSheet> {
                   decoration: BoxDecoration(
                     color: isCurrentHour
                         ? theme.colorScheme.primary.withAlpha(40)
-                        : theme.colorScheme.surfaceContainerHigh.withAlpha(120),
+                        : theme.colorScheme.surfaceContainerHigh,
                     borderRadius: BorderRadius.circular(12),
                     border: isCurrentHour
                         ? Border.all(color: theme.colorScheme.primary.withAlpha(120), width: 1.5)

@@ -90,7 +90,9 @@ class WeerApp extends StatelessWidget {
       colorScheme: brightness == Brightness.dark
           ? colorScheme.copyWith(
               surface: Colors.black,
-              surfaceContainerHigh: const Color(0xFF111111),
+              surfaceContainerHigh: const Color(0xFF1E1E1E),
+              surfaceContainer: const Color(0xFF161616),
+              surfaceContainerLow: const Color(0xFF141414),
             )
           : colorScheme,
       appBarTheme: AppBarTheme(
@@ -136,8 +138,24 @@ class _SplashGateState extends State<_SplashGate> {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: CircularProgressIndicator()),
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.wb_cloudy, size: 64),
+            const SizedBox(height: 16),
+            Text(
+              'Weer',
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 24),
+            const CircularProgressIndicator(),
+          ],
+        ),
+      ),
     );
   }
 }
