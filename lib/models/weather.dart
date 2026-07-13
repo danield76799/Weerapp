@@ -341,6 +341,32 @@ class WeatherData {
     required this.lat,
     required this.lon,
   });
+
+  WeatherData copyWith({
+    CurrentWeather? current,
+    List<DailyForecast>? daily,
+    List<DailyForecast>? pastDaily,
+    List<HourlyForecast>? hourly,
+    AirQuality? airQuality,
+    PollenInfo? pollen,
+    DateTime? fetchedAt,
+    String? locationName,
+    double? lat,
+    double? lon,
+  }) {
+    return WeatherData(
+      current: current ?? this.current,
+      daily: daily ?? this.daily,
+      pastDaily: pastDaily ?? this.pastDaily,
+      hourly: hourly ?? this.hourly,
+      airQuality: airQuality ?? this.airQuality,
+      pollen: pollen ?? this.pollen,
+      fetchedAt: fetchedAt ?? this.fetchedAt,
+      locationName: locationName ?? this.locationName,
+      lat: lat ?? this.lat,
+      lon: lon ?? this.lon,
+    );
+  }
   /// Get hourly forecasts for a specific date, starting from current hour if today
   List<HourlyForecast> hourlyForDay(DateTime date) {
     final now = DateTime.now();

@@ -59,7 +59,33 @@ class WeatherProvider extends ChangeNotifier {
       return;
     }
 
-    // 2. Geen memory cache — laad met loading state
+    // 2. Disk cache? → toon direct, refresh op achtergrond als nodig
+    //    We vragen eerst de service om gecachte data zonder loading state.
+    if (!force) {
+      try {
+        final cached = await _service.fetchWeather(
+          lat: lat,
+          lon: lon,
+          locationName: locationName,
+          force: false,
+        );
+        _data = cached;
+        _addToCache(key, cached);
+        _currentLocationKey = key;
+        _status = WeatherStatus.loaded;
+        _isFromCache = true;
+        _lastRefresh = cached.fetchedAt;
+        notifyListeners();
+
+        // Verse data ophalen op de achtergrond
+        _refreshFromMemory(key, lat, lon, locationName);
+        return;
+      } on WeatherApiException catch (_) {
+        // Geen geldige cache — door naar netwerk
+      }
+    }
+
+    // 3. Geen cache — laad met loading state
     _status = WeatherStatus.loading;
     _errorMessage = null;
     _isFromCache = false;

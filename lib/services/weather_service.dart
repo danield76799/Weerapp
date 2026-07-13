@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as developer;
 import 'dart:io';
@@ -87,73 +88,63 @@ class WeatherService {
     }
 
     try {
-      // Alle 3 calls tegelijk: forecast + historical + air quality.
-      // _fetchHistoricalData en _fetchAirQuality hebben interne try/catch
-      // en gooien nooit — dus Future.wait faalt alleen als forecast faalt,
-      // wat hetzelfde gedrag is als de oude sequentiële code.
-      final results = await Future.wait([
-        _dio.get(
-          '/v1/forecast',
-          queryParameters: {
-            'latitude': lat,
-            'longitude': lon,
-            'current': [
-              'temperature_2m',
-              'apparent_temperature',
-              'relative_humidity_2m',
-              'precipitation',
-              'weather_code',
-              'wind_speed_10m',
-              'pressure_msl',
-              'cloud_cover',
-              'uv_index',
-              'dew_point_2m',
-              'visibility',
-              'wind_gusts_10m',
-              'sunshine_duration',
-            ].join(','),
-            'hourly': [
-              'temperature_2m',
-              'apparent_temperature',
-              'precipitation',
-              'precipitation_probability',
-              'weather_code',
-              'uv_index',
-              'cloud_cover',
-              'wind_direction_10m',
-              'is_day',
-            ].join(','),
-            'daily': [
-              'weather_code',
-              'temperature_2m_max',
-              'temperature_2m_min',
-              'apparent_temperature_max',
-              'apparent_temperature_min',
-              'sunrise',
-              'sunset',
-              'uv_index_max',
-              'precipitation_sum',
-              'precipitation_probability_max',
-              'wind_speed_10m_max',
-              'wind_gusts_10m_max',
-              'relative_humidity_2m_max',
-              'cloud_cover_max',
-              'sunshine_duration',
-            ].join(','),
-            'timezone': 'auto',
-            'forecast_days': 14,
-            'wind_speed_unit': 'ms',
-            'temperature_unit': 'celsius',
-            'precipitation_unit': 'mm',
-          },
-        ),
-        _fetchHistoricalData(lat, lon),
-        _fetchAirQuality(lat, lon),
-      ]);
-
-      final response = results[0] as Response;
-      final historicalData = results[1] as List<DailyForecast>?;
-      final airQuality = results[2] as (AirQuality?, PollenInfo?);
+      // Haal de essentiele forecast eerst op. Archief en luchtkwaliteit zijn
+      // aanvullend en kunnen traag zijn; die laden we later bij.
+      final response = await _dio.get(
+        '/v1/forecast',
+        queryParameters: {
+          'latitude': lat,
+          'longitude': lon,
+          'current': [
+            'temperature_2m',
+            'apparent_temperature',
+            'relative_humidity_2m',
+            'precipitation',
+            'weather_code',
+            'wind_speed_10m',
+            'pressure_msl',
+            'cloud_cover',
+            'uv_index',
+            'dew_point_2m',
+            'visibility',
+            'wind_gusts_10m',
+            'sunshine_duration',
+          ].join(','),
+          'hourly': [
+            'temperature_2m',
+            'apparent_temperature',
+            'precipitation',
+            'precipitation_probability',
+            'weather_code',
+            'uv_index',
+            'cloud_cover',
+            'wind_direction_10m',
+            'is_day',
+          ].join(','),
+          'daily': [
+            'weather_code',
+            'temperature_2m_max',
+            'temperature_2m_min',
+            'apparent_temperature_max',
+            'apparent_temperature_min',
+            'sunrise',
+            'sunset',
+            'uv_index_max',
+            'precipitation_sum',
+            'precipitation_probability_max',
+            'wind_speed_10m_max',
+            'wind_gusts_10m_max',
+            'relative_humidity_2m_max',
+            'cloud_cover_max',
+            'sunshine_duration',
+          ].join(','),
+          'timezone': 'auto',
+          'forecast_days': 14,
+          'wind_speed_unit': 'ms',
+          'temperature_unit': 'celsius',
+          'precipitation_unit': 'mm',
+        },
+      );
 
       if (response.statusCode != 200) {
         throw WeatherApiException('API error ${response.statusCode}');
@@ -163,15 +154,19 @@ class WeatherService {
 
       final weather = _parseOpenMeteo(
         data,
-        historicalData: historicalData,
+        historicalData: null,
         locationName: locationName,
-        airQuality: airQuality.$1,
-        pollen: airQuality.$2,
+        airQuality: null,
+        pollen: null,
         lat: lat,
         lon: lon,
       );
       await _writeCache(cacheKey, weather);
       await setLastLocation(lat, lon, locationName);
+
+      // Vul aanvullende data (luchtkwaliteit + historie) asynchroon bij
+      unawaited(_enrichWithExtras(cacheKey, weather, lat, lon));
+
       return weather;
     } on DioException catch (e) {
       final cached = await _readCache(cacheKey, ignoreAge: true);
@@ -667,6 +662,32 @@ class WeatherService {
       // Corrupte cache verwijderen
       await prefs.remove(key);
       return null;
+    }
+  }
+
+  Future<void> _enrichWithExtras(
+    String cacheKey,
+    WeatherData weather,
+    double lat,
+    double lon,
+  ) async {
+    try {
+      final results = await Future.wait([
+        _fetchHistoricalData(lat, lon),
+        _fetchAirQuality(lat, lon),
+      ]);
+      final historicalData = results[0] as List<DailyForecast>?;
+      final airQuality = results[1] as (AirQuality?, PollenInfo?);
+
+      final enriched = weather.copyWith(
+        pastDaily: historicalData,
+        airQuality: airQuality.$1,
+        pollen: airQuality.$2,
+      );
+      await _writeCache(cacheKey, enriched);
+    } catch (e) {
+      // Extras zijn aanvullend; negeren bij fout.
+      developer.log('Weather extras enrichment failed: $e');
     }
   }
 
