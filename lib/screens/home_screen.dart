@@ -480,6 +480,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               return RefreshIndicator(
                 onRefresh: () => provider.refresh(loc.lat, loc.lon, loc.name),
                 child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.all(16),
                   children: [
                     CurrentWeatherCard(
@@ -506,11 +507,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           ],
                         ),
                       ),
+                    if (_showJas) JasAdviceCard(current: data.current, nextHours: data.hourly),
+                    if (_showZonnebrand) ZonnebrandCard(current: data.current),
                     if (_showBuien) BuienCard(nextHours: data.hourly),
                     if (_showDetails && data.daily.isNotEmpty) DetailsCard(current: data.current, today: data.daily.first),
                     if (_showAirQuality && data.airQuality != null) AirQualityCard(airQuality: data.airQuality!, pollen: data.pollen),
-                    if (_showJas) JasAdviceCard(current: data.current, nextHours: data.hourly),
-                    if (_showZonnebrand) ZonnebrandCard(current: data.current),
                     WeatherHistoryCard(pastDaily: data.pastDaily, daily: data.daily),
                     const SizedBox(height: 8),
                     DailyForecastList(

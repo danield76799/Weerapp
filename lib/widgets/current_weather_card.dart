@@ -50,11 +50,18 @@ class CurrentWeatherCard extends StatelessWidget {
         ],
       ),
       child: Container(
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Colors.black.withAlpha(100), // Stronger overlay for contrast
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Colors.black.withValues(alpha: 0.25),
+              Colors.black.withValues(alpha: 0.45),
+            ],
+          ),
           borderRadius: BorderRadius.circular(24),
         ),
-        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
