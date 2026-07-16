@@ -223,6 +223,11 @@ class WeatherNotificationService {
     final day = data.daily.isNotEmpty ? data.daily.first : null;
     if (day == null) return;
 
+    // Zet de flag VÓÓR het verzenden om races te voorkomen
+    // (app sluiten tussen tonen en setBool = duplicaat morgen onmogelijk,
+    // maar voorkomt dubbele versturen bij meerdere locatie-switches).
+    await prefs.setBool(todayKey, true);
+
     final lines = <String>[];
     lines.add('🌡 ${current.temperature.toStringAsFixed(0)}°C nu, max ${day.tempMax.toStringAsFixed(0)}°');
     lines.add('☁️ ${current.weatherDescription}');
@@ -274,8 +279,6 @@ class WeatherNotificationService {
       body: lines.join('\n'),
       notificationDetails: const NotificationDetails(android: androidDetails, iOS: iosDetails),
     );
-
-    await prefs.setBool(todayKey, true);
   }
 
   tz.TZDateTime _nextInstanceOf(TimeOfDay time) {
