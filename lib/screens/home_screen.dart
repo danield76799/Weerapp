@@ -462,7 +462,42 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 },
               );
             }
-            return const Center(child: CircularProgressIndicator());
+            // Laadstatus met duidelijke tekst i.p.v. naakte spinner (voorkomt
+            // een ogenschijnlijk wit scherm bij trage/afwezige data).
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const CircularProgressIndicator(),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Weer wordt geladen…',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Status: ${provider.status.name}',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurface.withAlpha(150),
+                          ),
+                    ),
+                    if (provider.errorMessage != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(
+                          provider.errorMessage!,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Theme.of(context).colorScheme.error,
+                              ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            );
           }
 
           return PageView.builder(

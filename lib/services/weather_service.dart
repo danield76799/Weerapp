@@ -88,6 +88,7 @@ class WeatherService {
     }
 
     try {
+      developer.log('WEERAPP-DIAG: fetchWeather start lat=$lat lon=$lon name=$locationName');
       // Haal de essentiele forecast eerst op. Archief en luchtkwaliteit zijn
       // aanvullend en kunnen traag zijn; die laden we later bij.
       final response = await _dio.get(
@@ -147,9 +148,11 @@ class WeatherService {
       );
 
       if (response.statusCode != 200) {
+        developer.log('WEERAPP-DIAG: API status ${response.statusCode}');
         throw WeatherApiException('API error ${response.statusCode}');
       }
 
+      developer.log('WEERAPP-DIAG: API 200, parsing...');
       final data = response.data as Map<String, dynamic>;
 
       final weather = _parseOpenMeteo(
@@ -169,6 +172,7 @@ class WeatherService {
 
       return weather;
     } on DioException catch (e) {
+      developer.log('WEERAPP-DIAG: DioException type=${e.type} msg=${e.message}');
       final cached = await _readCache(cacheKey, ignoreAge: true);
       if (cached != null) return cached;
       if (e.type == DioExceptionType.connectionTimeout ||
@@ -178,6 +182,7 @@ class WeatherService {
       }
       throw WeatherApiException('Netwerkfout: ${e.message}');
     } catch (e) {
+      developer.log('WEERAPP-DIAG: parse/other error: $e');
       final cached = await _readCache(cacheKey, ignoreAge: true);
       if (cached != null) return cached;
       rethrow;

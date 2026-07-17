@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:developer' as developer;
+
 import 'package:flutter/foundation.dart';
 
 import '../models/weather.dart';
@@ -30,14 +33,13 @@ class WeatherProvider extends ChangeNotifier {
   DateTime? get lastRefresh => _lastRefresh;
 
   /// Haal gecachte data op voor een specifieke locatie (uit memory)
-  WeatherData? getCachedData(String key) => _memoryCache[key];
-
   Future<void> loadWeather({
     required double lat,
     required double lon,
     required String locationName,
     bool force = false,
   }) async {
+    developer.log('WEERAPP-DIAG: loadWeather lat=$lat lon=$lon name=$locationName');
     final key = '${lat.toStringAsFixed(2)},${lon.toStringAsFixed(2)}';
 
     // 1. Memory cache? → toon direct, refresh op achtergrond als nodig
@@ -59,33 +61,9 @@ class WeatherProvider extends ChangeNotifier {
       return;
     }
 
-    // 2. Disk cache? → toon direct, refresh op achtergrond als nodig
-    //    We vragen eerst de service om gecachte data zonder loading state.
-    if (!force) {
-      try {
-        final cached = await _service.fetchWeather(
-          lat: lat,
-          lon: lon,
-          locationName: locationName,
-          force: false,
-        );
-        _data = cached;
-        _addToCache(key, cached);
-        _currentLocationKey = key;
-        _status = WeatherStatus.loaded;
-        _isFromCache = true;
-        _lastRefresh = cached.fetchedAt;
-        notifyListeners();
-
-        // Verse data ophalen op de achtergrond
-        _refreshFromMemory(key, lat, lon, locationName);
-        return;
-      } on WeatherApiException catch (_) {
-        // Geen geldige cache — door naar netwerk
-      }
-    }
-
-    // 3. Geen cache — laad met loading state
+    // 2. Geen memory cache — laad met loading state (directe netwerk-call).
+    // De disk-cache-first tussenstap uit 4dbc07b bleek een regressie te zijn
+    // (wit scherm op telefoon); hier teruggedraaid naar de werkende flow.
     _status = WeatherStatus.loading;
     _errorMessage = null;
     _isFromCache = false;
@@ -105,6 +83,7 @@ class WeatherProvider extends ChangeNotifier {
       _status = WeatherStatus.loaded;
       _lastRefresh = DateTime.now();
     } catch (e) {
+      developer.log('WEERAPP-DIAG: loadWeather error: $e');
       _errorMessage = e.toString();
       _status = WeatherStatus.error;
     }
