@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -14,26 +16,64 @@ import 'services/weather_service.dart';
 final ValueNotifier<String> themeModeNotifier = ValueNotifier<String>('system');
 final ValueNotifier<int> accentColorNotifier = ValueNotifier<int>(0xFF49AFC2);
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+void main() {
+  // Toon een leesbare foutmelding in plaats van een wit scherm bij een
+  // ongevangen exception (bijv. bij opstart). Zo blijft de app bruikbaar en
+  // kan de gebruiker de melding doorsturen.
+  FlutterError.onError = (details) {
+    FlutterError.dumpErrorToConsole(details);
+  };
+  ErrorWidget.builder = (details) {
+    return Scaffold(
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              const SizedBox(height: 16),
+              const Text(
+                'Er ging iets mis bij het opstarten',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                details.exceptionAsString(),
+                style: const TextStyle(fontSize: 14, color: Colors.red),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                details.stack.toString(),
+                style: const TextStyle(fontSize: 11, color: Colors.black54),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  };
 
-  final weatherService = WeatherService();
+  runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
+    await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
-  final prefs = await SharedPreferences.getInstance();
-  themeModeNotifier.value = prefs.getString('theme_mode') ?? 'system';
-  accentColorNotifier.value = prefs.getInt('accent_color') ?? 0xFF49AFC2;
+    final weatherService = WeatherService();
 
-  runApp(WeerApp(weatherService: weatherService));
+    final prefs = await SharedPreferences.getInstance();
+    themeModeNotifier.value = prefs.getString('theme_mode') ?? 'system';
+    accentColorNotifier.value = prefs.getInt('accent_color') ?? 0xFF49AFC2;
 
-  // Post-startup init — fire-and-forget, niet blokkeren van eerste frame.
-  // Notif init (timezone) en battery-opt prompt zijn niet nodig voor UI.
-  // HomeScreen checkThresholds heeft eigen try/catch, dus een gemiste notif
-  // bij cold-start is veilig.
-  WeatherNotificationService(weatherService: weatherService)
-      .initialize()
-      .catchError((_) {});
-  BatteryOptimizationService.askOnceIfNeeded().catchError((_) {});
+    runApp(WeerApp(weatherService: weatherService));
+
+    // Post-startup init — fire-and-forget, niet blokkeren van eerste frame.
+    WeatherNotificationService(weatherService: weatherService)
+        .initialize()
+        .catchError((_) {});
+    BatteryOptimizationService.askOnceIfNeeded().catchError((_) {});
+  }, (error, stack) {
+    debugPrint('Uncaught error: $error\n$stack');
+  });
 }
 
 class WeerApp extends StatelessWidget {
