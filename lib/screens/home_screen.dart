@@ -559,159 +559,105 @@ class _HomeBody extends StatelessWidget {
     final loc = locations.isNotEmpty
         ? locations[currentPage.clamp(0, locations.length - 1)]
         : null;
-    // Ambient gradient based on time of day → gives the whole screen depth.
-    final bg = _ambientGradient();
 
-    return Stack(
-      children: [
-        // Ambient background
-        Positioned.fill(
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: bg,
-              ),
-            ),
-          ),
-        ),
-        // Subtle radial glow top-right for premium feel
-        Positioned.fill(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: RadialGradient(
-                center: const Alignment(0.9, -0.9),
-                radius: 1.2,
-                colors: [
-                  theme.colorScheme.primary.withAlpha(40),
-                  Colors.transparent,
-                ],
-              ),
-            ),
-          ),
-        ),
-        SafeArea(
-          child: Column(
-            children: [
-              // Custom header
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 8, 4),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: onRename,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.location_on,
-                              size: 20,
-                              color: theme.colorScheme.primary,
-                            ),
-                            const SizedBox(width: 4),
-                            Flexible(
-                              child: Text(
-                                loc != null ? _shortName(loc.name) : 'Weer',
-                                style: theme.textTheme.titleLarge?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: -0.5,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            Icon(
-                              Icons.edit_outlined,
-                              size: 14,
-                              color: theme.colorScheme.onSurface.withAlpha(180),
-                            ),
-                          ],
+    return SafeArea(
+      child: Column(
+        children: [
+          // Custom header
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 8, 4),
+            child: Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: onRename,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.location_on,
+                          size: 20,
+                          color: theme.colorScheme.primary,
                         ),
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.add_location_alt),
-                      onPressed: onAdd,
-                      tooltip: 'Locatie toevoegen',
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.my_location),
-                      onPressed: onMyLocation,
-                      tooltip: 'Mijn locatie',
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.radar),
-                      onPressed: onRadar,
-                      tooltip: 'Neerslagkaart',
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.settings_outlined),
-                      onPressed: onSettings,
-                      tooltip: 'Instellingen',
-                    ),
-                    if (onRemove != null)
-                      IconButton(
-                        icon: const Icon(Icons.delete_outline),
-                        onPressed: onRemove,
-                        tooltip: 'Locatie verwijderen',
-                      ),
-                  ],
-                ),
-              ),
-              // Page dots indicator
-              if (locations.length > 1)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: locations.asMap().entries.map((e) {
-                      final active = e.key == currentPage;
-                      return AnimatedContainer(
-                        duration: const Duration(milliseconds: 250),
-                        margin: const EdgeInsets.symmetric(horizontal: 3),
-                        width: active ? 18 : 6,
-                        height: 6,
-                        decoration: BoxDecoration(
-                          color: active
-                              ? theme.colorScheme.primary
-                              : theme.colorScheme.onSurface.withAlpha(80),
-                          borderRadius: BorderRadius.circular(3),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            loc != null ? _shortName(loc.name) : 'Weer',
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: -0.5,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
                         ),
-                      );
-                    }).toList(),
+                        const SizedBox(width: 4),
+                        Icon(
+                          Icons.edit_outlined,
+                          size: 14,
+                          color: theme.colorScheme.onSurface.withAlpha(180),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              // Content
-              Expanded(child: child),
-            ],
+                IconButton(
+                  icon: const Icon(Icons.add_location_alt),
+                  onPressed: onAdd,
+                  tooltip: 'Locatie toevoegen',
+                ),
+                IconButton(
+                  icon: const Icon(Icons.my_location),
+                  onPressed: onMyLocation,
+                  tooltip: 'Mijn locatie',
+                ),
+                IconButton(
+                  icon: const Icon(Icons.radar),
+                  onPressed: onRadar,
+                  tooltip: 'Neerslagkaart',
+                ),
+                IconButton(
+                  icon: const Icon(Icons.settings_outlined),
+                  onPressed: onSettings,
+                  tooltip: 'Instellingen',
+                ),
+                if (onRemove != null)
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline),
+                    onPressed: onRemove,
+                    tooltip: 'Locatie verwijderen',
+                  ),
+              ],
+            ),
           ),
-        ),
-      ],
+          // Page dots indicator
+          if (locations.length > 1)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: locations.asMap().entries.map((e) {
+                  final active = e.key == currentPage;
+                  return AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
+                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                    width: active ? 18 : 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: active
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.onSurface.withAlpha(80),
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          // Content
+          Expanded(child: child),
+        ],
+      ),
     );
-  }
-
-  List<Color> _ambientGradient() {
-    final now = DateTime.now();
-    final hour = now.hour;
-    final dark = WidgetsBinding.instance.platformDispatcher.platformBrightness ==
-        Brightness.dark;
-    if (dark) {
-      // Donkere, sterker contrasterende achtergrond in dark mode,
-      // zodat de kaarten erduidelijk tegenafsteken.
-      if (hour >= 19 || hour < 6) {
-        return [const Color(0xFF04070C), const Color(0xFF080B10)];
-      }
-      return [const Color(0xFF070C14), const Color(0xFF080B10)];
-    }
-    // Light mode: duidelijk blauwere tint dan de kaarten, zodat
-    // ze als "kaarten" op de achtergrond opvallen.
-    if (hour >= 19 || hour < 6) {
-      return [const Color(0xFFD4E3EE), const Color(0xFFE6EDF4)];
-    }
-    return [const Color(0xFFCEE4F2), const Color(0xFFE6EDF4)];
   }
 
   String _shortName(String name) {

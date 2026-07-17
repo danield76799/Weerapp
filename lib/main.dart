@@ -84,13 +84,12 @@ class WeerApp extends StatelessWidget {
     );
     final colorScheme = brightness == Brightness.dark
         ? base.copyWith(
-            // Diepere, meer contrasterende dark mode voor kleine schermen
-            surface: const Color(0xFF0C0F13),
-            surfaceContainerHigh: const Color(0xFF212830),
-            surfaceContainer: const Color(0xFF181C24),
-            surfaceContainerLow: const Color(0xFF13171D),
-            surfaceContainerHighest: const Color(0xFF2C333F),
-            onSurface: const Color(0xFFFFFFFF),
+            surface: const Color(0xFF0E1116),
+            surfaceContainerHigh: const Color(0xFF1E2228),
+            surfaceContainer: const Color(0xFF161A20),
+            surfaceContainerLow: const Color(0xFF12161B),
+            surfaceContainerHighest: const Color(0xFF282C34),
+            onSurface: const Color(0xFFE8EDF2),
             shadow: Colors.black,
           )
         : base.copyWith(

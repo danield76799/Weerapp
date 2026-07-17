@@ -40,23 +40,16 @@ class ZonnebrandCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: uv.color.withAlpha(180),
+        color: theme.colorScheme.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: uv.color.withAlpha(50),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
         border: Border.all(
-          color: theme.colorScheme.outline.withAlpha(120),
-          width: 1.2,
+          color: uv.color.withAlpha(80),
+          width: 1.5,
         ),
       ),
       child: Row(
         children: [
-          Icon(Icons.wb_sunny, size: 32, color: Colors.white),
+          Icon(Icons.wb_sunny, size: 32, color: uv.color),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -67,14 +60,13 @@ class ZonnebrandCard extends StatelessWidget {
                   style: theme.textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w700,
                     fontSize: 14,
-                    color: Colors.white,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   advice,
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: Colors.white,
+                    color: theme.colorScheme.onSurface.withAlpha(220),
                     fontSize: 13,
                   ),
                 ),
@@ -88,7 +80,7 @@ class ZonnebrandCard extends StatelessWidget {
                         child: Text(
                           timingHint,
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: Colors.orange.shade300,
+                            color: Colors.orange.shade700,
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                           ),
@@ -106,14 +98,14 @@ class ZonnebrandCard extends StatelessWidget {
                     Text(
                       'UV ${todayUv.toStringAsFixed(1)}',
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        color: Color.lerp(uv.color, Colors.black, 0.6) ?? uv.color,
                       ),
                     ),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
-                        color: Colors.black.withAlpha(80),
+                        color: uv.color,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(

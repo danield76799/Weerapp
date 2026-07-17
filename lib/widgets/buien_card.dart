@@ -78,30 +78,22 @@ class BuienCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withAlpha(160),
+        color: theme.colorScheme.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: color.withAlpha(50),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-        border: Border.all(color: color.withAlpha(180), width: 1.2),
+        border: Border.all(color: color.withAlpha(80), width: 1.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, size: 24, color: Colors.white),
+              Icon(icon, size: 24, color: color),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   advies,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w600,
-                    color: Colors.white,
                   ),
                 ),
               ),
@@ -140,7 +132,7 @@ class BuienCard extends StatelessWidget {
                                   style: TextStyle(
                                     fontSize: 7,
                                     fontWeight: isFirst ? FontWeight.w700 : FontWeight.w400,
-                                    color: isFirst ? Colors.white : Colors.white.withAlpha(180),
+                                    color: isFirst ? color : theme.colorScheme.onSurface.withAlpha(200),
                                   ),
                                 ),
                               )
@@ -152,11 +144,11 @@ class BuienCard extends StatelessWidget {
                               height: barHeight,
                               decoration: BoxDecoration(
                                 color: isRain
-                                    ? color.withAlpha(160 + ((precip / (maxPrecip > 0 ? maxPrecip : 1)) * 90).toInt().clamp(0, 90))
-                                    : Colors.white.withAlpha(40),
+                                    ? color.withAlpha(120 + ((precip / (maxPrecip > 0 ? maxPrecip : 1)) * 100).toInt().clamp(0, 100))
+                                    : theme.colorScheme.surfaceContainerHighest.withAlpha(80),
                                 borderRadius: BorderRadius.circular(3),
                                 border: isFirst
-                                    ? Border.all(color: Colors.white, width: 1)
+                                    ? Border.all(color: color, width: 1)
                                     : null,
                               ),
                             ),
@@ -168,7 +160,7 @@ class BuienCard extends StatelessWidget {
                                 style: TextStyle(
                                   fontSize: 9,
                                   fontWeight: isFirst ? FontWeight.w700 : FontWeight.w400,
-                                  color: isFirst ? Colors.white : Colors.white.withAlpha(180),
+                                  color: isFirst ? color : theme.colorScheme.onSurface.withAlpha(180),
                                 ),
                               ),
                             ),
@@ -187,13 +179,13 @@ class BuienCard extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.circle, size: 6, color: Colors.white.withAlpha(120)),
+                  Icon(Icons.circle, size: 6, color: color.withAlpha(120)),
                   const SizedBox(width: 4),
                   Text(
                     'Regenintensiteit in mm per uur',
                     style: TextStyle(
                       fontSize: 10,
-                      color: Colors.white.withAlpha(180),
+                      color: theme.colorScheme.onSurface.withAlpha(180),
                     ),
                   ),
                 ],
