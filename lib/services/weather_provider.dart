@@ -1,6 +1,3 @@
-import 'dart:async';
-import 'dart:developer' as developer;
-
 import 'package:flutter/foundation.dart';
 
 import '../models/weather.dart';
@@ -39,7 +36,6 @@ class WeatherProvider extends ChangeNotifier {
     required String locationName,
     bool force = false,
   }) async {
-    developer.log('WEERAPP-DIAG: loadWeather lat=$lat lon=$lon name=$locationName');
     final key = '${lat.toStringAsFixed(2)},${lon.toStringAsFixed(2)}';
 
     // 1. Memory cache? → toon direct, refresh op achtergrond als nodig
@@ -83,7 +79,6 @@ class WeatherProvider extends ChangeNotifier {
       _status = WeatherStatus.loaded;
       _lastRefresh = DateTime.now();
     } catch (e) {
-      developer.log('WEERAPP-DIAG: loadWeather error: $e');
       _errorMessage = e.toString();
       _status = WeatherStatus.error;
     }

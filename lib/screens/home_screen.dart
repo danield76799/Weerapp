@@ -543,7 +543,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         ),
                       ),
                     if (_showJas) JasAdviceCard(current: data.current, nextHours: data.hourly),
-                    if (_showZonnebrand) ZonnebrandCard(current: data.current),
+                    if (_showZonnebrand) ZonnebrandCard(current: data.current, nextHours: data.hourly),
                     if (_showBuien) BuienCard(nextHours: data.hourly),
                     if (_showDetails && data.daily.isNotEmpty) DetailsCard(current: data.current, today: data.daily.first),
                     if (_showAirQuality && data.airQuality != null) AirQualityCard(airQuality: data.airQuality!, pollen: data.pollen),
