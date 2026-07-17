@@ -91,22 +91,29 @@ class CurrentWeatherCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${current.temperature.toStringAsFixed(0)}°C',
+                        '${current.temperature.toStringAsFixed(0)}°',
                         style: const TextStyle(
-                          fontSize: 84,
+                          fontSize: 96,
                           fontWeight: FontWeight.w800,
                           color: Colors.white,
-                          height: 1,
-                          letterSpacing: -2,
+                          height: 0.95,
+                          letterSpacing: -4,
+                          shadows: [
+                            Shadow(
+                              color: Colors.black38,
+                              blurRadius: 18,
+                              offset: Offset(0, 6),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 2),
                       Text(
                         current.weatherDescription.capitalize(),
                         style: const TextStyle(
-                          fontSize: 18,
+                          fontSize: 19,
                           color: Colors.white,
-                          fontWeight: FontWeight.w400,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                       Text(
@@ -119,9 +126,23 @@ class CurrentWeatherCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                SizedBox(
-                  width: 120,
-                  child: Icon(icon, size: 100, color: iconColor),
+                Container(
+                  width: 130,
+                  height: 130,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        iconColor.withAlpha(70),
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
+                  child: Icon(icon, size: 104, color: iconColor,
+                    shadows: const [
+                      Shadow(color: Colors.black26, blurRadius: 12),
+                    ],
+                  ),
                 ),
               ],
             ),

@@ -78,25 +78,55 @@ class WeerApp extends StatelessWidget {
   }
 
   ThemeData _buildTheme(Brightness brightness, Color accentColor) {
-    final colorScheme = ColorScheme.fromSeed(
+    final base = ColorScheme.fromSeed(
       seedColor: accentColor,
       brightness: brightness,
     );
+    final colorScheme = brightness == Brightness.dark
+        ? base.copyWith(
+            // Diepe "space gray" in plaats van plat zwart → meer diepte
+            surface: const Color(0xFF0E1116),
+            surfaceContainerHigh: const Color(0xFF1A1F26),
+            surfaceContainer: const Color(0xFF14181E),
+            surfaceContainerLow: const Color(0xFF12161B),
+            surfaceContainerHighest: const Color(0xFF222831),
+            onSurface: const Color(0xFFE8EDF2),
+            shadow: Colors.black,
+          )
+        : base.copyWith(
+            surface: const Color(0xFFF5F8FB),
+            surfaceContainerHigh: const Color(0xFFEAF1F6),
+            surfaceContainer: const Color(0xFFF0F5F9),
+            surfaceContainerLow: const Color(0xFFFAFCFD),
+            surfaceContainerHighest: const Color(0xFFE1EAF1),
+          );
     return ThemeData(
       useMaterial3: true,
-      colorScheme: brightness == Brightness.dark
-          ? colorScheme.copyWith(
-              surface: Colors.black,
-              surfaceContainerHigh: const Color(0xFF1E1E1E),
-              surfaceContainer: const Color(0xFF161616),
-              surfaceContainerLow: const Color(0xFF141414),
-            )
-          : colorScheme,
+      colorScheme: colorScheme,
+      scaffoldBackgroundColor: colorScheme.surface,
       appBarTheme: AppBarTheme(
-        backgroundColor: colorScheme.surface,
+        backgroundColor: Colors.transparent,
+        foregroundColor: colorScheme.onSurface,
         elevation: 0,
-        scrolledUnderElevation: 1,
+        scrolledUnderElevation: 0,
         centerTitle: false,
+        titleTextStyle: TextStyle(
+          fontSize: 22,
+          fontWeight: FontWeight.w700,
+          color: colorScheme.onSurface,
+          letterSpacing: -0.5,
+        ),
+      ),
+      cardTheme: CardThemeData(
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+      ),
+      chipTheme: ChipThemeData(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
       ),
     );
   }

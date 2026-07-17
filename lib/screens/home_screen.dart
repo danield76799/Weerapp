@@ -382,191 +382,337 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: GestureDetector(
-          onTap: _renameLocation,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Flexible(
-                child: Text(
-                  _locations.isNotEmpty
-                      ? _shortName(_locations[_currentPage.clamp(0, _locations.length - 1)].name)
-                      : 'Weer',
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 1,
-                ),
+      body: _HomeBody(
+        locations: _locations,
+        currentPage: _currentPage,
+        onRename: _renameLocation,
+        onAdd: _openSearch,
+        onMyLocation: _useCurrentLocation,
+        onRadar: () {
+          if (_locations.isNotEmpty && _currentPage < _locations.length) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => RainRadarScreen(location: _locations[_currentPage]),
               ),
-              const SizedBox(width: 6),
-              Icon(Icons.edit_outlined, size: 14, color: Theme.of(context).colorScheme.onSurface.withAlpha(120)),
-            ],
-          ),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add_location_alt),
-            onPressed: _openSearch,
-            tooltip: 'Locatie toevoegen',
-          ),
-          IconButton(
-            icon: const Icon(Icons.my_location),
-            onPressed: _useCurrentLocation,
-            tooltip: 'Mijn locatie',
-          ),
-          IconButton(
-            icon: const Icon(Icons.radar),
-            onPressed: () {
-              if (_locations.isNotEmpty && _currentPage < _locations.length) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => RainRadarScreen(
-                      location: _locations[_currentPage],
-                    ),
-                  ),
-                );
-              }
-            },
-            tooltip: 'Neerslagkaart',
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            onPressed: _openSettings,
-            tooltip: 'Instellingen',
-          ),
-          if (_locations.length > 1)
-            IconButton(
-              icon: const Icon(Icons.delete_outline),
-              onPressed: _removeCurrentLocation,
-              tooltip: 'Locatie verwijderen',
-            ),
-        ],
-      ),
-      body: Consumer<WeatherProvider>(
-        builder: (context, provider, _) {
-          if (_locations.isEmpty) {
-            return _ErrorState(
-              message: 'Geen locaties. Tik op + om er toe te voegen.',
-              onRetry: _openSearch,
             );
           }
-
-          // No weather data yet — show loading or retry
-          if (!provider.hasData) {
-            if (provider.status == WeatherStatus.error) {
+        },
+        onSettings: _openSettings,
+        onRemove: _locations.length > 1 ? _removeCurrentLocation : null,
+        child: Consumer<WeatherProvider>(
+          builder: (context, provider, _) {
+            if (_locations.isEmpty) {
               return _ErrorState(
-                message: provider.errorMessage ?? 'Onbekende fout',
-                onRetry: () {
-                  final loc = _locations[_currentPage.clamp(0, _locations.length - 1)];
-                  _loadLocation(loc.lat, loc.lon, loc.name, isCurrentLocation: loc.isCurrentLocation);
-                },
+                message: 'Geen locaties. Tik op + om er toe te voegen.',
+                onRetry: _openSearch,
               );
             }
-            // Laadstatus met duidelijke tekst i.p.v. naakte spinner (voorkomt
-            // een ogenschijnlijk wit scherm bij trage/afwezige data).
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const CircularProgressIndicator(),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Weer wordt geladen…',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Status: ${provider.status.name}',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface.withAlpha(150),
-                          ),
-                    ),
-                    if (provider.errorMessage != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: Text(
-                          provider.errorMessage!,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: Theme.of(context).colorScheme.error,
-                              ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            );
-          }
 
-          return PageView.builder(
-            controller: _pageController,
-            itemCount: _locations.length,
-            onPageChanged: _onPageChanged,
-            itemBuilder: (context, index) {
-              final loc = _locations[index];
-              // Only show weather for current page
-              if (index != _currentPage) {
-                return const SizedBox.shrink();
+            // No weather data yet — show loading or retry
+            if (!provider.hasData) {
+              if (provider.status == WeatherStatus.error) {
+                return _ErrorState(
+                  message: provider.errorMessage ?? 'Onbekende fout',
+                  onRetry: () {
+                    final loc = _locations[_currentPage.clamp(0, _locations.length - 1)];
+                    _loadLocation(loc.lat, loc.lon, loc.name, isCurrentLocation: loc.isCurrentLocation);
+                  },
+                );
               }
+              // Laadstatus met duidelijke tekst i.p.v. naakte spinner (voorkomt
+              // een ogenschijnlijk wit scherm bij trage/afwezige data).
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const CircularProgressIndicator(),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Weer wordt geladen…',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Status: ${provider.status.name}',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurface.withAlpha(150),
+                            ),
+                      ),
+                      if (provider.errorMessage != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(
+                            provider.errorMessage!,
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: Theme.of(context).colorScheme.error,
+                                ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              );
+            }
 
-              final data = provider.data!;
-              return RefreshIndicator(
-                onRefresh: () => provider.refresh(loc.lat, loc.lon, loc.name),
-                child: ListView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.all(16),
-                  children: [
-                    CurrentWeatherCard(
-                      current: data.current,
-                      locationName: data.locationName,
-                      sunrise: data.daily.isNotEmpty ? data.daily.first.sunrise : null,
-                      sunset: data.daily.isNotEmpty ? data.daily.first.sunset : null,
-                    ),
-                    if (provider.lastRefresh != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 6, bottom: 4),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.update, size: 16),
-                            const SizedBox(width: 4),
-                            Text(
-                              'Bijgewerkt om ${provider.lastRefresh!.hour.toString().padLeft(2, '0')}:${provider.lastRefresh!.minute.toString().padLeft(2, '0')}',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: Theme.of(context).colorScheme.onSurface.withAlpha(120),
+            final data = provider.data!;
+            final loc = _locations[_currentPage.clamp(0, _locations.length - 1)];
+            return PageView.builder(
+              controller: _pageController,
+              itemCount: _locations.length,
+              onPageChanged: _onPageChanged,
+              itemBuilder: (context, index) {
+                // Only build the active page; others stay lightweight.
+                if (index != _currentPage) {
+                  return const SizedBox.shrink();
+                }
+                return RefreshIndicator(
+                  onRefresh: () => provider.refresh(loc.lat, loc.lon, loc.name),
+                  child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                    children: [
+                      CurrentWeatherCard(
+                        current: data.current,
+                        locationName: data.locationName,
+                        sunrise: data.daily.isNotEmpty ? data.daily.first.sunrise : null,
+                        sunset: data.daily.isNotEmpty ? data.daily.first.sunset : null,
+                      ),
+                      if (provider.lastRefresh != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 6, bottom: 4),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.update, size: 16),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Bijgewerkt om ${provider.lastRefresh!.hour.toString().padLeft(2, '0')}:${provider.lastRefresh!.minute.toString().padLeft(2, '0')}',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Theme.of(context).colorScheme.onSurface.withAlpha(120),
+                                ),
                               ),
+                            ],
+                          ),
+                        ),
+                      if (_showJas) JasAdviceCard(current: data.current, nextHours: data.hourly),
+                      if (_showZonnebrand) ZonnebrandCard(current: data.current, nextHours: data.hourly),
+                      if (_showBuien) BuienCard(nextHours: data.hourly),
+                      if (_showDetails && data.daily.isNotEmpty) DetailsCard(current: data.current, today: data.daily.first),
+                      if (_showAirQuality && data.airQuality != null) AirQualityCard(airQuality: data.airQuality!, pollen: data.pollen),
+                      WeatherHistoryCard(pastDaily: data.pastDaily, daily: data.daily),
+                      const SizedBox(height: 8),
+                      DailyForecastList(
+                        days: data.daily,
+                        hourly: data.hourly,
+                        locationName: data.locationName,
+                      ),
+                      if (data.pastDaily.isNotEmpty)
+                        WeatherComparisonCard(
+                          pastDaily: data.pastDaily,
+                          daily: data.daily,
+                        ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+/// Home body with ambient weather-based background gradient and a custom
+/// header (location name + actions + page dots).
+class _HomeBody extends StatelessWidget {
+  final List<SavedLocation> locations;
+  final int currentPage;
+  final VoidCallback onRename;
+  final VoidCallback onAdd;
+  final VoidCallback onMyLocation;
+  final VoidCallback onRadar;
+  final VoidCallback onSettings;
+  final VoidCallback? onRemove;
+  final Widget child;
+
+  const _HomeBody({
+    required this.locations,
+    required this.currentPage,
+    required this.onRename,
+    required this.onAdd,
+    required this.onMyLocation,
+    required this.onRadar,
+    required this.onSettings,
+    required this.onRemove,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final loc = locations.isNotEmpty
+        ? locations[currentPage.clamp(0, locations.length - 1)]
+        : null;
+    // Ambient gradient based on time of day → gives the whole screen depth.
+    final bg = _ambientGradient();
+
+    return Stack(
+      children: [
+        // Ambient background
+        Positioned.fill(
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: bg,
+              ),
+            ),
+          ),
+        ),
+        // Subtle radial glow top-right for premium feel
+        Positioned.fill(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                center: const Alignment(0.9, -0.9),
+                radius: 1.2,
+                colors: [
+                  theme.colorScheme.primary.withAlpha(40),
+                  Colors.transparent,
+                ],
+              ),
+            ),
+          ),
+        ),
+        SafeArea(
+          child: Column(
+            children: [
+              // Custom header
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 8, 4),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: onRename,
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.location_on,
+                              size: 20,
+                              color: theme.colorScheme.primary,
+                            ),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                loc != null ? _shortName(loc.name) : 'Weer',
+                                style: theme.textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: -0.5,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Icon(
+                              Icons.edit_outlined,
+                              size: 14,
+                              color: theme.colorScheme.onSurface.withAlpha(120),
                             ),
                           ],
                         ),
                       ),
-                    if (_showJas) JasAdviceCard(current: data.current, nextHours: data.hourly),
-                    if (_showZonnebrand) ZonnebrandCard(current: data.current, nextHours: data.hourly),
-                    if (_showBuien) BuienCard(nextHours: data.hourly),
-                    if (_showDetails && data.daily.isNotEmpty) DetailsCard(current: data.current, today: data.daily.first),
-                    if (_showAirQuality && data.airQuality != null) AirQualityCard(airQuality: data.airQuality!, pollen: data.pollen),
-                    WeatherHistoryCard(pastDaily: data.pastDaily, daily: data.daily),
-                    const SizedBox(height: 8),
-                    DailyForecastList(
-                      days: data.daily,
-                      hourly: data.hourly,
-                      locationName: data.locationName,
                     ),
-                    if (data.pastDaily.isNotEmpty)
-                      WeatherComparisonCard(
-                        pastDaily: data.pastDaily,
-                        daily: data.daily,
+                    IconButton(
+                      icon: const Icon(Icons.add_location_alt),
+                      onPressed: onAdd,
+                      tooltip: 'Locatie toevoegen',
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.my_location),
+                      onPressed: onMyLocation,
+                      tooltip: 'Mijn locatie',
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.radar),
+                      onPressed: onRadar,
+                      tooltip: 'Neerslagkaart',
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.settings_outlined),
+                      onPressed: onSettings,
+                      tooltip: 'Instellingen',
+                    ),
+                    if (onRemove != null)
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline),
+                        onPressed: onRemove,
+                        tooltip: 'Locatie verwijderen',
                       ),
                   ],
                 ),
-              );
-            },
-          );
-        },
-      ),
+              ),
+              // Page dots indicator
+              if (locations.length > 1)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: locations.asMap().entries.map((e) {
+                      final active = e.key == currentPage;
+                      return AnimatedContainer(
+                        duration: const Duration(milliseconds: 250),
+                        margin: const EdgeInsets.symmetric(horizontal: 3),
+                        width: active ? 18 : 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          color: active
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.onSurface.withAlpha(80),
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              // Content
+              Expanded(child: child),
+            ],
+          ),
+        ),
+      ],
     );
+  }
+
+  List<Color> _ambientGradient() {
+    final now = DateTime.now();
+    final hour = now.hour;
+    final dark = WidgetsBinding.instance.platformDispatcher.platformBrightness ==
+        Brightness.dark;
+    if (dark) {
+      // Deep space-gray ambience, slightly cooler at night
+      if (hour >= 19 || hour < 6) {
+        return [const Color(0xFF0B1020), const Color(0xFF0E1116)];
+      }
+      return [const Color(0xFF101826), const Color(0xFF0E1116)];
+    }
+    // Light mode: soft sky tint
+    if (hour >= 19 || hour < 6) {
+      return [const Color(0xFF2A2F45), const Color(0xFFF5F8FB)];
+    }
+    return [const Color(0xFFDCEBF7), const Color(0xFFF5F8FB)];
+  }
+
+  String _shortName(String name) {
+    return name.length > 22 ? '${name.substring(0, 20)}…' : name;
   }
 }
 
