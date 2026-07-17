@@ -89,7 +89,7 @@ class _DailyTile extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             border: isToday
                 ? Border.all(color: theme.colorScheme.primary.withAlpha(130), width: 1.5)
-                : Border.all(color: theme.colorScheme.onSurface.withAlpha(20), width: 1),
+                : Border.all(color: theme.colorScheme.onSurface.withAlpha(60), width: 1),
             boxShadow: isToday
                 ? [
                     BoxShadow(
