@@ -140,7 +140,7 @@ class BuienCard extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 7,
                                 fontWeight: isFirst ? FontWeight.w700 : FontWeight.w400,
-                                color: isFirst ? color : theme.colorScheme.onSurface.withAlpha(150),
+                                color: isFirst ? color : theme.colorScheme.onSurface.withAlpha(200),
                               ),
                             ),
                           )
@@ -170,7 +170,7 @@ class BuienCard extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 9,
                               fontWeight: isFirst ? FontWeight.w700 : FontWeight.w400,
-                              color: isFirst ? color : theme.colorScheme.onSurface.withAlpha(120),
+                              color: isFirst ? color : theme.colorScheme.onSurface.withAlpha(180),
                             ),
                           ),
                         ),
@@ -196,7 +196,7 @@ class BuienCard extends StatelessWidget {
                     'Regenintensiteit in mm per uur',
                     style: TextStyle(
                       fontSize: 10,
-                      color: theme.colorScheme.onSurface.withAlpha(120),
+                      color: theme.colorScheme.onSurface.withAlpha(180),
                     ),
                   ),
                 ],

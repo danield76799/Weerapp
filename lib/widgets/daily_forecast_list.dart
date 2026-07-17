@@ -85,7 +85,7 @@ class _DailyTile extends StatelessWidget {
           margin: const EdgeInsets.symmetric(vertical: 5),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceContainerHigh.withAlpha(isToday ? 235 : 190),
+            color: theme.colorScheme.surfaceContainerHigh,
             borderRadius: BorderRadius.circular(16),
             border: isToday
                 ? Border.all(color: theme.colorScheme.primary.withAlpha(130), width: 1.5)
@@ -117,7 +117,7 @@ class _DailyTile extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(dateStr,
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withAlpha(150),
+                          color: theme.colorScheme.onSurface.withAlpha(200),
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis),
@@ -142,7 +142,7 @@ class _DailyTile extends StatelessWidget {
                         child: Row(children: [
                           Icon(Icons.water_drop,
                               size: 14,
-                              color: theme.colorScheme.onSurface.withAlpha(160)),
+                              color: theme.colorScheme.onSurface.withAlpha(200)),
                           const SizedBox(width: 2),
                           Text('${(day.precipitationProbability * 100).toInt()}%',
                               style: theme.textTheme.bodySmall),
@@ -168,7 +168,7 @@ class _DailyTile extends StatelessWidget {
                     softWrap: false,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodyLarge?.copyWith(
-                      color: theme.colorScheme.onSurface.withAlpha(150),
+                      color: theme.colorScheme.onSurface.withAlpha(200),
                     )),
               ),
               const SizedBox(width: 6),

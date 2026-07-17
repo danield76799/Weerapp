@@ -128,7 +128,7 @@ class _HourlyForecastSheetState extends State<HourlyForecastSheet> {
                 const SizedBox(width: 8),
                 Text('${widget.hours.length} uur',
                     style: theme.textTheme.bodySmall
-                        ?.copyWith(color: theme.colorScheme.onSurface.withAlpha(150))),
+                        ?.copyWith(color: theme.colorScheme.onSurface.withAlpha(200))),
               ],
             ),
           ),
@@ -211,7 +211,7 @@ class _HourlyForecastSheetState extends State<HourlyForecastSheet> {
                                   '${h.apparentTemperature.toStringAsFixed(0)}°',
                                   style: TextStyle(
                                     fontSize: 11,
-                                    color: theme.colorScheme.onSurface.withAlpha(120),
+                                    color: theme.colorScheme.onSurface.withAlpha(180),
                                   ),
                                 )
                               : null,
@@ -242,13 +242,13 @@ class _HourlyForecastSheetState extends State<HourlyForecastSheet> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Icon(Icons.water_drop,
-                                        size: 11, color: theme.colorScheme.onSurface.withAlpha(150)),
+                                        size: 11, color: theme.colorScheme.onSurface.withAlpha(200)),
                                     const SizedBox(width: 2),
                                     Text(
                                       '${h.precipitationProbability}%',
                                       style: TextStyle(
                                         fontSize: 11,
-                                        color: theme.colorScheme.onSurface.withAlpha(150),
+                                        color: theme.colorScheme.onSurface.withAlpha(200),
                                       ),
                                     ),
                                   ],

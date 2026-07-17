@@ -438,7 +438,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       Text(
                         'Status: ${provider.status.name}',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context).colorScheme.onSurface.withAlpha(150),
+                              color: Theme.of(context).colorScheme.onSurface.withAlpha(200),
                             ),
                       ),
                       if (provider.errorMessage != null)
@@ -493,7 +493,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                 'Bijgewerkt om ${provider.lastRefresh!.hour.toString().padLeft(2, '0')}:${provider.lastRefresh!.minute.toString().padLeft(2, '0')}',
                                 style: TextStyle(
                                   fontSize: 11,
-                                  color: Theme.of(context).colorScheme.onSurface.withAlpha(120),
+                                  color: Theme.of(context).colorScheme.onSurface.withAlpha(180),
                                 ),
                               ),
                             ],
@@ -626,7 +626,7 @@ class _HomeBody extends StatelessWidget {
                             Icon(
                               Icons.edit_outlined,
                               size: 14,
-                              color: theme.colorScheme.onSurface.withAlpha(120),
+                              color: theme.colorScheme.onSurface.withAlpha(180),
                             ),
                           ],
                         ),
@@ -705,11 +705,11 @@ class _HomeBody extends StatelessWidget {
       }
       return [const Color(0xFF101826), const Color(0xFF0E1116)];
     }
-    // Light mode: soft sky tint
+    // Light mode: subtle tint that gives cards contrast without being noisy
     if (hour >= 19 || hour < 6) {
-      return [const Color(0xFF2A2F45), const Color(0xFFF5F8FB)];
+      return [const Color(0xFFE8EAF0), const Color(0xFFF2F4F8)];
     }
-    return [const Color(0xFFDCEBF7), const Color(0xFFF5F8FB)];
+    return [const Color(0xFFE3EDF5), const Color(0xFFEFF3F8)];
   }
 
   String _shortName(String name) {

@@ -151,7 +151,7 @@ class DetailsCard extends StatelessWidget {
                   item.label,
                   style: TextStyle(
                     fontSize: 11,
-                    color: Theme.of(context).colorScheme.onSurface.withAlpha(150),
+                    color: Theme.of(context).colorScheme.onSurface.withAlpha(200),
                   ),
                 ),
                 Text(

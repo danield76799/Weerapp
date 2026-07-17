@@ -99,6 +99,7 @@ class WeerApp extends StatelessWidget {
             surfaceContainer: const Color(0xFFF0F5F9),
             surfaceContainerLow: const Color(0xFFFAFCFD),
             surfaceContainerHighest: const Color(0xFFE1EAF1),
+            onSurface: const Color(0xFF1A1D23),
           );
     return ThemeData(
       useMaterial3: true,
