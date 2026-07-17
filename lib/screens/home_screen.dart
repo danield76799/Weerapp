@@ -699,17 +699,19 @@ class _HomeBody extends StatelessWidget {
     final dark = WidgetsBinding.instance.platformDispatcher.platformBrightness ==
         Brightness.dark;
     if (dark) {
-      // Deep space-gray ambience, slightly cooler at night
+      // Donkere, sterker contrasterende achtergrond in dark mode,
+      // zodat de kaarten erduidelijk tegenafsteken.
       if (hour >= 19 || hour < 6) {
-        return [const Color(0xFF0B1020), const Color(0xFF0E1116)];
+        return [const Color(0xFF04070C), const Color(0xFF080B10)];
       }
-      return [const Color(0xFF101826), const Color(0xFF0E1116)];
+      return [const Color(0xFF070C14), const Color(0xFF080B10)];
     }
-    // Light mode: subtle tint that gives cards contrast without being noisy
+    // Light mode: duidelijk blauwere tint dan de kaarten, zodat
+    // ze als "kaarten" op de achtergrond opvallen.
     if (hour >= 19 || hour < 6) {
-      return [const Color(0xFFE8EAF0), const Color(0xFFF2F4F8)];
+      return [const Color(0xFFD4E3EE), const Color(0xFFE6EDF4)];
     }
-    return [const Color(0xFFE3EDF5), const Color(0xFFEFF3F8)];
+    return [const Color(0xFFCEE4F2), const Color(0xFFE6EDF4)];
   }
 
   String _shortName(String name) {
