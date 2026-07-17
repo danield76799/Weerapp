@@ -92,6 +92,8 @@ class CurrentWeatherCard extends StatelessWidget {
                     children: [
                       Text(
                         '${current.temperature.toStringAsFixed(0)}°',
+                        softWrap: false,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           fontSize: 96,
                           fontWeight: FontWeight.w800,
@@ -110,6 +112,8 @@ class CurrentWeatherCard extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         current.weatherDescription.capitalize(),
+                        softWrap: false,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           fontSize: 19,
                           color: Colors.white,
@@ -118,6 +122,8 @@ class CurrentWeatherCard extends StatelessWidget {
                       ),
                       Text(
                         'Voelt als ${current.feelsLike.toStringAsFixed(0)}°C',
+                        softWrap: false,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 14,
                           color: Colors.white.withAlpha(210),

@@ -101,9 +101,10 @@ class _DailyTile extends StatelessWidget {
                 : null,
           ),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               SizedBox(
-                width: 92,
+                width: 72,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -124,17 +125,17 @@ class _DailyTile extends StatelessWidget {
                 ),
               ),
               Container(
-                width: 44,
-                height: 44,
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
                   color: iconColor.withAlpha(28),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(icon, color: iconColor, size: 26),
+                child: Icon(icon, color: iconColor, size: 24),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               SizedBox(
-                width: 52,
+                width: 44,
                 child: day.precipitationProbability > 0.1
                     ? FittedBox(
                         fit: BoxFit.scaleDown,
@@ -150,8 +151,8 @@ class _DailyTile extends StatelessWidget {
                     : const SizedBox.shrink(),
               ),
               Container(
-                width: 26,
-                height: 26,
+                width: 24,
+                height: 24,
                 decoration: BoxDecoration(color: uv.color, shape: BoxShape.circle),
                 alignment: Alignment.center,
                 child: Text(day.uvIndex.toStringAsFixed(0),
@@ -161,22 +162,29 @@ class _DailyTile extends StatelessWidget {
                       fontWeight: FontWeight.w700,
                     )),
               ),
-              const Spacer(),
-              Text('${day.tempMin.toStringAsFixed(0)}°',
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    color: theme.colorScheme.onSurface.withAlpha(150),
-                  )),
               const SizedBox(width: 8),
-              SizedBox(
-                width: 64,
+              Flexible(
+                child: Text('${day.tempMin.toStringAsFixed(0)}°',
+                    softWrap: false,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: theme.colorScheme.onSurface.withAlpha(150),
+                    )),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
                 child: _TempRangeBar(min: day.tempMin, max: day.tempMax),
               ),
-              const SizedBox(width: 8),
-              Text('${day.tempMax.toStringAsFixed(0)}°',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: WeatherUtils.tempColor(day.tempMax),
-                  )),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text('${day.tempMax.toStringAsFixed(0)}°',
+                    softWrap: false,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: WeatherUtils.tempColor(day.tempMax),
+                    )),
+              ),
             ],
           ),
         ),

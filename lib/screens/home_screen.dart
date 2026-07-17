@@ -603,6 +603,7 @@ class _HomeBody extends StatelessWidget {
                       child: GestureDetector(
                         onTap: onRename,
                         child: Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
                               Icons.location_on,
