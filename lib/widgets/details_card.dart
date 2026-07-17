@@ -135,7 +135,7 @@ class DetailsCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: item.color.withAlpha(20),
+        color: item.color.withAlpha(40),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(

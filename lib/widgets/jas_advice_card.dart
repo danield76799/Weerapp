@@ -22,18 +22,11 @@ class JasAdviceCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: advies.color.withAlpha(60),
+        color: theme.colorScheme.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: advies.color.withAlpha(40),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
         border: Border.all(
-          color: theme.colorScheme.outline.withAlpha(80),
-          width: 1.2,
+          color: advies.color.withAlpha(80),
+          width: 1.5,
         ),
       ),
       child: Row(
