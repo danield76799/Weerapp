@@ -69,7 +69,7 @@ class _DailyTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final dayNames = ['maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag', 'zondag'];
+    final dayNames = ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo'];
     final dayName = isToday ? 'Vandaag' : dayNames[day.date.weekday - 1];
     final dateStr = '${day.date.day} ${_monthName(day.date.month)}';
     final icon = WeatherUtils.iconForWmoCode(day.weatherCode);
