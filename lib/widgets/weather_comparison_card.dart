@@ -99,7 +99,7 @@ class WeatherComparisonCard extends StatelessWidget {
           Text(
             'Deze week vs vorige week',
             style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurface.withAlpha(200),
+              color: theme.colorScheme.onSurface.withAlpha(150),
             ),
           ),
           const SizedBox(height: 14),
@@ -179,7 +179,7 @@ class _ComparisonRow extends StatelessWidget {
 
     if (isSame) {
       diffText = 'gelijk';
-      diffColor = theme.colorScheme.onSurface.withAlpha(200);
+      diffColor = theme.colorScheme.onSurface.withAlpha(150);
       diffIcon = Icons.remove;
     } else {
       diffText = '${isUp ? '+' : '-'}${absDiff.toStringAsFixed(absDiff < 1 ? 1 : 0)}$diffUnit';
@@ -214,7 +214,7 @@ class _ComparisonRow extends StatelessWidget {
                   Text(
                     '(vorige: $prevValue)',
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurface.withAlpha(180),
+                      color: theme.colorScheme.onSurface.withAlpha(120),
                       fontSize: 11,
                     ),
                   ),

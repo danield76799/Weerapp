@@ -50,18 +50,11 @@ class CurrentWeatherCard extends StatelessWidget {
         ],
       ),
       child: Container(
-        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Colors.black.withValues(alpha: 0.25),
-              Colors.black.withValues(alpha: 0.45),
-            ],
-          ),
+          color: Colors.black.withAlpha(100), // Stronger overlay for contrast
           borderRadius: BorderRadius.circular(24),
         ),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -91,39 +84,26 @@ class CurrentWeatherCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${current.temperature.toStringAsFixed(0)}°',
-                        softWrap: false,
-                        overflow: TextOverflow.ellipsis,
+                        '${current.temperature.toStringAsFixed(0)}°C',
                         style: const TextStyle(
-                          fontSize: 96,
+                          fontSize: 84,
                           fontWeight: FontWeight.w800,
                           color: Colors.white,
-                          height: 0.95,
-                          letterSpacing: -4,
-                          shadows: [
-                            Shadow(
-                              color: Colors.black38,
-                              blurRadius: 18,
-                              offset: Offset(0, 6),
-                            ),
-                          ],
+                          height: 1,
+                          letterSpacing: -2,
                         ),
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 4),
                       Text(
                         current.weatherDescription.capitalize(),
-                        softWrap: false,
-                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          fontSize: 19,
+                          fontSize: 18,
                           color: Colors.white,
-                          fontWeight: FontWeight.w500,
+                          fontWeight: FontWeight.w400,
                         ),
                       ),
                       Text(
                         'Voelt als ${current.feelsLike.toStringAsFixed(0)}°C',
-                        softWrap: false,
-                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 14,
                           color: Colors.white.withAlpha(210),
@@ -132,23 +112,9 @@ class CurrentWeatherCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                Container(
-                  width: 130,
-                  height: 130,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      colors: [
-                        iconColor.withAlpha(70),
-                        Colors.transparent,
-                      ],
-                    ),
-                  ),
-                  child: Icon(icon, size: 104, color: iconColor,
-                    shadows: const [
-                      Shadow(color: Colors.black26, blurRadius: 12),
-                    ],
-                  ),
+                SizedBox(
+                  width: 120,
+                  child: Icon(icon, size: 100, color: iconColor),
                 ),
               ],
             ),

@@ -27,6 +27,9 @@ void main() async {
   runApp(WeerApp(weatherService: weatherService));
 
   // Post-startup init — fire-and-forget, niet blokkeren van eerste frame.
+  // Notif init (timezone) en battery-opt prompt zijn niet nodig voor UI.
+  // HomeScreen checkThresholds heeft eigen try/catch, dus een gemiste notif
+  // bij cold-start is veilig.
   WeatherNotificationService(weatherService: weatherService)
       .initialize()
       .catchError((_) {});
@@ -78,55 +81,25 @@ class WeerApp extends StatelessWidget {
   }
 
   ThemeData _buildTheme(Brightness brightness, Color accentColor) {
-    final base = ColorScheme.fromSeed(
+    final colorScheme = ColorScheme.fromSeed(
       seedColor: accentColor,
       brightness: brightness,
     );
-    final colorScheme = brightness == Brightness.dark
-        ? base.copyWith(
-            surface: const Color(0xFF0E1116),
-            surfaceContainerHigh: const Color(0xFF1E2228),
-            surfaceContainer: const Color(0xFF161A20),
-            surfaceContainerLow: const Color(0xFF12161B),
-            surfaceContainerHighest: const Color(0xFF282C34),
-            onSurface: const Color(0xFFE8EDF2),
-            shadow: Colors.black,
-          )
-        : base.copyWith(
-            surface: const Color(0xFFF5F8FB),
-            surfaceContainerHigh: const Color(0xFFEAF1F6),
-            surfaceContainer: const Color(0xFFF0F5F9),
-            surfaceContainerLow: const Color(0xFFFAFCFD),
-            surfaceContainerHighest: const Color(0xFFE1EAF1),
-            onSurface: const Color(0xFF1A1D23),
-          );
     return ThemeData(
       useMaterial3: true,
-      colorScheme: colorScheme,
-      scaffoldBackgroundColor: colorScheme.surface,
+      colorScheme: brightness == Brightness.dark
+          ? colorScheme.copyWith(
+              surface: Colors.black,
+              surfaceContainerHigh: const Color(0xFF1E1E1E),
+              surfaceContainer: const Color(0xFF161616),
+              surfaceContainerLow: const Color(0xFF141414),
+            )
+          : colorScheme,
       appBarTheme: AppBarTheme(
-        backgroundColor: Colors.transparent,
-        foregroundColor: colorScheme.onSurface,
+        backgroundColor: colorScheme.surface,
         elevation: 0,
-        scrolledUnderElevation: 0,
+        scrolledUnderElevation: 1,
         centerTitle: false,
-        titleTextStyle: TextStyle(
-          fontSize: 22,
-          fontWeight: FontWeight.w700,
-          color: colorScheme.onSurface,
-          letterSpacing: -0.5,
-        ),
-      ),
-      cardTheme: CardThemeData(
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-      ),
-      chipTheme: ChipThemeData(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
       ),
     );
   }

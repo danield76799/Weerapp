@@ -69,7 +69,7 @@ class _DailyTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final dayNames = ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo'];
+    final dayNames = ['maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag', 'zondag'];
     final dayName = isToday ? 'Vandaag' : dayNames[day.date.weekday - 1];
     final dateStr = '${day.date.day} ${_monthName(day.date.month)}';
     final icon = WeatherUtils.iconForWmoCode(day.weatherCode);
@@ -80,114 +80,87 @@ class _DailyTile extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         child: Container(
-          margin: const EdgeInsets.symmetric(vertical: 5),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceContainerHigh,
-            borderRadius: BorderRadius.circular(16),
-            border: isToday
-                ? Border.all(color: theme.colorScheme.primary.withAlpha(130), width: 1.5)
-                : Border.all(color: theme.colorScheme.onSurface.withAlpha(60), width: 1),
-            boxShadow: isToday
-                ? [
-                    BoxShadow(
-                      color: theme.colorScheme.primary.withAlpha(40),
-                      blurRadius: 14,
-                      offset: const Offset(0, 4),
-                    ),
-                  ]
-                : null,
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              SizedBox(
-                width: 72,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(dayName,
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: isToday ? FontWeight.w800 : FontWeight.w600,
-                          fontSize: 15,
-                          color: isToday ? theme.colorScheme.primary : null,
-                        )),
-                    const SizedBox(height: 2),
-                    Text(dateStr,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withAlpha(200),
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis),
-                  ],
-                ),
-              ),
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: iconColor.withAlpha(28),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, color: iconColor, size: 24),
-              ),
-              const SizedBox(width: 8),
-              SizedBox(
-                width: 44,
-                child: day.precipitationProbability > 0.1
-                    ? FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Row(children: [
-                          Icon(Icons.water_drop,
-                              size: 14,
-                              color: theme.colorScheme.onSurface.withAlpha(200)),
-                          const SizedBox(width: 2),
-                          Text('${(day.precipitationProbability * 100).toInt()}%',
-                              style: theme.textTheme.bodySmall),
-                        ]),
-                      )
-                    : const SizedBox.shrink(),
-              ),
-              Container(
-                width: 24,
-                height: 24,
-                decoration: BoxDecoration(color: uv.color, shape: BoxShape.circle),
-                alignment: Alignment.center,
-                child: Text(day.uvIndex.toStringAsFixed(0),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                    )),
-              ),
-              const SizedBox(width: 8),
-              Flexible(
-                child: Text('${day.tempMin.toStringAsFixed(0)}°',
-                    softWrap: false,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      color: theme.colorScheme.onSurface.withAlpha(200),
-                    )),
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: _TempRangeBar(min: day.tempMin, max: day.tempMax),
-              ),
-              const SizedBox(width: 6),
-              Flexible(
-                child: Text('${day.tempMax.toStringAsFixed(0)}°',
-                    softWrap: false,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: WeatherUtils.tempColor(day.tempMax),
-                    )),
-              ),
-            ],
-          ),
+        margin: const EdgeInsets.symmetric(vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerHigh.withAlpha(isToday ? 220 : 180),
+          borderRadius: BorderRadius.circular(14),
+          border: isToday
+              ? Border.all(color: theme.colorScheme.primary.withAlpha(120), width: 1.5)
+              : null,
         ),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 88,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(dayName,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: isToday ? FontWeight.w700 : FontWeight.w500,
+                        color: isToday ? theme.colorScheme.primary : null,
+                      )),
+                  Text(dateStr,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurface.withAlpha(150),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis),
+                ],
+              ),
+            ),
+            Icon(icon, color: iconColor, size: 32),
+            const SizedBox(width: 8),
+            SizedBox(
+              width: 60,
+              child: day.precipitationProbability > 0.1
+                  ? FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Row(children: [
+                        Icon(Icons.water_drop,
+                            size: 14,
+                            color: theme.colorScheme.onSurface.withAlpha(150)),
+                        const SizedBox(width: 2),
+                        Text('${(day.precipitationProbability * 100).toInt()}%',
+                            style: theme.textTheme.bodySmall),
+                      ]),
+                    )
+                  : const SizedBox.shrink(),
+            ),
+            Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(color: uv.color, shape: BoxShape.circle),
+              alignment: Alignment.center,
+              child: Text(day.uvIndex.toStringAsFixed(0),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  )),
+            ),
+            const Spacer(),
+            Text('${day.tempMin.toStringAsFixed(0)}°',
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: theme.colorScheme.onSurface.withAlpha(150),
+                )),
+            const SizedBox(width: 8),
+            SizedBox(
+              width: 60,
+              child: _TempRangeBar(min: day.tempMin, max: day.tempMax),
+            ),
+            const SizedBox(width: 8),
+            Text('${day.tempMax.toStringAsFixed(0)}°',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: WeatherUtils.tempColor(day.tempMax),
+                )),
+          ],
+        ),
+      ),
       ),
     );
   }

@@ -135,7 +135,7 @@ class DetailsCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: item.color.withAlpha(40),
+        color: item.color.withAlpha(20),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
@@ -151,7 +151,7 @@ class DetailsCard extends StatelessWidget {
                   item.label,
                   style: TextStyle(
                     fontSize: 11,
-                    color: Theme.of(context).colorScheme.onSurface.withAlpha(200),
+                    color: Theme.of(context).colorScheme.onSurface.withAlpha(150),
                   ),
                 ),
                 Text(
