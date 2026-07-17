@@ -78,16 +78,16 @@ class BuienCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withAlpha(30),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            color.withAlpha(180),
+            color.withAlpha(80),
+          ],
+        ),
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: color.withAlpha(40),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-        border: Border.all(color: color.withAlpha(120), width: 1.2),
+        border: Border.all(color: color.withAlpha(180), width: 1.2),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -153,11 +153,21 @@ class BuienCard extends StatelessWidget {
                           height: barHeight,
                           decoration: BoxDecoration(
                             color: isRain
-                                ? color.withAlpha(120 + ((precip / (maxPrecip > 0 ? maxPrecip : 1)) * 100).toInt().clamp(0, 100))
-                                : theme.colorScheme.surfaceContainerHigh.withAlpha(80),
+                                ? null
+                                : theme.colorScheme.surfaceContainerHighest.withAlpha(80),
+                            gradient: isRain
+                                ? LinearGradient(
+                                    begin: Alignment.bottomCenter,
+                                    end: Alignment.topCenter,
+                                    colors: [
+                                      color.withAlpha(220),
+                                      color.withAlpha(100),
+                                    ],
+                                  )
+                                : null,
                             borderRadius: BorderRadius.circular(3),
                             border: isFirst
-                                ? Border.all(color: Colors.white, width: 1)
+                                ? Border.all(color: color, width: 1.2)
                                 : null,
                           ),
                         ),
