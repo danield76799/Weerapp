@@ -326,77 +326,82 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
           ),
         ],
       ),
-      body: Stack(
+      body: Column(
         children: [
-          FlutterMap(
-            mapController: _mapController,
-            options: MapOptions(
-              initialCenter: center,
-              initialZoom: 8,
-              minZoom: 5,
-              maxZoom: 12,
-            ),
-            children: [
-              // OpenStreetMap standard tiles — most reliable
-              TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'com.danield.weerapp',
-                tileProvider: NetworkTileProvider(),
-              ),
-              MarkerLayer(markers: precipMarkers),
-              MarkerLayer(
-                markers: [
-                  Marker(
-                    point: center,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primary,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: theme.colorScheme.onPrimary, width: 2),
-                        boxShadow: [BoxShadow(color: Colors.black.withAlpha(100), blurRadius: 4)],
-                      ),
-                      width: 16,
-                      height: 16,
+          Expanded(
+            child: Stack(
+              children: [
+                FlutterMap(
+                  mapController: _mapController,
+                  options: MapOptions(
+                    initialCenter: center,
+                    initialZoom: 8,
+                    minZoom: 5,
+                    maxZoom: 12,
+                  ),
+                  children: [
+                    // OpenStreetMap standard tiles — most reliable
+                    TileLayer(
+                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      userAgentPackageName: 'com.danield.weerapp',
+                      tileProvider: NetworkTileProvider(),
+                    ),
+                    MarkerLayer(markers: precipMarkers),
+                    MarkerLayer(
+                      markers: [
+                        Marker(
+                          point: center,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primary,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: theme.colorScheme.onPrimary, width: 2),
+                              boxShadow: [BoxShadow(color: Colors.black.withAlpha(100), blurRadius: 4)],
+                            ),
+                            width: 16,
+                            height: 16,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                // Time label
+                Positioned(
+                  top: 12,
+                  left: 12,
+                  right: 12,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surface.withAlpha(230),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          isFuture ? Icons.schedule : (isNow ? Icons.my_location : Icons.history),
+                          size: 16,
+                          color: isFuture ? const Color(0xFFFF9800) : (isNow ? const Color(0xFF4CAF50) : theme.colorScheme.primary),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${_formatClock(frame.time)} — ${_formatTime(frame.time)}',
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: theme.colorScheme.onSurface),
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ),
-            ],
-          ),
-          // Time label
-          Positioned(
-            top: 12,
-            left: 12,
-            right: 12,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surface.withAlpha(230),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    isFuture ? Icons.schedule : (isNow ? Icons.my_location : Icons.history),
-                    size: 16,
-                    color: isFuture ? const Color(0xFFFF9800) : (isNow ? const Color(0xFF4CAF50) : theme.colorScheme.primary),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    '${_formatClock(frame.time)} — ${_formatTime(frame.time)}',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: theme.colorScheme.onSurface),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
-          // Controls
-          Positioned(
-            bottom: 16,
-            left: 16,
-            right: 16,
+          // Controls — fixed footer below the map, never overflows the bottom.
+          SafeArea(
+            top: false,
             child: Container(
+              margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: theme.colorScheme.surface.withAlpha(230),
