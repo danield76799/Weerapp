@@ -215,7 +215,6 @@ class _ComparisonRow extends StatelessWidget {
                     '(vorige: $prevValue)',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurface.withAlpha(120),
-                      fontSize: 11,
                     ),
                   ),
                 ],
@@ -226,8 +225,9 @@ class _ComparisonRow extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
-            color: diffColor.withAlpha(30),
+            color: diffColor.withAlpha(45),
             borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: diffColor.withAlpha(80), width: 1),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,

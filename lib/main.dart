@@ -89,10 +89,10 @@ class WeerApp extends StatelessWidget {
       useMaterial3: true,
       colorScheme: brightness == Brightness.dark
           ? colorScheme.copyWith(
-              surface: Colors.black,
-              surfaceContainerHigh: const Color(0xFF1E1E1E),
-              surfaceContainer: const Color(0xFF161616),
-              surfaceContainerLow: const Color(0xFF141414),
+              surface: const Color(0xFF0E1116),
+              surfaceContainerHigh: const Color(0xFF1A1F2B),
+              surfaceContainer: const Color(0xFF151A24),
+              surfaceContainerLow: const Color(0xFF11151D),
             )
           : colorScheme,
       appBarTheme: AppBarTheme(

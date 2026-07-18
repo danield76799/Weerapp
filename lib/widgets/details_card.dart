@@ -100,9 +100,9 @@ class DetailsCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(20),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: Colors.black.withAlpha(12),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -135,8 +135,9 @@ class DetailsCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: item.color.withAlpha(20),
+        color: item.color.withAlpha(40),
         borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: item.color.withAlpha(70), width: 1),
       ),
       child: Row(
         children: [
