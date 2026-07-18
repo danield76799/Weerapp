@@ -281,7 +281,8 @@ class _DetailChip extends StatelessWidget {
                   child: Text(
                     label,
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurface.withAlpha(200),
+                      color: Colors.white.withAlpha(200),
+                      fontWeight: FontWeight.w500,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -294,7 +295,7 @@ class _DetailChip extends StatelessWidget {
               value,
               style: theme.textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w700,
-                color: theme.colorScheme.onSurface,
+                color: Colors.white,
               ),
             ),
           ],

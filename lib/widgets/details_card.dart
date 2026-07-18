@@ -150,16 +150,18 @@ class DetailsCard extends StatelessWidget {
               children: [
                 Text(
                   item.label,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 11,
-                    color: Theme.of(context).colorScheme.onSurface.withAlpha(150),
+                    color: Colors.white70,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
                 Text(
                   item.value,
                   style: const TextStyle(
                     fontSize: 14,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
                   ),
                 ),
               ],
