@@ -3,6 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:workmanager/workmanager.dart';
+
+import 'background.dart';
 import 'screens/home_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'services/battery_optimization_service.dart';
@@ -20,6 +23,19 @@ void main() async {
 
   final weatherService = WeatherService();
 
+  // Background weather-alerts: draai periodiek op de achtergrond zodat
+  // regen/UV/hitte/vorst-meldingen ook binnenkomen zónder de app te openen.
+  await Workmanager().initialize(callbackDispatcher);
+  await Workmanager().registerPeriodicTask(
+    BackgroundTaskNames.weatherAlerts,
+    BackgroundTaskNames.weatherAlerts,
+    frequency: const Duration(minutes: 15),
+    constraints: Constraints(
+      networkType: NetworkType.connected,
+    ),
+    existingWorkPolicy: ExistingPeriodicWorkPolicy.replace,
+  );
+
   final prefs = await SharedPreferences.getInstance();
   themeModeNotifier.value = prefs.getString('theme_mode') ?? 'system';
   accentColorNotifier.value = prefs.getInt('accent_color') ?? 0xFF49AFC2;
@@ -27,9 +43,6 @@ void main() async {
   runApp(WeerApp(weatherService: weatherService));
 
   // Post-startup init — fire-and-forget, niet blokkeren van eerste frame.
-  // Notif init (timezone) en battery-opt prompt zijn niet nodig voor UI.
-  // HomeScreen checkThresholds heeft eigen try/catch, dus een gemiste notif
-  // bij cold-start is veilig.
   WeatherNotificationService(weatherService: weatherService)
       .initialize()
       .catchError((_) {});
