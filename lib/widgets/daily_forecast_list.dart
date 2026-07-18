@@ -18,14 +18,25 @@ class DailyForecastList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Column(
       children: days.asMap().entries.map((entry) {
         final i = entry.key;
         final day = entry.value;
-        return _DailyTile(
-          day: day,
-          isToday: i == 0,
-          onTap: () => _showHourly(context, day.date),
+        return Column(
+          children: [
+            _DailyTile(
+              day: day,
+              isToday: i == 0,
+              onTap: () => _showHourly(context, day.date),
+            ),
+            if (i < days.length - 1)
+              Divider(
+                height: 1,
+                thickness: 0.5,
+                color: theme.colorScheme.outline.withAlpha(25),
+              ),
+          ],
         );
       }).toList(),
     );
@@ -124,14 +135,13 @@ class _DailyTile extends StatelessWidget {
                       fit: BoxFit.scaleDown,
                       child: Row(children: [
                         Icon(Icons.water_drop,
-                            size: 14,
-                            color: theme.colorScheme.onSurface.withAlpha(150)),
+                            size: 14, color: theme.colorScheme.onSurface.withAlpha(150)),
                         const SizedBox(width: 2),
                         Text('${(day.precipitationProbability * 100).toInt()}%',
                             style: theme.textTheme.bodySmall),
                       ]),
                     )
-                  : const SizedBox.shrink(),
+                  : const SizedBox(width: 60),
             ),
             Container(
               width: 28,
