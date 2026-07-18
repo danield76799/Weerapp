@@ -285,21 +285,26 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
 
     final precipMarkers = <Marker>[];
     for (final p in frame.points) {
-      if (p.precipitation > 0.05) {
-        final color = _precipColor(p.precipitation);
-        final radius = _precipRadius(p.precipitation);
-        precipMarkers.add(Marker(
-          point: LatLng(p.lat, p.lon),
-          child: Container(
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-            ),
-            width: radius,
-            height: radius,
+      final hasRain = p.precipitation > 0.05;
+      final color = _precipColor(p.precipitation);
+      final radius = _precipRadius(p.precipitation);
+      // Vaste key per grid-punt zodat AnimatedContainer de overgang
+      // oud->nieuw kan animeren in plaats van hard te poppen.
+      precipMarkers.add(Marker(
+        key: ValueKey('${p.lat}_${p.lon}'),
+        point: LatLng(p.lat, p.lon),
+        child: AnimatedContainer(
+          key: ValueKey('${p.lat}_${p.lon}'),
+          duration: const Duration(milliseconds: 450),
+          curve: Curves.easeInOut,
+          decoration: BoxDecoration(
+            color: hasRain ? color : Colors.transparent,
+            shape: BoxShape.circle,
           ),
-        ));
-      }
+          width: hasRain ? radius : 0,
+          height: hasRain ? radius : 0,
+        ),
+      ));
     }
 
     return Scaffold(
@@ -454,7 +459,7 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
                                       child: Container(width: 2, color: const Color(0xFF4CAF50)),
                                     ),
                                     AnimatedPositioned(
-                                      duration: const Duration(milliseconds: 300),
+                                      duration: const Duration(milliseconds: 450),
                                       curve: Curves.easeOut,
                                       left: (_currentFrame / (_frames.length - 1)) * barWidth - 8,
                                       top: 8,
