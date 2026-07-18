@@ -87,9 +87,12 @@ class _DailyTile extends StatelessWidget {
         decoration: BoxDecoration(
           color: theme.colorScheme.surfaceContainerHigh.withAlpha(isToday ? 220 : 180),
           borderRadius: BorderRadius.circular(14),
-          border: isToday
-              ? Border.all(color: theme.colorScheme.primary.withAlpha(120), width: 1.5)
-              : null,
+          border: Border.all(
+            color: isToday
+                ? theme.colorScheme.primary.withAlpha(120)
+                : theme.colorScheme.outline.withAlpha(40),
+            width: 1.2,
+          ),
         ),
         child: Row(
           children: [

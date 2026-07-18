@@ -205,48 +205,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           // Accentkleur kiezer
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
               children: [
                 Icon(Icons.color_lens, color: Theme.of(context).colorScheme.primary),
                 const SizedBox(width: 16),
-                const Expanded(child: Text('Accentkleur')),
+                Expanded(
+                  child: Text('Accentkleur',
+                      style: Theme.of(context).textTheme.titleSmall),
+                ),
               ],
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
             child: Wrap(
-              spacing: 12,
-              runSpacing: 12,
+              spacing: 10,
+              runSpacing: 10,
               children: _accentColors.map((c) {
                 final isSelected = c.value == _accentColor;
-                return GestureDetector(
+                return _ColorDot(
+                  color: Color(c.value),
+                  selected: isSelected,
                   onTap: () {
                     setState(() => _accentColor = c.value);
                     accentColorNotifier.value = c.value;
                     _toggle('accent_color', c.value);
                   },
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: Color(c.value),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: isSelected
-                            ? Theme.of(context).colorScheme.onSurface
-                            : Colors.transparent,
-                        width: 3,
-                      ),
-                      boxShadow: isSelected
-                          ? [BoxShadow(color: Color(c.value).withAlpha(80), blurRadius: 8, spreadRadius: 2)]
-                          : null,
-                    ),
-                    child: isSelected
-                        ? Icon(Icons.check, color: _checkmarkColor(Color(c.value)), size: 20)
-                        : null,
-                  ),
                 );
               }).toList(),
             ),
@@ -483,12 +468,47 @@ class _SwitchTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return SwitchListTile(
       secondary: Icon(icon, color: Theme.of(context).colorScheme.primary),
-      title: Text(title),
-      subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
+      title: Text(title, style: theme.textTheme.titleSmall),
+      subtitle: Text(subtitle, style: theme.textTheme.bodySmall),
       value: value,
       onChanged: onChanged,
+    );
+  }
+}
+
+class _ColorDot extends StatelessWidget {
+  final Color color;
+  final bool selected;
+  final VoidCallback onTap;
+  const _ColorDot({required this.color, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: selected
+                ? Theme.of(context).colorScheme.onSurface
+                : Colors.transparent,
+            width: 3,
+          ),
+          boxShadow: selected
+              ? [BoxShadow(color: color.withAlpha(80), blurRadius: 8, spreadRadius: 2)]
+              : null,
+        ),
+        child: selected
+            ? Icon(Icons.check, color: _checkmarkColor(color), size: 18)
+            : null,
+      ),
     );
   }
 }
@@ -527,7 +547,7 @@ class _SliderTile extends StatelessWidget {
             children: [
               Icon(icon, size: 18, color: Theme.of(context).colorScheme.primary.withAlpha(180)),
               const SizedBox(width: 12),
-              Text(title, style: const TextStyle(fontSize: 13)),
+              Text(title, style: Theme.of(context).textTheme.bodySmall),
               const Spacer(),
               Text(
                 '${value.toStringAsFixed(0)}$unit',

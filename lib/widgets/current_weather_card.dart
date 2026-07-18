@@ -261,13 +261,14 @@ class _DetailChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
-          color: color.withAlpha(30),
+          color: color.withAlpha(45),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withAlpha(60), width: 1),
+          border: Border.all(color: color.withAlpha(80), width: 1),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -279,9 +280,11 @@ class _DetailChip extends StatelessWidget {
                 Expanded(
                   child: Text(
                     label,
-                    style: TextStyle(fontSize: 11, color: Colors.white.withAlpha(200)),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurface.withAlpha(200),
+                    ),
                     maxLines: 1,
-                    overflow: TextOverflow.fade, // Subtieler dan ellipsis voor korte chips
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
@@ -289,10 +292,9 @@ class _DetailChip extends StatelessWidget {
             const SizedBox(height: 2),
             Text(
               value,
-              style: const TextStyle(
-                fontSize: 13,
+              style: theme.textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w700,
-                color: Colors.white,
+                color: theme.colorScheme.onSurface,
               ),
             ),
           ],
