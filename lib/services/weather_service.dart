@@ -602,41 +602,6 @@ class WeatherService {
     return map[code.toInt()] ?? 'onbekend';
   }
 
-  /// WMO weather code → icon string (day variant)
-  String _wmoIcon(num code) {
-    const map = {
-      0: '01d',
-      1: '02d',
-      2: '03d',
-      3: '04d',
-      45: '50d',
-      48: '50d',
-      51: '09d',
-      53: '09d',
-      55: '09d',
-      56: '09d',
-      57: '09d',
-      61: '10d',
-      63: '10d',
-      65: '10d',
-      66: '10d',
-      67: '10d',
-      71: '13d',
-      73: '13d',
-      75: '13d',
-      77: '13d',
-      80: '09d',
-      81: '09d',
-      82: '09d',
-      85: '13d',
-      86: '13d',
-      95: '11d',
-      96: '11d',
-      99: '11d',
-    };
-    return map[code.toInt()] ?? '01d';
-  }
-
   Future<WeatherData?> _readCache(String key, {bool ignoreAge = false}) async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(key);
