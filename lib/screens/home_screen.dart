@@ -480,7 +480,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               return RefreshIndicator(
                 onRefresh: () => provider.refresh(loc.lat, loc.lon, loc.name),
                 child: ListView(
-                  padding: const EdgeInsets.all(16),
+                  padding: EdgeInsets.only(
+                    top: 16,
+                    bottom: MediaQuery.viewPaddingOf(context).bottom + 16,
+                    left: 16,
+                    right: 16,
+                  ),
                   children: [
                     CurrentWeatherCard(
                       current: data.current,
