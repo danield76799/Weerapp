@@ -377,15 +377,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const Expanded(child: Text('Briefingstijd')),
                   TextButton(
                     onPressed: () async {
+                      final service = context.read<WeatherService>();
                       final picked = await showTimePicker(
                         context: context,
                         initialTime: _briefingTime,
                         helpText: 'Kies briefingstijd',
                       );
-                      if (picked != null) {
+                      if (picked != null && mounted) {
                         setState(() => _briefingTime = picked);
                         _notifService ??= WeatherNotificationService(
-                          weatherService: context.read<WeatherService>(),
+                          weatherService: service,
                         );
                         await _notifService!.scheduleMorningBriefing(picked);
                       }
@@ -428,7 +429,11 @@ class _AccentColor {
 
 /// Bepaalt of wit of zwart beter leesbaar is op een gekleurde achtergrond.
 Color _checkmarkColor(Color background) {
-  final luminance = (0.299 * background.red + 0.587 * background.green + 0.114 * background.blue) / 255;
+  final luminance = (
+        0.299 * (background.r * 255).round() +
+        0.587 * (background.g * 255).round() +
+        0.114 * (background.b * 255).round()
+      ) / 255;
   return luminance > 0.5 ? Colors.black : Colors.white;
 }
 

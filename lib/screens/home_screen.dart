@@ -119,7 +119,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     if (locations.isEmpty) {
       // No saved locations — try GPS
-      _useCurrentLocation();
+      await _useCurrentLocation();
       return;
     }
 
@@ -129,10 +129,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     });
 
     // Load weather for first location
-    if (locations.isNotEmpty) {
-      final loc = locations.first;
-      await _loadLocation(loc.lat, loc.lon, loc.name, isCurrentLocation: loc.isCurrentLocation);
-    }
+    final loc = locations.first;
+    await _loadLocation(loc.lat, loc.lon, loc.name, isCurrentLocation: loc.isCurrentLocation);
     _startAutoRefresh();
   }
 
@@ -165,6 +163,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   Future<void> _loadLocation(double lat, double lon, String name, {bool isCurrentLocation = false}) async {
     final provider = context.read<WeatherProvider>();
+    final service = context.read<WeatherService>();
     await provider.loadWeather(lat: lat, lon: lon, locationName: name);
     // Update widget from current location, not from selected manual location
     if (provider.hasData && isCurrentLocation) {
@@ -173,7 +172,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (provider.hasData && isCurrentLocation) {
       try {
         _notifService ??= WeatherNotificationService(
-          weatherService: context.read<WeatherService>(),
+          weatherService: service,
         );
         await _notifService!.checkThresholds(provider.data!);
         await _notifService!.sendMorningBriefingIfDue(provider.data!);

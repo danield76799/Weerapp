@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../models/weather.dart';
-import '../utils/weather_utils.dart';
 
 /// Extra details: dauwpunt, zicht, windstoten, daglengte, zonuren
 class DetailsCard extends StatelessWidget {

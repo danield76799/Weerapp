@@ -139,9 +139,11 @@ class WeatherProvider extends ChangeNotifier {
     await loadWeather(lat: lat, lon: lon, locationName: name, force: true);
   }
 
-  /// Add to cache with LRU eviction
+  /// Add to cache with LRU eviction. Moves touched entries to the end so the
+  /// least-recently used entry is always at the front.
   void _addToCache(String key, WeatherData data) {
-    if (_memoryCache.length >= _maxCacheSize && !_memoryCache.containsKey(key)) {
+    _memoryCache.remove(key);
+    if (_memoryCache.length >= _maxCacheSize) {
       _memoryCache.remove(_memoryCache.keys.first);
     }
     _memoryCache[key] = data;

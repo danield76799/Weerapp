@@ -114,7 +114,6 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
         final hourly = loc['hourly'] as Map<String, dynamic>;
         final times = hourly['time'] as List;
         final precip = hourly['precipitation'] as List;
-        final prob = hourly['precipitation_probability'] as List?;
 
         // Find "now" index
         final now = DateTime.now().toUtc();
@@ -134,7 +133,6 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
         for (var j = startIdx - _pastHours; j <= startIdx + _futureHours; j++) {
           if (j >= 0 && j < precip.length) {
             final p = (precip[j] as num?)?.toDouble() ?? 0;
-            final pr = (prob?[j] as num?)?.toDouble() ?? 0;
             values.add(p > 0 ? p : 0);
           } else {
             values.add(0);

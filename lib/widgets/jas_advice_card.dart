@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../models/weather.dart';
-import '../utils/weather_utils.dart';
 
 /// "Kan ik zonder jas?" — slim advies op basis van temperatuur, gevoel en regen
 class JasAdviceCard extends StatelessWidget {

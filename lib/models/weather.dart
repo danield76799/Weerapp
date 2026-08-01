@@ -1,4 +1,4 @@
-/// Weer data models voor Open-Meteo API
+// Weer data models voor Open-Meteo API
 
 class CurrentWeather {
   final double temperature;

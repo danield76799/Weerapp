@@ -29,6 +29,7 @@ class WeatherService {
 
   final Dio _dio;
   final Dio _archiveDio;
+  SharedPreferences? _prefs;
 
   WeatherService({Dio? dio})
       : _dio = dio ??
@@ -48,8 +49,12 @@ class WeatherService {
   Future<String?> getApiKey() async => 'open-meteo';
   Future<bool> hasApiKey() async => true;
 
+  Future<SharedPreferences> get _preferences async {
+    return _prefs ??= await SharedPreferences.getInstance();
+  }
+
   Future<void> setLastLocation(double lat, double lon, String name) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _preferences;
     await prefs.setString(
       _lastLocationKey,
       jsonEncode({'lat': lat, 'lon': lon, 'name': name}),
@@ -57,7 +62,7 @@ class WeatherService {
   }
 
   Future<({double lat, double lon, String name})?> getLastLocation() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _preferences;
     final raw = prefs.getString(_lastLocationKey);
     if (raw == null) return null;
     try {
@@ -312,8 +317,6 @@ class WeatherService {
       final dates = dailyJson['time'] as List;
       final tMax = dailyJson['temperature_2m_max'] as List;
       final tMin = dailyJson['temperature_2m_min'] as List;
-      final appMax = dailyJson['apparent_temperature_max'] as List;
-      final appMin = dailyJson['apparent_temperature_min'] as List;
       final weatherCodes = dailyJson['weather_code'] as List;
       final uvMax = dailyJson['uv_index_max'] as List;
       final precipSum = dailyJson['precipitation_sum'] as List;
@@ -440,8 +443,6 @@ class WeatherService {
     final dates = dailyJson['time'] as List;
     final tMax = dailyJson['temperature_2m_max'] as List;
     final tMin = dailyJson['temperature_2m_min'] as List;
-    final appMax = dailyJson['apparent_temperature_max'] as List;
-    final appMin = dailyJson['apparent_temperature_min'] as List;
     final weatherCodes = dailyJson['weather_code'] as List;
     final uvMax = dailyJson['uv_index_max'] as List;
     final precipSum = dailyJson['precipitation_sum'] as List;
@@ -455,7 +456,6 @@ class WeatherService {
     final sunsets = dailyJson['sunset'] as List;
 
     final daily = <DailyForecast>[];
-    final today = DateTime.now();
     for (var i = 0; i < dates.length; i++) {
       final date = DateTime.parse(dates[i] as String);
       // Skip incomplete forecast days (API returns null for unavailable days)
@@ -603,7 +603,7 @@ class WeatherService {
   }
 
   Future<WeatherData?> _readCache(String key, {bool ignoreAge = false}) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _preferences;
     final raw = prefs.getString(key);
     if (raw == null) return null;
     try {
@@ -657,7 +657,7 @@ class WeatherService {
   }
 
   Future<void> _writeCache(String key, WeatherData data) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _preferences;
     await prefs.setString(key, jsonEncode(data.toJson()));
   }
 }

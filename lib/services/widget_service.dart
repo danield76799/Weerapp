@@ -4,7 +4,6 @@ import '../models/weather.dart';
 
 class WidgetService {
   static const _appGroupId = 'com.danield.weerapp';
-  static const _prefKey = 'HomeWidgetPreferences';
 
   /// Update de home screen widget met actuele weergegevens
   static Future<void> updateWeather(WeatherData data) async {

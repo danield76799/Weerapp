@@ -32,12 +32,14 @@ class _LocationSearchScreenState extends State<LocationSearchScreen> {
         });
         return;
       }
-      Navigator.pop(context, {
+      final nav = Navigator.of(context);
+      nav.pop({
         'lat': result.lat,
         'lon': result.lon,
         'name': result.name,
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _searching = false;
         _error = 'Zoeken mislukt: $e';
@@ -88,17 +90,19 @@ class _LocationSearchScreenState extends State<LocationSearchScreen> {
                 onPressed: _searching
                     ? null
                     : () async {
+                        final scaffold = ScaffoldMessenger.of(context);
+                        final nav = Navigator.of(context);
                         try {
                           final result = await _service.getCurrentLocation();
                           if (!mounted) return;
-                          Navigator.pop(context, {
+                          nav.pop({
                             'lat': result.lat,
                             'lon': result.lon,
                             'name': result.name,
                           });
                         } catch (e) {
                           if (!mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
+                          scaffold.showSnackBar(
                             SnackBar(content: Text('Locatie: $e')),
                           );
                         }
