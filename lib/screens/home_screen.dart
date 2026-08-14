@@ -101,6 +101,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) {
       _startAutoRefresh();
       _silentRefreshCurrent();
+      _updateWidgetWithCurrentLocation();
     } else if (state == AppLifecycleState.paused ||
                state == AppLifecycleState.inactive) {
       _autoRefreshTimer?.cancel();
@@ -110,6 +111,24 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void _startAutoRefresh() {
     _autoRefreshTimer?.cancel();
     _autoRefreshTimer = Timer.periodic(_refreshInterval, (_) => _silentRefreshCurrent());
+  }
+
+  /// Update de home screen widget altijd met de huidige GPS-locatie,
+  /// onafhankelijk van welke opgeslagen locatie de gebruiker in de app bekijkt.
+  Future<void> _updateWidgetWithCurrentLocation() async {
+    try {
+      final weatherService = context.read<WeatherService>();
+      final loc = await _locationService.getCurrentLocation();
+      final data = await weatherService.fetchWeather(
+        lat: loc.lat,
+        lon: loc.lon,
+        locationName: loc.name,
+        force: true,
+      );
+      await WidgetService.updateWeather(data);
+    } catch (_) {
+      // Widget is non-critical; als GPS faalt, blijft oude data staan.
+    }
   }
 
   Future<void> _bootstrap() async {
@@ -132,6 +151,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final loc = locations.first;
     await _loadLocation(loc.lat, loc.lon, loc.name, isCurrentLocation: loc.isCurrentLocation);
     _startAutoRefresh();
+    // Always refresh widget with real current GPS location, not just first saved city
+    await _updateWidgetWithCurrentLocation();
   }
 
   Future<void> _useCurrentLocation() async {

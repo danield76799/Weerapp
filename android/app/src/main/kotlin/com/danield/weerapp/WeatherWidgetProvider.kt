@@ -310,6 +310,8 @@ class WeatherWidgetProvider : AppWidgetProvider() {
     }
 
     private fun saveWeatherToPrefs(prefs: SharedPreferences, values: WeatherValues, locationName: String) {
+        val lat = prefs.getString("lat", null)?.toDoubleOrNull() ?: prefs.getString("last_lat", null)?.toDoubleOrNull()
+        val lon = prefs.getString("lon", null)?.toDoubleOrNull() ?: prefs.getString("last_lon", null)?.toDoubleOrNull()
         prefs.edit().apply {
             putString("temp", values.temp)
             putString("condition", values.condition)
@@ -320,6 +322,8 @@ class WeatherWidgetProvider : AppWidgetProvider() {
             putString("updated", values.updated)
             putString("date", values.date)
             if (locationName.isNotBlank()) putString("location", locationName)
+            if (lat != null) putString("last_lat", lat.toString())
+            if (lon != null) putString("last_lon", lon.toString())
             apply()
         }
         Log.d(TAG, "Saved weather to prefs: ${values.temp}, ${values.condition}")

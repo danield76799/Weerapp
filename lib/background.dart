@@ -3,6 +3,7 @@ import 'package:workmanager/workmanager.dart';
 import 'services/location_service.dart';
 import 'services/weather_notification_service.dart';
 import 'services/weather_service.dart';
+import 'services/widget_service.dart';
 
 /// Top-level function — MOET buiten een class staan zodat workmanager de
 /// Dart callback kan registreren in een headless isolate.
@@ -59,7 +60,10 @@ Future<void> _runWeatherAlertsCheck() async {
       force: true,
     );
 
-    // 3. Bestaande alert + briefing-logica draaien
+    // 3. Update home screen widget zodat die mee ververst met huidige locatie
+    await WidgetService.updateWeather(data);
+
+    // 4. Bestaande alert + briefing-logica draaien
     await notifService.checkThresholds(data);
     await notifService.sendMorningBriefingIfDue(data);
   } catch (_) {

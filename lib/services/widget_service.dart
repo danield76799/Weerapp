@@ -60,6 +60,8 @@ class WidgetService {
       await HomeWidget.saveWidgetData('location', locationName);
       await HomeWidget.saveWidgetData('lat', data.lat.toStringAsFixed(6));
       await HomeWidget.saveWidgetData('lon', data.lon.toStringAsFixed(6));
+      await HomeWidget.saveWidgetData('last_lat', data.lat.toStringAsFixed(6));
+      await HomeWidget.saveWidgetData('last_lon', data.lon.toStringAsFixed(6));
       await HomeWidget.saveWidgetData('temp', temp);
       await HomeWidget.saveWidgetData('condition', condition);
       await HomeWidget.saveWidgetData('feels', feels);
