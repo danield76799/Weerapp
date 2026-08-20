@@ -259,9 +259,9 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
                       tileProvider: NetworkTileProvider(),
                     ),
                     // Echte radar overlay — wisselt per frame.
-                    // RainViewer-radar ondersteunt maximaal zoom 10; daarboven
-                    // retourneert het een "Zoom level not supported"-error-tile.
-                    // maxNativeZoom: 10 laat flutter_map de radar-tiles opschalen
+                    // RainViewer-radar ondersteunt maximaal zoom 7 (per officiële
+                    // API-docs); daarboven retourneert het een lege "geen data"-tile.
+                    // maxNativeZoom: 7 laat flutter_map de radar-tiles opschalen
                     // voor hogere zooms i.p.v. onondersteunde zooms aan te vragen.
                     Opacity(
                       opacity: 0.7,
@@ -269,7 +269,7 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
                         urlTemplate: frame.tileUrl,
                         userAgentPackageName: 'com.danield.weerapp',
                         tileProvider: NetworkTileProvider(),
-                        maxNativeZoom: 10,
+                        maxNativeZoom: 7,
                       ),
                     ),
                     MarkerLayer(
