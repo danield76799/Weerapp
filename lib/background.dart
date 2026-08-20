@@ -33,23 +33,28 @@ Future<void> _runWeatherAlertsCheck() async {
     final notifService = WeatherNotificationService(weatherService: weatherService);
 
     // 1. Locatie bepalen. In een headless background-isolate kunnen we geen
-    //    permissie-dialog tonen, dus gebruik de laatst-opgeslagen locatie uit
-    //    SharedPreferences (wordt bijgewerkt zodra de app open is). Alleen als
-    //    die ontbreekt, proberen we een verse GPS-positie (zonder request).
+    //    permissie-dialog tonen, dus probeer eerst een verse GPS-positie
+    //    (zonder request — alleen als permissie al gegeven is). Als die faalt,
+    //    val terug op de laatst-opgeslagen locatie uit SharedPreferences.
     double lat;
     double lon;
     String name;
 
-    final last = await weatherService.getLastLocation();
-    if (last != null) {
-      lat = last.lat;
-      lon = last.lon;
-      name = last.name;
-    } else {
+    try {
       final loc = await LocationService().getCurrentLocation();
       lat = loc.lat;
       lon = loc.lon;
       name = loc.name;
+    } catch (_) {
+      final last = await weatherService.getLastLocation();
+      if (last != null) {
+        lat = last.lat;
+        lon = last.lon;
+        name = last.name;
+      } else {
+        // Geen GPS en geen opgeslagen locatie — niets te doen deze tick.
+        return;
+      }
     }
 
     // 2. Verse weersdata ophalen (force = true, want achtergrond moet actueel zijn)

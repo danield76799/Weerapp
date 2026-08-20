@@ -8,7 +8,8 @@ import 'package:latlong2/latlong.dart';
 
 import '../services/saved_locations_service.dart';
 
-/// Geanimeerde neerslagkaart — 2u terug + 5u vooruit via Open-Meteo raster
+/// Geanimeerde neerslagradar — echte radarbeelden via RainViewer
+/// (gratis, geen API-key). Toont afgelopen 2u + komende 30min nowcast.
 class RainRadarScreen extends StatefulWidget {
   final SavedLocation location;
   const RainRadarScreen({super.key, required this.location});
@@ -19,28 +20,26 @@ class RainRadarScreen extends StatefulWidget {
 
 class _RainRadarScreenState extends State<RainRadarScreen> {
   static DateTime? _lastFetch;
-  static List<_PrecipFrame>? _cachedFrames;
+  static List<_RadarFrame>? _cachedFrames;
   static const Duration _cacheDuration = Duration(minutes: 5);
 
   final MapController _mapController = MapController();
-  List<_PrecipFrame> _frames = [];
+  List<_RadarFrame> _frames = [];
   int _currentFrame = 0;
   bool _playing = true;
   Timer? _timer;
   bool _loading = true;
   String? _error;
 
-  static const _gridSize = 3; // 3x3 = 9 points
-  static const _gridSpacing = 0.5; // ~55km
-  static const _pastHours = 1;
-  static const _futureHours = 3;
-  static const _totalHours = _pastHours + _futureHours;
-  static const _animDuration = Duration(milliseconds: 500);
+  static const _animDuration = Duration(milliseconds: 600);
+  static const _tileSize = 256;
+  static const _colorScheme = 2; // blauw
+  static const _smooth = '1_1';
 
   @override
   void initState() {
     super.initState();
-    _fetchPrecipGrid();
+    _fetchRadar();
   }
 
   @override
@@ -50,7 +49,7 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
     super.dispose();
   }
 
-  Future<void> _fetchPrecipGrid() async {
+  Future<void> _fetchRadar() async {
     // Use cached data if recent
     final now = DateTime.now();
     if (_lastFetch != null &&
@@ -58,7 +57,7 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
         now.difference(_lastFetch!) < _cacheDuration) {
       setState(() {
         _frames = _cachedFrames!;
-        _currentFrame = _pastHours;
+        _currentFrame = _frames.length - 1; // laatste = nu
         _loading = false;
       });
       _startAnimation();
@@ -66,99 +65,54 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
     }
     try {
       final dio = Dio();
-      final centerLat = widget.location.lat;
-      final centerLon = widget.location.lon;
-
-      // Build grid coords as comma-separated for batch API call
-      final lats = <String>[];
-      final lons = <String>[];
-      final half = (_gridSize - 1) / 2;
-      for (var row = 0; row < _gridSize; row++) {
-        for (var col = 0; col < _gridSize; col++) {
-          lats.add((centerLat + (half - row) * _gridSpacing).toStringAsFixed(3));
-          lons.add((centerLon + (col - half) * _gridSpacing).toStringAsFixed(3));
-        }
-      }
-
-      // Single batch call: comma-separated lat/lon
       final response = await dio.get<String>(
-        'https://api.open-meteo.com/v1/forecast',
-        queryParameters: {
-          'latitude': lats.join(','),
-          'longitude': lons.join(','),
-          'hourly': 'precipitation,precipitation_probability',
-          'past_days': 2,
-          'forecast_days': 2,
-          'timezone': 'UTC',
-        },
-        options: Options(responseType: ResponseType.plain, receiveTimeout: const Duration(seconds: 15)),
+        'https://api.rainviewer.com/public/weather-maps.json',
+        options: Options(
+          responseType: ResponseType.plain,
+          receiveTimeout: const Duration(seconds: 15),
+        ),
       );
 
-      final body = response.data!;
-      final decoded = jsonDecode(body);
+      final decoded = jsonDecode(response.data!) as Map<String, dynamic>;
+      final host = decoded['host'] as String;
+      final radar = decoded['radar'] as Map<String, dynamic>;
+      final past = (radar['past'] as List?) ?? [];
+      final nowcast = (radar['nowcast'] as List?) ?? [];
 
-      // API returns a list when multiple coords, single object for one
-      List<dynamic> resultsList;
-      if (decoded is List) {
-        resultsList = decoded;
-      } else {
-        resultsList = [decoded];
+      // Bouw frames: verleden (oud → nieuw) + nowcast (toekomst)
+      final frames = <_RadarFrame>[];
+      for (final item in past) {
+        final m = item as Map<String, dynamic>;
+        frames.add(_RadarFrame(
+          time: DateTime.fromMillisecondsSinceEpoch(
+            (m['time'] as num).toInt() * 1000,
+            isUtc: true,
+          ),
+          tileUrl: '$host${m['path']}/$_tileSize/{z}/{x}/{y}/$_colorScheme/$_smooth.png',
+        ));
+      }
+      for (final item in nowcast) {
+        final m = item as Map<String, dynamic>;
+        frames.add(_RadarFrame(
+          time: DateTime.fromMillisecondsSinceEpoch(
+            (m['time'] as num).toInt() * 1000,
+            isUtc: true,
+          ),
+          tileUrl: '$host${m['path']}/$_tileSize/{z}/{x}/{y}/$_colorScheme/$_smooth.png',
+        ));
       }
 
-      // Parse each location's data
-      final gridData = <_GridPointData>[];
-      for (var i = 0; i < resultsList.length && i < _gridSize * _gridSize; i++) {
-        final loc = resultsList[i] as Map<String, dynamic>;
-        final lat = (loc['latitude'] as num).toDouble();
-        final lon = (loc['longitude'] as num).toDouble();
-        final hourly = loc['hourly'] as Map<String, dynamic>;
-        final times = hourly['time'] as List;
-        final precip = hourly['precipitation'] as List;
-
-        // Find "now" index
-        final now = DateTime.now().toUtc();
-        int startIdx = 0;
-        int closestDiff = 999999;
-        for (var j = 0; j < times.length; j++) {
-          final t = DateTime.parse(times[j] as String);
-          final diff = (t.difference(now).inMinutes).abs();
-          if (diff < closestDiff) {
-            closestDiff = diff;
-            startIdx = j;
-          }
-        }
-
-        // Extract values: startIdx-pastHours to startIdx+futureHours
-        final values = <double>[];
-        for (var j = startIdx - _pastHours; j <= startIdx + _futureHours; j++) {
-          if (j >= 0 && j < precip.length) {
-            final p = (precip[j] as num?)?.toDouble() ?? 0;
-            values.add(p > 0 ? p : 0);
-          } else {
-            values.add(0);
-          }
-        }
-        gridData.add(_GridPointData(lat: lat, lon: lon, precipitation: values));
+      if (frames.isEmpty) {
+        throw Exception('Geen radarbeelden beschikbaar');
       }
 
-      // Build frames
-      final now = DateTime.now().toUtc();
-      final frames = <_PrecipFrame>[];
-      for (var h = 0; h <= _totalHours; h++) {
-        final frameTime = now.subtract(Duration(hours: _pastHours)).add(Duration(hours: h));
-        final framePoints = gridData.map((gd) {
-          final precip = gd.precipitation.length > h ? gd.precipitation[h] : 0.0;
-          return _PrecipPoint(lat: gd.lat, lon: gd.lon, precipitation: precip);
-        }).toList();
-        frames.add(_PrecipFrame(time: frameTime, points: framePoints));
-      }
       // Cache the result
       _lastFetch = now;
       _cachedFrames = frames;
 
       setState(() {
         _frames = frames;
-        _currentFrame = _pastHours;
+        _currentFrame = frames.length - 1; // laatste = nu
         _loading = false;
       });
       _startAnimation();
@@ -214,22 +168,6 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
     return '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
   }
 
-  Color _precipColor(double mm) {
-    if (mm <= 0) return Colors.transparent;
-    if (mm < 0.3) return const Color(0xFF81D4FA).withAlpha(160);
-    if (mm < 1.0) return const Color(0xFF29B6F6).withAlpha(180);
-    if (mm < 2.5) return const Color(0xFF0288D1).withAlpha(200);
-    return const Color(0xFF01579B).withAlpha(220);
-  }
-
-  double _precipRadius(double mm) {
-    if (mm <= 0) return 0;
-    if (mm < 0.3) return 14;
-    if (mm < 1.0) return 18;
-    if (mm < 2.5) return 22;
-    return 28;
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -237,7 +175,7 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
 
     if (_loading) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Neerslagkaart')),
+        appBar: AppBar(title: const Text('Neerslagradar')),
         body: const Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -253,7 +191,7 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
 
     if (_error != null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Neerslagkaart')),
+        appBar: AppBar(title: const Text('Neerslagradar')),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
@@ -268,7 +206,7 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
                 const SizedBox(height: 16),
                 FilledButton(onPressed: () {
                   setState(() => _loading = true);
-                  _fetchPrecipGrid();
+                  _fetchRadar();
                 }, child: const Text('Opnieuw proberen')),
               ],
             ),
@@ -278,42 +216,18 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
     }
 
     final frame = _frames[_currentFrame];
-    final isFuture = _currentFrame > _pastHours;
-    final isNow = _currentFrame == _pastHours;
-
-    final precipMarkers = <Marker>[];
-    for (final p in frame.points) {
-      final hasRain = p.precipitation > 0.05;
-      final color = _precipColor(p.precipitation);
-      final radius = _precipRadius(p.precipitation);
-      // Vaste key per grid-punt zodat AnimatedContainer de overgang
-      // oud->nieuw kan animeren in plaats van hard te poppen.
-      precipMarkers.add(Marker(
-        key: ValueKey('${p.lat}_${p.lon}'),
-        point: LatLng(p.lat, p.lon),
-        child: AnimatedContainer(
-          key: ValueKey('${p.lat}_${p.lon}'),
-          duration: const Duration(milliseconds: 450),
-          curve: Curves.easeInOut,
-          decoration: BoxDecoration(
-            color: hasRain ? color : Colors.transparent,
-            shape: BoxShape.circle,
-          ),
-          width: hasRain ? radius : 0,
-          height: hasRain ? radius : 0,
-        ),
-      ));
-    }
+    final isFuture = frame.time.isAfter(DateTime.now().toUtc());
+    final isNow = frame.time.difference(DateTime.now().toUtc()).inMinutes.abs() < 10;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Neerslagkaart'),
+        title: const Text('Neerslagradar'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
               setState(() => _loading = true);
-              _fetchPrecipGrid();
+              _fetchRadar();
             },
             tooltip: 'Vernieuwen',
           ),
@@ -344,7 +258,15 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
                       userAgentPackageName: 'com.danield.weerapp',
                       tileProvider: NetworkTileProvider(),
                     ),
-                    MarkerLayer(markers: precipMarkers),
+                    // Echte radar overlay — wisselt per frame
+                    Opacity(
+                      opacity: 0.7,
+                      child: TileLayer(
+                        urlTemplate: frame.tileUrl,
+                        userAgentPackageName: 'com.danield.weerapp',
+                        tileProvider: NetworkTileProvider(),
+                      ),
+                    ),
                     MarkerLayer(
                       markers: [
                         Marker(
@@ -441,26 +363,6 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
                                         borderRadius: BorderRadius.circular(2),
                                       ),
                                     ),
-                                    Positioned(
-                                      left: 0,
-                                      top: 14,
-                                      bottom: 14,
-                                      width: barWidth * (_pastHours / _totalHours),
-                                      child: Container(decoration: BoxDecoration(color: theme.colorScheme.primary.withAlpha(120), borderRadius: BorderRadius.circular(2))),
-                                    ),
-                                    Positioned(
-                                      right: 0,
-                                      top: 14,
-                                      bottom: 14,
-                                      width: barWidth * (_futureHours / _totalHours),
-                                      child: Container(decoration: BoxDecoration(color: const Color(0xFFFF9800).withAlpha(120), borderRadius: BorderRadius.circular(2))),
-                                    ),
-                                    Positioned(
-                                      left: barWidth * (_pastHours / _totalHours) - 1,
-                                      top: 10,
-                                      bottom: 10,
-                                      child: Container(width: 2, color: const Color(0xFF4CAF50)),
-                                    ),
                                     AnimatedPositioned(
                                       duration: const Duration(milliseconds: 450),
                                       curve: Curves.easeOut,
@@ -489,9 +391,9 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('-${_pastHours}u', style: TextStyle(fontSize: 9, color: theme.colorScheme.onSurface.withAlpha(120))),
+                      Text('-${_frames.length ~/ 2}u', style: TextStyle(fontSize: 9, color: theme.colorScheme.onSurface.withAlpha(120))),
                       Text('nu', style: TextStyle(fontSize: 9, color: const Color(0xFF4CAF50), fontWeight: FontWeight.w700)),
-                      Text('+${_futureHours}u', style: const TextStyle(fontSize: 9, color: Color(0xFFFF9800))),
+                      Text('+30min', style: const TextStyle(fontSize: 9, color: Color(0xFFFF9800))),
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -528,15 +430,15 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Neerslagkaart'),
+        title: const Text('Neerslagradar'),
         content: const Text(
-          'Deze kaart toont een animatie van neerslag:\n\n'
-          '• Blauwe cirkels = afgelopen 2 uur\n'
-          '• Oranje cirkels = komende 5 uur voorspelling\n'
-          '• Groene streep = nu\n\n'
+          'Deze kaart toont een animatie van echte radarbeelden:\n\n'
+          '• Blauw = neerslagintensiteit\n'
+          '• Afgelopen 2 uur + komende 30 min nowcast\n'
+          '• Groene stip = nu\n\n'
           'Druk op play/pause om de animatie te starten of stoppen. '
           'Schuif over de balk om naar een specifiek tijdstip te gaan.\n\n'
-          'Data: Open-Meteo (25 punten raster)',
+          'Data: RainViewer (echte radar, gratis)',
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Sluiten')),
@@ -546,22 +448,8 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
   }
 }
 
-class _GridPointData {
-  final double lat;
-  final double lon;
-  final List<double> precipitation;
-  _GridPointData({required this.lat, required this.lon, required this.precipitation});
-}
-
-class _PrecipPoint {
-  final double lat;
-  final double lon;
-  final double precipitation;
-  _PrecipPoint({required this.lat, required this.lon, required this.precipitation});
-}
-
-class _PrecipFrame {
+class _RadarFrame {
   final DateTime time;
-  final List<_PrecipPoint> points;
-  _PrecipFrame({required this.time, required this.points});
+  final String tileUrl;
+  _RadarFrame({required this.time, required this.tileUrl});
 }
