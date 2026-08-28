@@ -495,8 +495,10 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 16,
+                    runSpacing: 4,
                     children: [
                       _legendItem('Licht', const Color(0xFF81D4FA)),
                       _legendItem('Matig', const Color(0xFF29B6F6)),
