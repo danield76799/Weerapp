@@ -233,11 +233,15 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
                       userAgentPackageName: 'com.danield.weerapp',
                     ),
                     // Echte radar-tiles — elke frame is een eigen layer.
+                    // RainViewer's gratis tiles stoppen bij zoom 7 (was 10 in
+                    // jul 2026); boven native zoom schaalt flutter_map de
+                    // tiles op i.p.v. de "Zoom Level Not Supported"-tegel.
                     TileLayer(
                       key: ValueKey(frame.path),
                       urlTemplate: _tileUrl(frame),
                       userAgentPackageName: 'com.danield.weerapp',
                       tileProvider: NetworkTileProvider(),
+                      maxNativeZoom: 7,
                     ),
                     MarkerLayer(
                       markers: [
