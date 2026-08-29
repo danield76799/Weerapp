@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -8,7 +7,9 @@ import 'package:latlong2/latlong.dart';
 
 import '../services/saved_locations_service.dart';
 
-/// Geanimeerde neerslagkaart — 2u terug + 5u vooruit via Open-Meteo raster
+/// Neerslagkaart met echte radar-beelden van RainViewer (gratis API, geen key).
+/// Toont de afgelopen 2 uur radar als animatie met 10-min-intervallen,
+/// als tile-layer over de kaart — geen cirkels, geen interpolatie.
 class RainRadarScreen extends StatefulWidget {
   final SavedLocation location;
   const RainRadarScreen({super.key, required this.location});
@@ -17,30 +18,30 @@ class RainRadarScreen extends StatefulWidget {
   State<RainRadarScreen> createState() => _RainRadarScreenState();
 }
 
-class _RainRadarScreenState extends State<RainRadarScreen> {
-  static DateTime? _lastFetch;
-  static List<_PrecipFrame>? _cachedFrames;
-  static const Duration _cacheDuration = Duration(minutes: 5);
+class _RadarFrame {
+  final DateTime time;
+  final String path; // bijv. /v2/radar/1134a9702115
+  _RadarFrame({required this.time, required this.path});
+}
 
+class _RainRadarScreenState extends State<RainRadarScreen> {
   final MapController _mapController = MapController();
-  List<_PrecipFrame> _frames = [];
+  final Dio _dio = Dio();
+
+  List<_RadarFrame> _frames = [];
   int _currentFrame = 0;
-  bool _playing = true;
   Timer? _timer;
+  bool _playing = true;
   bool _loading = true;
   String? _error;
+  String? _tileHost;
 
-  static const _gridSize = 3; // 3x3 = 9 points
-  static const _gridSpacing = 0.5; // ~55km
-  static const _pastHours = 1;
-  static const _futureHours = 3;
-  static const _totalHours = _pastHours + _futureHours;
-  static const _animDuration = Duration(milliseconds: 500);
+  static const _animDuration = Duration(milliseconds: 700);
 
   @override
   void initState() {
     super.initState();
-    _fetchPrecipGrid();
+    _fetchRadarFrames();
   }
 
   @override
@@ -50,115 +51,40 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
     super.dispose();
   }
 
-  Future<void> _fetchPrecipGrid() async {
-    // Use cached data if recent
-    final now = DateTime.now();
-    if (_lastFetch != null &&
-        _cachedFrames != null &&
-        now.difference(_lastFetch!) < _cacheDuration) {
-      setState(() {
-        _frames = _cachedFrames!;
-        _currentFrame = _pastHours;
-        _loading = false;
-      });
-      _startAnimation();
-      return;
-    }
+  Future<void> _fetchRadarFrames() async {
     try {
-      final dio = Dio();
-      final centerLat = widget.location.lat;
-      final centerLon = widget.location.lon;
-
-      // Build grid coords as comma-separated for batch API call
-      final lats = <String>[];
-      final lons = <String>[];
-      final half = (_gridSize - 1) / 2;
-      for (var row = 0; row < _gridSize; row++) {
-        for (var col = 0; col < _gridSize; col++) {
-          lats.add((centerLat + (half - row) * _gridSpacing).toStringAsFixed(3));
-          lons.add((centerLon + (col - half) * _gridSpacing).toStringAsFixed(3));
-        }
-      }
-
-      // Single batch call: comma-separated lat/lon
-      final response = await dio.get<String>(
-        'https://api.open-meteo.com/v1/forecast',
-        queryParameters: {
-          'latitude': lats.join(','),
-          'longitude': lons.join(','),
-          'hourly': 'precipitation,precipitation_probability',
-          'past_days': 2,
-          'forecast_days': 2,
-          'timezone': 'UTC',
-        },
-        options: Options(responseType: ResponseType.plain, receiveTimeout: const Duration(seconds: 15)),
+      final response = await _dio.get<Map<String, dynamic>>(
+        'https://api.rainviewer.com/public/weather-maps.json',
+        options: Options(receiveTimeout: const Duration(seconds: 15)),
       );
+      final data = response.data!;
+      final host = data['host'] as String? ?? 'https://tilecache.rainviewer.com';
+      final radar = data['radar'] as Map<String, dynamic>? ?? {};
+      final past = radar['past'] as List<dynamic>? ?? [];
 
-      final body = response.data!;
-      final decoded = jsonDecode(body);
-
-      // API returns a list when multiple coords, single object for one
-      List<dynamic> resultsList;
-      if (decoded is List) {
-        resultsList = decoded;
-      } else {
-        resultsList = [decoded];
+      final frames = <_RadarFrame>[];
+      for (final item in past) {
+        frames.add(_RadarFrame(
+          time: DateTime.fromMillisecondsSinceEpoch(
+            (item['time'] as int) * 1000,
+            isUtc: true,
+          ),
+          path: item['path'] as String,
+        ));
       }
 
-      // Parse each location's data
-      final gridData = <_GridPointData>[];
-      for (var i = 0; i < resultsList.length && i < _gridSize * _gridSize; i++) {
-        final loc = resultsList[i] as Map<String, dynamic>;
-        final lat = (loc['latitude'] as num).toDouble();
-        final lon = (loc['longitude'] as num).toDouble();
-        final hourly = loc['hourly'] as Map<String, dynamic>;
-        final times = hourly['time'] as List;
-        final precip = hourly['precipitation'] as List;
-
-        // Find "now" index
-        final now = DateTime.now().toUtc();
-        int startIdx = 0;
-        int closestDiff = 999999;
-        for (var j = 0; j < times.length; j++) {
-          final t = DateTime.parse(times[j] as String);
-          final diff = (t.difference(now).inMinutes).abs();
-          if (diff < closestDiff) {
-            closestDiff = diff;
-            startIdx = j;
-          }
-        }
-
-        // Extract values: startIdx-pastHours to startIdx+futureHours
-        final values = <double>[];
-        for (var j = startIdx - _pastHours; j <= startIdx + _futureHours; j++) {
-          if (j >= 0 && j < precip.length) {
-            final p = (precip[j] as num?)?.toDouble() ?? 0;
-            values.add(p > 0 ? p : 0);
-          } else {
-            values.add(0);
-          }
-        }
-        gridData.add(_GridPointData(lat: lat, lon: lon, precipitation: values));
+      if (frames.isEmpty) {
+        setState(() {
+          _error = 'Geen radar-beelden beschikbaar';
+          _loading = false;
+        });
+        return;
       }
-
-      // Build frames
-      final now = DateTime.now().toUtc();
-      final frames = <_PrecipFrame>[];
-      for (var h = 0; h <= _totalHours; h++) {
-        final frameTime = now.subtract(Duration(hours: _pastHours)).add(Duration(hours: h));
-        final framePoints = gridData.map((gd) {
-          final precip = gd.precipitation.length > h ? gd.precipitation[h] : 0.0;
-          return _PrecipPoint(lat: gd.lat, lon: gd.lon, precipitation: precip);
-        }).toList();
-        frames.add(_PrecipFrame(time: frameTime, points: framePoints));
-      }
-      // Cache the result
-      _lastFetch = now;
-      _cachedFrames = frames;
 
       setState(() {
+        _tileHost = host;
         _frames = frames;
-        _currentFrame = _pastHours;
+        _currentFrame = frames.length - 1; // start op het nieuwste beeld
         _loading = false;
       });
       _startAnimation();
@@ -170,43 +96,36 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
     }
   }
 
+  String _tileUrl(_RadarFrame frame) =>
+      '$_tileHost${frame.path}/256/{z}/{x}/{y}/2/1_1.png';
+
   void _startAnimation() {
     _timer?.cancel();
     _timer = Timer.periodic(_animDuration, (_) {
       if (!mounted) return;
-      setState(() => _currentFrame = (_currentFrame + 1) % _frames.length);
+      setState(() {
+        _currentFrame = (_currentFrame + 1) % _frames.length;
+      });
     });
   }
 
-  void _pauseAnimation() {
-    _timer?.cancel();
-    _timer = null;
-    setState(() => _playing = false);
-  }
-
-  void _resumeAnimation() {
-    setState(() => _playing = true);
-    _startAnimation();
+  void _togglePlay() {
+    if (_playing) {
+      _timer?.cancel();
+      _timer = null;
+    } else {
+      _startAnimation();
+    }
+    setState(() => _playing = !_playing);
   }
 
   void _jumpToFrame(int index) {
     _timer?.cancel();
     _timer = null;
     setState(() {
-      _currentFrame = index;
+      _currentFrame = index.clamp(0, _frames.length - 1);
       _playing = false;
     });
-  }
-
-  String _formatTime(DateTime dt) {
-    final now = DateTime.now().toUtc();
-    final diff = dt.difference(now);
-    if (diff.inMinutes.abs() < 10) return 'nu';
-    if (diff.isNegative) {
-      return '${diff.inHours.abs()}u ${diff.inMinutes.abs() % 60}min geleden';
-    } else {
-      return 'over ${diff.inHours}u ${diff.inMinutes % 60}min';
-    }
   }
 
   String _formatClock(DateTime dt) {
@@ -214,20 +133,12 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
     return '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
   }
 
-  Color _precipColor(double mm) {
-    if (mm <= 0) return Colors.transparent;
-    if (mm < 0.3) return const Color(0xFF81D4FA).withAlpha(160);
-    if (mm < 1.0) return const Color(0xFF29B6F6).withAlpha(180);
-    if (mm < 2.5) return const Color(0xFF0288D1).withAlpha(200);
-    return const Color(0xFF01579B).withAlpha(220);
-  }
-
-  double _precipRadius(double mm) {
-    if (mm <= 0) return 0;
-    if (mm < 0.3) return 14;
-    if (mm < 1.0) return 18;
-    if (mm < 2.5) return 22;
-    return 28;
+  String _formatRelative(DateTime dt) {
+    final diff = dt.difference(DateTime.now().toUtc());
+    final mins = diff.inMinutes;
+    if (mins.abs() < 5) return 'nu';
+    if (mins < 0) return '${-mins} min geleden';
+    return 'over $mins min';
   }
 
   @override
@@ -251,7 +162,7 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
       );
     }
 
-    if (_error != null) {
+    if (_error != null || _frames.isEmpty) {
       return Scaffold(
         appBar: AppBar(title: const Text('Neerslagkaart')),
         body: Center(
@@ -262,14 +173,18 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
               children: [
                 Icon(Icons.cloud_off, size: 48, color: theme.colorScheme.onSurface.withAlpha(120)),
                 const SizedBox(height: 16),
-                Text('Radar niet beschikbaar', style: theme.textTheme.titleMedium),
+                const Text('Radar niet beschikbaar', style: TextStyle(fontSize: 16)),
                 const SizedBox(height: 8),
-                Text(_error!, style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurface.withAlpha(150)), textAlign: TextAlign.center),
+                if (_error != null)
+                  Text(_error!, style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurface.withAlpha(150)), textAlign: TextAlign.center),
                 const SizedBox(height: 16),
-                FilledButton(onPressed: () {
-                  setState(() => _loading = true);
-                  _fetchPrecipGrid();
-                }, child: const Text('Opnieuw proberen')),
+                FilledButton(
+                  onPressed: () {
+                    setState(() => _loading = true);
+                    _fetchRadarFrames();
+                  },
+                  child: const Text('Opnieuw proberen'),
+                ),
               ],
             ),
           ),
@@ -278,32 +193,7 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
     }
 
     final frame = _frames[_currentFrame];
-    final isFuture = _currentFrame > _pastHours;
-    final isNow = _currentFrame == _pastHours;
-
-    final precipMarkers = <Marker>[];
-    for (final p in frame.points) {
-      final hasRain = p.precipitation > 0.05;
-      final color = _precipColor(p.precipitation);
-      final radius = _precipRadius(p.precipitation);
-      // Vaste key per grid-punt zodat AnimatedContainer de overgang
-      // oud->nieuw kan animeren in plaats van hard te poppen.
-      precipMarkers.add(Marker(
-        key: ValueKey('${p.lat}_${p.lon}'),
-        point: LatLng(p.lat, p.lon),
-        child: AnimatedContainer(
-          key: ValueKey('${p.lat}_${p.lon}'),
-          duration: const Duration(milliseconds: 450),
-          curve: Curves.easeInOut,
-          decoration: BoxDecoration(
-            color: hasRain ? color : Colors.transparent,
-            shape: BoxShape.circle,
-          ),
-          width: hasRain ? radius : 0,
-          height: hasRain ? radius : 0,
-        ),
-      ));
-    }
+    final isNewest = _currentFrame == _frames.length - 1;
 
     return Scaffold(
       appBar: AppBar(
@@ -313,7 +203,7 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
             icon: const Icon(Icons.refresh),
             onPressed: () {
               setState(() => _loading = true);
-              _fetchPrecipGrid();
+              _fetchRadarFrames();
             },
             tooltip: 'Vernieuwen',
           ),
@@ -338,13 +228,17 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
                     maxZoom: 12,
                   ),
                   children: [
-                    // OpenStreetMap standard tiles — most reliable
                     TileLayer(
                       urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                       userAgentPackageName: 'com.danield.weerapp',
+                    ),
+                    // Echte radar-tiles — elke frame is een eigen layer.
+                    TileLayer(
+                      key: ValueKey(frame.path),
+                      urlTemplate: _tileUrl(frame),
+                      userAgentPackageName: 'com.danield.weerapp',
                       tileProvider: NetworkTileProvider(),
                     ),
-                    MarkerLayer(markers: precipMarkers),
                     MarkerLayer(
                       markers: [
                         Marker(
@@ -364,38 +258,40 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
                     ),
                   ],
                 ),
-                // Time label
+                // Tijd-label
                 Positioned(
                   top: 12,
                   left: 12,
                   right: 12,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surface.withAlpha(230),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          isFuture ? Icons.schedule : (isNow ? Icons.my_location : Icons.history),
-                          size: 16,
-                          color: isFuture ? const Color(0xFFFF9800) : (isNow ? const Color(0xFF4CAF50) : theme.colorScheme.primary),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '${_formatClock(frame.time)} — ${_formatTime(frame.time)}',
-                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: theme.colorScheme.onSurface),
-                        ),
-                      ],
+                  child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surface.withAlpha(230),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            isNewest ? Icons.my_location : Icons.history,
+                            size: 16,
+                            color: isNewest ? const Color(0xFF4CAF50) : theme.colorScheme.primary,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '${_formatClock(frame.time)} — ${_formatRelative(frame.time)}',
+                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: theme.colorScheme.onSurface),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ],
             ),
           ),
-          // Controls — fixed footer below the map, never overflows the bottom.
+          // Bediening — vaste footer onder de kaart, geen overflow.
           SafeArea(
             top: false,
             child: Container(
@@ -411,7 +307,7 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
                   Row(
                     children: [
                       GestureDetector(
-                        onTap: () => _playing ? _pauseAnimation() : _resumeAnimation(),
+                        onTap: _togglePlay,
                         child: Container(
                           width: 36,
                           height: 36,
@@ -442,35 +338,24 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
                                       ),
                                     ),
                                     Positioned(
-                                      left: 0,
+                                      left: (_currentFrame / (_frames.length - 1)) * barWidth,
                                       top: 14,
                                       bottom: 14,
-                                      width: barWidth * (_pastHours / _totalHours),
-                                      child: Container(decoration: BoxDecoration(color: theme.colorScheme.primary.withAlpha(120), borderRadius: BorderRadius.circular(2))),
-                                    ),
-                                    Positioned(
                                       right: 0,
-                                      top: 14,
-                                      bottom: 14,
-                                      width: barWidth * (_futureHours / _totalHours),
-                                      child: Container(decoration: BoxDecoration(color: const Color(0xFFFF9800).withAlpha(120), borderRadius: BorderRadius.circular(2))),
-                                    ),
-                                    Positioned(
-                                      left: barWidth * (_pastHours / _totalHours) - 1,
-                                      top: 10,
-                                      bottom: 10,
-                                      child: Container(width: 2, color: const Color(0xFF4CAF50)),
+                                      child: Container(
+                                        decoration: BoxDecoration(color: theme.colorScheme.primary.withAlpha(60), borderRadius: BorderRadius.circular(2)),
+                                      ),
                                     ),
                                     AnimatedPositioned(
-                                      duration: const Duration(milliseconds: 450),
+                                      duration: const Duration(milliseconds: 300),
                                       curve: Curves.easeOut,
-                                      left: (_currentFrame / (_frames.length - 1)) * barWidth - 8,
+                                      left: ((_currentFrame / (_frames.length - 1)) * barWidth - 8).clamp(0.0, barWidth - 16),
                                       top: 8,
                                       child: Container(
                                         width: 16,
                                         height: 16,
                                         decoration: BoxDecoration(
-                                          color: isFuture ? const Color(0xFFFF9800) : (isNow ? const Color(0xFF4CAF50) : theme.colorScheme.primary),
+                                          color: isNewest ? const Color(0xFF4CAF50) : theme.colorScheme.primary,
                                           shape: BoxShape.circle,
                                           border: Border.all(color: theme.colorScheme.surface, width: 2),
                                         ),
@@ -489,21 +374,8 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('-${_pastHours}u', style: TextStyle(fontSize: 9, color: theme.colorScheme.onSurface.withAlpha(120))),
-                      Text('nu', style: TextStyle(fontSize: 9, color: const Color(0xFF4CAF50), fontWeight: FontWeight.w700)),
-                      Text('+${_futureHours}u', style: const TextStyle(fontSize: 9, color: Color(0xFFFF9800))),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    alignment: WrapAlignment.center,
-                    spacing: 16,
-                    runSpacing: 4,
-                    children: [
-                      _legendItem('Licht', const Color(0xFF81D4FA)),
-                      _legendItem('Matig', const Color(0xFF29B6F6)),
-                      _legendItem('Zwaar', const Color(0xFF0288D1)),
-                      _legendItem('Zwaar+', const Color(0xFF01579B)),
+                      Text(_formatClock(_frames.first.time), style: TextStyle(fontSize: 10, color: theme.colorScheme.onSurface.withAlpha(120))),
+                      Text('-2u · nu', style: TextStyle(fontSize: 10, color: theme.colorScheme.onSurface.withAlpha(120))),
                     ],
                   ),
                 ],
@@ -515,30 +387,17 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
     );
   }
 
-  Widget _legendItem(String label, Color color) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(width: 10, height: 10, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-        const SizedBox(width: 3),
-        Text(label, style: const TextStyle(fontSize: 10)),
-      ],
-    );
-  }
-
   void _showInfo(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Neerslagkaart'),
         content: const Text(
-          'Deze kaart toont een animatie van neerslag:\n\n'
-          '• Blauwe cirkels = afgelopen 2 uur\n'
-          '• Oranje cirkels = komende 5 uur voorspelling\n'
-          '• Groene streep = nu\n\n'
-          'Druk op play/pause om de animatie te starten of stoppen. '
-          'Schuif over de balk om naar een specifiek tijdstip te gaan.\n\n'
-          'Data: Open-Meteo (25 punten raster)',
+          'Deze kaart toont echte radar-beelden van de afgelopen 2 uur:\n\n'
+          '• De animatie speelt alle radar-beelden van de afgelopen 2 uur achter elkaar\n'
+          '• Groene stip = jouw locatie\n'
+          '• Sleep de balk om naar een specifiek tijdstip te gaan\n\n'
+          'Data: RainViewer (radar) + OpenStreetMap (kaart)',
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Sluiten')),
@@ -546,24 +405,4 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
       ),
     );
   }
-}
-
-class _GridPointData {
-  final double lat;
-  final double lon;
-  final List<double> precipitation;
-  _GridPointData({required this.lat, required this.lon, required this.precipitation});
-}
-
-class _PrecipPoint {
-  final double lat;
-  final double lon;
-  final double precipitation;
-  _PrecipPoint({required this.lat, required this.lon, required this.precipitation});
-}
-
-class _PrecipFrame {
-  final DateTime time;
-  final List<_PrecipPoint> points;
-  _PrecipFrame({required this.time, required this.points});
 }
