@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -40,6 +42,14 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
 
   // Neerslagverwachting per kwartier (+2u) uit Open-Meteo.
   List<({DateTime time, double mm})> _forecast = [];
+
+  // DWD-nowcast als lichte overlay-beelden (één Image i.p.v. 12 TileLayers —
+  // de tile-machines crashten de boom: framework.dart '_dependents.isEmpty').
+  final Map<String, Uint8List> _dwdOverlays = {};
+  // Vaste geografische bbox van de DWD RV-layer (EPSG:3857) — bepaald uit
+  // de WMS-capabilities; het beeld (1200x1100) dekt exact dit gebied.
+  static const double _dwdWest = 163152, _dwdEast = 2083210;
+  static const double _dwdSouth = 18001645, _dwdNorth = 23877527;
 
   static const _animDuration = Duration(milliseconds: 700);
   static const _refreshInterval = Duration(minutes: 5);
@@ -101,10 +111,18 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
       final forecastTimes = [
         for (var m = 10; m <= 120; m += 10) runStart.add(Duration(minutes: m)),
       ];
-      final forecastFrames = await _probeDwdFrames(forecastTimes);
+      final forecastImages = await _fetchDwdOverlays(forecastTimes);
+      final forecastFrames = <_RadarFrame>[
+        for (final t in forecastTimes)
+          if (forecastImages.containsKey(t.toIso8601String()))
+            _RadarFrame(time: t, path: 'dwd', isForecast: true),
+      ];
 
       setState(() {
         _tileHost = host;
+        _dwdOverlays
+          ..clear()
+          ..addAll(forecastImages);
         _frames = [...frames, ...forecastFrames];
         _currentFrame = frames.length - 1; // start op het nieuwste radarbeeld
         _loading = false;
@@ -116,6 +134,57 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
         _error = e.toString();
         _loading = false;
       });
+    }
+  }
+
+  /// Haalt elke DWD-tijdstap op als één beeld (600x550 px PNG van de
+  /// hele DWD-layer). Niet-gepubliceerde stappen leveren HTTP 200 met een
+  /// XML-foutmelding i.p.v. een beeld — die worden gefilterd. Dit vervangt
+  /// de 12 WMS-TileLayers (crash: '_dependents.isEmpty') door 12
+  /// lichtgewicht OverlayImages die al staan te wachten in RAM.
+  Future<Map<String, Uint8List>> _fetchDwdOverlays(List<DateTime> times) async {
+    final responses = await Future.wait(times.map(_fetchDwdOverlay));
+    final result = <String, Uint8List>{};
+    for (var i = 0; i < times.length; i++) {
+      final bytes = responses[i];
+      if (bytes != null) result[times[i].toIso8601String()] = bytes;
+    }
+    return result;
+  }
+
+  Future<Uint8List?> _fetchDwdOverlay(DateTime utc) async {
+    try {
+      final response = await _dio.get<List<int>>(
+        'https://maps.dwd.de/geoserver/wms',
+        queryParameters: {
+          'service': 'WMS',
+          'version': '1.3.0',
+          'request': 'GetMap',
+          'layers': 'dwd:Radar_rv_product_1x1km_ger',
+          'styles': '',
+          'crs': 'EPSG:3857',
+          // Volledige layer-bbox — het beeld hoort precies op deze extent.
+          'bbox': '$_dwdWest,$_dwdSouth,$_dwdEast,$_dwdNorth',
+          'width': '600',
+          'height': '550',
+          'format': 'image/png',
+          'transparent': 'true',
+          'time': _wmsTime(utc),
+        },
+        options: Options(
+          responseType: ResponseType.bytes,
+          receiveTimeout: const Duration(seconds: 20),
+        ),
+      );
+      final bytes = response.data;
+      if (bytes == null || bytes.length < 4) return null;
+      final isPng = bytes[0] == 0x89 &&
+          bytes[1] == 0x50 &&
+          bytes[2] == 0x4E &&
+          bytes[3] == 0x47;
+      return isPng ? Uint8List.fromList(bytes) : null;
+    } catch (_) {
+      return null;
     }
   }
 
@@ -156,75 +225,6 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
 
   /// DWD WMS-layers: nowcast +2u als TIME-parameter per frame.
   /// Getest: werkt op EPSG:3857, alle zooms, mm/h-palette, gratis zonder key.
-  TileLayer _dwdForecastLayer(_RadarFrame frame) {
-    final wms = WMSTileLayerOptions(
-      baseUrl: 'https://maps.dwd.de/geoserver/wms?',
-      layers: const ['dwd:Radar_rv_product_1x1km_ger'],
-      version: '1.3.0',
-      format: 'image/png',
-      transparent: true,
-      crs: const Epsg3857(),
-      otherParameters: {'time': _wmsTime(frame.time)},
-    );
-    return TileLayer(
-      wmsOptions: wms,
-      userAgentPackageName: 'com.danield.weerapp',
-      panBuffer: 0,
-      maxNativeZoom: 7,
-    );
-  }
-
-  /// Test elke DWD-tijdstap: geeft de GeoServer een echte PNG terug?
-  /// Niet-gepubliceerde stappen leveren HTTP 200 + XML-foutmelding i.p.v.
-  /// een beeld — die renderen als blokken. Alleen bevestigde frames doen
-  /// mee in de animatie. Parallel, korte timeout.
-  Future<List<_RadarFrame>> _probeDwdFrames(List<DateTime> times) async {
-    final results = await Future.wait(times.map(_probeDwdFrame));
-    final frames = <_RadarFrame>[];
-    for (var i = 0; i < times.length; i++) {
-      if (results[i]) {
-        frames.add(_RadarFrame(time: times[i], path: 'dwd', isForecast: true));
-      }
-    }
-    return frames;
-  }
-
-  Future<bool> _probeDwdFrame(DateTime utc) async {
-    try {
-      final response = await _dio.get<List<int>>(
-        'https://maps.dwd.de/geoserver/wms',
-        queryParameters: {
-          'service': 'WMS',
-          'version': '1.3.0',
-          'request': 'GetMap',
-          'layers': 'dwd:Radar_rv_product_1x1km_ger',
-          'styles': '',
-          'crs': 'EPSG:3857',
-          // Klein NL-venster, 8x8 px: alleen checken of de stap bestaat.
-          'bbox': '559646,6656876,1109249,6818129',
-          'width': '8',
-          'height': '8',
-          'format': 'image/png',
-          'transparent': 'true',
-          'time': _wmsTime(utc),
-        },
-        options: Options(
-          responseType: ResponseType.bytes,
-          receiveTimeout: const Duration(seconds: 12),
-        ),
-      );
-      final bytes = response.data;
-      return bytes != null &&
-          bytes.length >= 4 &&
-          bytes[0] == 0x89 &&
-          bytes[1] == 0x50 && // P
-          bytes[2] == 0x4E && // N
-          bytes[3] == 0x47; // G
-    } catch (_) {
-      return false;
-    }
-  }
-
   String _wmsTime(DateTime utc) =>
       '${utc.year.toString().padLeft(4, '0')}-${utc.month.toString().padLeft(2, '0')}-'
       '${utc.day.toString().padLeft(2, '0')}T${utc.hour.toString().padLeft(2, '0')}:'
@@ -339,7 +339,18 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
           duration: const Duration(milliseconds: 250),
           opacity: i == _currentFrame ? 1.0 : 0.0,
           child: _frames[i].isForecast
-              ? _dwdForecastLayer(_frames[i])
+              ? OverlayImage(
+                  key: ValueKey('dwd-${_frames[i].time.toIso8601String()}'),
+                  imageProvider: MemoryImage(
+                    _dwdOverlays[_frames[i].time.toIso8601String()]!,
+                  ),
+                  // Exacte hoekpunten van de DWD layer-bbox (EPSG:3857 →
+                  // WGS84) zodat het beeld pixel-matcherend op de kaart ligt.
+                  bounds: LatLngBounds(
+                    const LatLng(45.685555, 1.465619),
+                    const LatLng(56.21059, 18.713794),
+                  ),
+                )
               : TileLayer(
                   key: ValueKey(_frames[i].path),
                   urlTemplate: _tileUrl(_frames[i]),
