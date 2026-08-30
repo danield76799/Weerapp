@@ -31,31 +31,22 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
   List<_RadarFrame> _frames = [];
   int _currentFrame = 0;
   Timer? _timer;
-  Timer? _refreshTimer;
   bool _playing = true;
   bool _loading = true;
   String? _error;
   String? _tileHost;
 
-  // Neerslagverwachting per kwartier (+2u) uit Open-Meteo.
-  List<({DateTime time, double mm})> _forecast = [];
-
   static const _animDuration = Duration(milliseconds: 700);
-  static const _refreshInterval = Duration(minutes: 5);
 
   @override
   void initState() {
     super.initState();
     _fetchRadarFrames();
-    // Radar-frames komen elke 10 min binnen; haal每 5 min nieuwe op
-    // zodat 'nu' echt actueel blijft tijdens een open scherm.
-    _refreshTimer = Timer.periodic(_refreshInterval, (_) => _fetchRadarFrames());
   }
 
   @override
   void dispose() {
     _timer?.cancel();
-    _refreshTimer?.cancel();
     _mapController.dispose();
     super.dispose();
   }
@@ -97,44 +88,11 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
         _loading = false;
       });
       _startAnimation();
-      _fetchForecast(); // asynchroon: balk verschijnt zodra klaar
     } catch (e) {
       setState(() {
         _error = e.toString();
         _loading = false;
       });
-    }
-  }
-
-  Future<void> _fetchForecast() async {
-    try {
-      final response = await _dio.get<Map<String, dynamic>>(
-        'https://api.open-meteo.com/v1/forecast',
-        queryParameters: {
-          'latitude': widget.location.lat,
-          'longitude': widget.location.lon,
-          'minutely_15': 'precipitation',
-          'forecast_minutely_15': '8',
-          'past_minutely_15': '1',
-          'timezone': 'auto',
-        },
-        options: Options(receiveTimeout: const Duration(seconds: 15)),
-      );
-      final m15 = response.data?['minutely_15'] as Map<String, dynamic>?;
-      final times = m15?['time'] as List<dynamic>? ?? [];
-      final vals = m15?['precipitation'] as List<dynamic>? ?? [];
-      // past=1 geeft één slot vóór "nu" (kwartier waar we al in zitten).
-      final now = DateTime.now();
-      final list = <({DateTime time, double mm})>[];
-      for (var i = 0; i < times.length; i++) {
-        final t = DateTime.parse(times[i] as String);
-        if (t.isBefore(now.subtract(const Duration(minutes: 20)))) continue;
-        if (list.length >= 8) break;
-        list.add((time: t, mm: (vals[i] as num?)?.toDouble() ?? 0.0));
-      }
-      if (mounted) setState(() => _forecast = list);
-    } catch (_) {
-      // Forecast is een bonus — faal stil.
     }
   }
 
@@ -237,27 +195,6 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
     final frame = _frames[_currentFrame];
     final isNewest = _currentFrame == _frames.length - 1;
 
-    // Alle frames als eigen TileLayer stapelen; alleen het actieve frame is
-    // zichtbaar. Tiles worden één keer geladen en blijven in de cache —
-    // de frame-wissel is nu een instantswap zonder herlaad-flikker.
-    final radarLayers = <Widget>[
-      for (var i = 0; i < _frames.length; i++)
-        AnimatedOpacity(
-          key: ValueKey(_frames[i].path),
-          duration: const Duration(milliseconds: 250),
-          opacity: i == _currentFrame ? 1.0 : 0.0,
-          child: TileLayer(
-            urlTemplate: _tileUrl(_frames[i]),
-            userAgentPackageName: 'com.danield.weerapp',
-            tileProvider: NetworkTileProvider(),
-            // RainViewer's gratis tiles stoppen bij zoom 7 (was 10 in jul
-            // 2026); boven native zoom schaalt flutter_map de tiles op
-            // i.p.v. de "Zoom Level Not Supported"-tegel te tonen.
-            maxNativeZoom: 7,
-          ),
-        ),
-    ];
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Neerslagkaart'),
@@ -295,8 +232,17 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
                       urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                       userAgentPackageName: 'com.danield.weerapp',
                     ),
-                    // Gestapelde radar-frames — alleen actieve zichtbaar.
-                    ...radarLayers,
+                    // Echte radar-tiles — elke frame is een eigen layer.
+                    // RainViewer's gratis tiles stoppen bij zoom 7 (was 10 in
+                    // jul 2026); boven native zoom schaalt flutter_map de
+                    // tiles op i.p.v. de "Zoom Level Not Supported"-tegel.
+                    TileLayer(
+                      key: ValueKey(frame.path),
+                      urlTemplate: _tileUrl(frame),
+                      userAgentPackageName: 'com.danield.weerapp',
+                      tileProvider: NetworkTileProvider(),
+                      maxNativeZoom: 7,
+                    ),
                     MarkerLayer(
                       markers: [
                         Marker(
@@ -338,9 +284,7 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            isNewest
-                                ? '${_formatClock(frame.time)} — LIVE'
-                                : '${_formatClock(frame.time)} — ${_formatRelative(frame.time)}',
+                            '${_formatClock(frame.time)} — ${_formatRelative(frame.time)}',
                             style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: theme.colorScheme.onSurface),
                           ),
                         ],
@@ -438,53 +382,6 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
                       Text('-2u · nu', style: TextStyle(fontSize: 10, color: theme.colorScheme.onSurface.withAlpha(120))),
                     ],
                   ),
-                  // Neerslagverwachting +2u (Open-Meteo, per kwartier).
-                  if (_forecast.isNotEmpty) ...[
-                    const SizedBox(height: 10),
-                    SizedBox(
-                      height: 56,
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          for (final slot in _forecast)
-                            Expanded(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  if (slot.mm > 0.05)
-                                    Text(
-                                      slot.mm < 1 ? 'licht' : slot.mm.toStringAsFixed(0),
-                                      style: TextStyle(fontSize: 8, fontWeight: FontWeight.w600, color: theme.colorScheme.onSurface.withAlpha(160)),
-                                    ),
-                                  const SizedBox(height: 2),
-                                  Container(
-                                    height: 4.0 + (slot.mm.clamp(0.0, 4.0) / 4.0) * 28.0,
-                                    decoration: BoxDecoration(
-                                      color: slot.mm <= 0
-                                          ? theme.colorScheme.onSurface.withAlpha(30)
-                                          : Colors.blue.withAlpha(slot.mm < 0.5 ? 90 : slot.mm < 2.5 ? 160 : 255),
-                                      borderRadius: BorderRadius.circular(2),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    _formatClock(slot.time),
-                                    style: TextStyle(fontSize: 8, color: theme.colorScheme.onSurface.withAlpha(120)),
-                                  ),
-                                ],
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: Text(
-                        'verwachting +2u · Open-Meteo',
-                        style: TextStyle(fontSize: 9, color: theme.colorScheme.onSurface.withAlpha(110)),
-                      ),
-                    ),
-                  ],
                 ],
               ),
             ),

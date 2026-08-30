@@ -21,38 +21,6 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
-  // Release-safety: een layout-fout in één widget mag nooit het hele scherm
-  // zwart maken. Toon de inhoud zoveel mogelijk + log voor debugbuilds.
-  FlutterError.onError = (details) {
-    FlutterError.presentError(details);
-  };
-  ErrorWidget.builder = (details) {
-    return Material(
-      color: Colors.transparent,
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.warning_amber_rounded, size: 40),
-              const SizedBox(height: 12),
-              const Text(
-                'Weer is even vastgelopen',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Tik om opnieuw te laden',
-                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  };
-
   final weatherService = WeatherService();
 
   // Background weather-alerts: draai periodiek op de achtergrond zodat
