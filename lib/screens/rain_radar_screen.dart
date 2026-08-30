@@ -195,6 +195,27 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
     final frame = _frames[_currentFrame];
     final isNewest = _currentFrame == _frames.length - 1;
 
+    // Alle frames als eigen TileLayer stapelen; alleen het actieve frame is
+    // zichtbaar. Tiles worden één keer geladen en blijven in de cache —
+    // de frame-wissel is nu een instantswap zonder herlaad-flikker.
+    final radarLayers = <Widget>[
+      for (var i = 0; i < _frames.length; i++)
+        AnimatedOpacity(
+          key: ValueKey(_frames[i].path),
+          duration: const Duration(milliseconds: 250),
+          opacity: i == _currentFrame ? 1.0 : 0.0,
+          child: TileLayer(
+            urlTemplate: _tileUrl(_frames[i]),
+            userAgentPackageName: 'com.danield.weerapp',
+            tileProvider: NetworkTileProvider(),
+            // RainViewer's gratis tiles stoppen bij zoom 7 (was 10 in jul
+            // 2026); boven native zoom schaalt flutter_map de tiles op
+            // i.p.v. de "Zoom Level Not Supported"-tegel te tonen.
+            maxNativeZoom: 7,
+          ),
+        ),
+    ];
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Neerslagkaart'),
@@ -232,17 +253,8 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
                       urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                       userAgentPackageName: 'com.danield.weerapp',
                     ),
-                    // Echte radar-tiles — elke frame is een eigen layer.
-                    // RainViewer's gratis tiles stoppen bij zoom 7 (was 10 in
-                    // jul 2026); boven native zoom schaalt flutter_map de
-                    // tiles op i.p.v. de "Zoom Level Not Supported"-tegel.
-                    TileLayer(
-                      key: ValueKey(frame.path),
-                      urlTemplate: _tileUrl(frame),
-                      userAgentPackageName: 'com.danield.weerapp',
-                      tileProvider: NetworkTileProvider(),
-                      maxNativeZoom: 7,
-                    ),
+                    // Gestapelde radar-frames — alleen actieve zichtbaar.
+                    ...radarLayers,
                     MarkerLayer(
                       markers: [
                         Marker(
