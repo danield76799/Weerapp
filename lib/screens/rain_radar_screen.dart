@@ -20,8 +20,9 @@ class RainRadarScreen extends StatefulWidget {
 
 class _RadarFrame {
   final DateTime time;
-  final String path; // bijv. /v2/radar/1134a9702115
-  _RadarFrame({required this.time, required this.path});
+  final String path; // bijv. /v2/radar/1134a9702115 (RainViewer)
+  final bool isForecast; // true = DWD nowcast via WMS-TIME
+  _RadarFrame({required this.time, required this.path, this.isForecast = false});
 }
 
 class _RainRadarScreenState extends State<RainRadarScreen> {
@@ -90,10 +91,22 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
         return;
       }
 
+      // DWD nowcast: toekomst-frames +10..+120 min op 5min-grenzen (WMS-TIME).
+      // Alleen opnamen die DWD daadwerkelijk publiceert; laatste run = laatste
+      // 5-min-grens in het verleden.
+      final nowUtc = DateTime.now().toUtc();
+      final runStart = DateTime.utc(
+        nowUtc.year, nowUtc.month, nowUtc.day, nowUtc.hour, nowUtc.minute - (nowUtc.minute % 5),
+      );
+      final forecastFrames = <_RadarFrame>[
+        for (var m = 10; m <= 120; m += 10)
+          _RadarFrame(time: runStart.add(Duration(minutes: m)), path: 'dwd', isForecast: true),
+      ];
+
       setState(() {
         _tileHost = host;
-        _frames = frames;
-        _currentFrame = frames.length - 1; // start op het nieuwste beeld
+        _frames = [...frames, ...forecastFrames];
+        _currentFrame = frames.length - 1; // start op het nieuwste radarbeeld
         _loading = false;
       });
       _startAnimation();
@@ -140,6 +153,33 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
 
   String _tileUrl(_RadarFrame frame) =>
       '$_tileHost${frame.path}/256/{z}/{x}/{y}/2/1_1.png';
+
+  /// DWD WMS-layers: nowcast +2u als TIME-parameter per frame.
+  /// Getest: werkt op EPSG:3857, alle zooms, mm/h-palette, gratis zonder key.
+  TileLayer _dwdForecastLayer(_RadarFrame frame) {
+    final wms = WMSTileLayerOptions(
+      baseUrl: 'https://maps.dwd.de/geoserver/wms?',
+      layers: const ['dwd:Radar_rv_product_1x1km_ger'],
+      version: '1.3.0',
+      format: 'image/png',
+      transparent: true,
+      crs: const Epsg3857(),
+      otherParameters: {
+        'time': _wmsTime(frame.time),
+        'width': '256',
+        'height': '256',
+      },
+    );
+    return TileLayer(
+      wmsOptions: wms,
+      userAgentPackageName: 'com.danield.weerapp',
+    );
+  }
+
+  String _wmsTime(DateTime utc) =>
+      '${utc.year.toString().padLeft(4, '0')}-${utc.month.toString().padLeft(2, '0')}-'
+      '${utc.day.toString().padLeft(2, '0')}T${utc.hour.toString().padLeft(2, '0')}:'
+      '${utc.minute.toString().padLeft(2, '0')}:00.000Z';
 
   void _startAnimation() {
     _timer?.cancel();
@@ -235,26 +275,32 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
     }
 
     final frame = _frames[_currentFrame];
-    final isNewest = _currentFrame == _frames.length - 1;
+    final lastPastIndex = _frames.lastIndexWhere((f) => !f.isForecast);
+    final isNewest = _currentFrame == lastPastIndex;
+    final isForecast = frame.isForecast;
 
-    // Alle frames als eigen TileLayer stapelen; alleen het actieve frame is
+    // Alle frames als eigen layer stapelen; alleen het actieve frame is
     // zichtbaar. Tiles worden één keer geladen en blijven in de cache —
     // de frame-wissel is nu een instantswap zonder herlaad-flikker.
+    // Verleden = RainViewer-radar; toekomst = DWD nowcast (WMS-TIME).
     final radarLayers = <Widget>[
       for (var i = 0; i < _frames.length; i++)
         AnimatedOpacity(
-          key: ValueKey(_frames[i].path),
+          key: ValueKey('$i-${_frames[i].time.toIso8601String()}'),
           duration: const Duration(milliseconds: 250),
           opacity: i == _currentFrame ? 1.0 : 0.0,
-          child: TileLayer(
-            urlTemplate: _tileUrl(_frames[i]),
-            userAgentPackageName: 'com.danield.weerapp',
-            tileProvider: NetworkTileProvider(),
-            // RainViewer's gratis tiles stoppen bij zoom 7 (was 10 in jul
-            // 2026); boven native zoom schaalt flutter_map de tiles op
-            // i.p.v. de "Zoom Level Not Supported"-tegel te tonen.
-            maxNativeZoom: 7,
-          ),
+          child: _frames[i].isForecast
+              ? _dwdForecastLayer(_frames[i])
+              : TileLayer(
+                  key: ValueKey(_frames[i].path),
+                  urlTemplate: _tileUrl(_frames[i]),
+                  userAgentPackageName: 'com.danield.weerapp',
+                  tileProvider: NetworkTileProvider(),
+                  // RainViewer's gratis tiles stoppen bij zoom 7 (was 10 in
+                  // jul 2026); boven native zoom schaalt flutter_map de
+                  // tiles op i.p.v. de "Zoom Level Not Supported"-tegel.
+                  maxNativeZoom: 7,
+                ),
         ),
     ];
 
@@ -332,15 +378,25 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            isNewest ? Icons.my_location : Icons.history,
+                            isForecast
+                                ? Icons.online_prediction
+                                : isNewest
+                                    ? Icons.my_location
+                                    : Icons.history,
                             size: 16,
-                            color: isNewest ? const Color(0xFF4CAF50) : theme.colorScheme.primary,
+                            color: isForecast
+                                ? const Color(0xFF7C4DFF)
+                                : isNewest
+                                    ? const Color(0xFF4CAF50)
+                                    : theme.colorScheme.primary,
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            isNewest
-                                ? '${_formatClock(frame.time)} — LIVE'
-                                : '${_formatClock(frame.time)} — ${_formatRelative(frame.time)}',
+                            isForecast
+                                ? '${_formatClock(frame.time)} — verwachting'
+                                : isNewest
+                                    ? '${_formatClock(frame.time)} — LIVE'
+                                    : '${_formatClock(frame.time)} — ${_formatRelative(frame.time)}',
                             style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: theme.colorScheme.onSurface),
                           ),
                         ],
@@ -435,7 +491,7 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(_formatClock(_frames.first.time), style: TextStyle(fontSize: 10, color: theme.colorScheme.onSurface.withAlpha(120))),
-                      Text('-2u · nu', style: TextStyle(fontSize: 10, color: theme.colorScheme.onSurface.withAlpha(120))),
+                      Text('-2u · nu · +2u (DWD)', style: TextStyle(fontSize: 10, color: theme.colorScheme.onSurface.withAlpha(120))),
                     ],
                   ),
                   // Neerslagverwachting +2u (Open-Meteo, per kwartier).
