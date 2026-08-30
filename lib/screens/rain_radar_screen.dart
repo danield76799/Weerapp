@@ -98,10 +98,10 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
       final runStart = DateTime.utc(
         nowUtc.year, nowUtc.month, nowUtc.day, nowUtc.hour, nowUtc.minute - (nowUtc.minute % 5),
       );
-      final forecastFrames = <_RadarFrame>[
-        for (var m = 10; m <= 120; m += 10)
-          _RadarFrame(time: runStart.add(Duration(minutes: m)), path: 'dwd', isForecast: true),
+      final forecastTimes = [
+        for (var m = 10; m <= 120; m += 10) runStart.add(Duration(minutes: m)),
       ];
+      final forecastFrames = await _probeDwdFrames(forecastTimes);
 
       setState(() {
         _tileHost = host;
@@ -164,16 +164,65 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
       format: 'image/png',
       transparent: true,
       crs: const Epsg3857(),
-      otherParameters: {
-        'time': _wmsTime(frame.time),
-        'width': '256',
-        'height': '256',
-      },
+      otherParameters: {'time': _wmsTime(frame.time)},
     );
     return TileLayer(
       wmsOptions: wms,
       userAgentPackageName: 'com.danield.weerapp',
+      panBuffer: 0,
+      maxNativeZoom: 7,
     );
+  }
+
+  /// Test elke DWD-tijdstap: geeft de GeoServer een echte PNG terug?
+  /// Niet-gepubliceerde stappen leveren HTTP 200 + XML-foutmelding i.p.v.
+  /// een beeld — die renderen als blokken. Alleen bevestigde frames doen
+  /// mee in de animatie. Parallel, korte timeout.
+  Future<List<_RadarFrame>> _probeDwdFrames(List<DateTime> times) async {
+    final results = await Future.wait(times.map(_probeDwdFrame));
+    final frames = <_RadarFrame>[];
+    for (var i = 0; i < times.length; i++) {
+      if (results[i]) {
+        frames.add(_RadarFrame(time: times[i], path: 'dwd', isForecast: true));
+      }
+    }
+    return frames;
+  }
+
+  Future<bool> _probeDwdFrame(DateTime utc) async {
+    try {
+      final response = await _dio.get<List<int>>(
+        'https://maps.dwd.de/geoserver/wms',
+        queryParameters: {
+          'service': 'WMS',
+          'version': '1.3.0',
+          'request': 'GetMap',
+          'layers': 'dwd:Radar_rv_product_1x1km_ger',
+          'styles': '',
+          'crs': 'EPSG:3857',
+          // Klein NL-venster, 8x8 px: alleen checken of de stap bestaat.
+          'bbox': '559646,6656876,1109249,6818129',
+          'width': '8',
+          'height': '8',
+          'format': 'image/png',
+          'transparent': 'true',
+          'time': _wmsTime(utc),
+        },
+        options: Options(
+          responseType: ResponseType.bytes,
+          receiveTimeout: const Duration(seconds: 12),
+        ),
+      );
+      final bytes = response.data;
+      return bytes != null &&
+          bytes.length >= 4 &&
+          bytes[0] == 0x89 &&
+          bytes[1] == 0x50 && // P
+          bytes[2] == 0x4E && // N
+          bytes[3] == 0x47; // G
+    } catch (_) {
+      return false;
+    }
   }
 
   String _wmsTime(DateTime utc) =>
