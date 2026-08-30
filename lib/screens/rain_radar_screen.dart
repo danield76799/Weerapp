@@ -31,6 +31,7 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
   List<_RadarFrame> _frames = [];
   int _currentFrame = 0;
   Timer? _timer;
+  Timer? _refreshTimer;
   bool _playing = true;
   bool _loading = true;
   String? _error;
@@ -40,16 +41,21 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
   List<({DateTime time, double mm})> _forecast = [];
 
   static const _animDuration = Duration(milliseconds: 700);
+  static const _refreshInterval = Duration(minutes: 5);
 
   @override
   void initState() {
     super.initState();
     _fetchRadarFrames();
+    // Radar-frames komen elke 10 min binnen; haal每 5 min nieuwe op
+    // zodat 'nu' echt actueel blijft tijdens een open scherm.
+    _refreshTimer = Timer.periodic(_refreshInterval, (_) => _fetchRadarFrames());
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _refreshTimer?.cancel();
     _mapController.dispose();
     super.dispose();
   }
@@ -332,7 +338,9 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            '${_formatClock(frame.time)} — ${_formatRelative(frame.time)}',
+                            isNewest
+                                ? '${_formatClock(frame.time)} — LIVE'
+                                : '${_formatClock(frame.time)} — ${_formatRelative(frame.time)}',
                             style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: theme.colorScheme.onSurface),
                           ),
                         ],
@@ -443,9 +451,9 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
-                                  if (slot.mm > 0)
+                                  if (slot.mm > 0.05)
                                     Text(
-                                      slot.mm >= 1 ? slot.mm.toStringAsFixed(1) : '<0.1',
+                                      slot.mm < 1 ? 'licht' : slot.mm.toStringAsFixed(0),
                                       style: TextStyle(fontSize: 8, fontWeight: FontWeight.w600, color: theme.colorScheme.onSurface.withAlpha(160)),
                                     ),
                                   const SizedBox(height: 2),
