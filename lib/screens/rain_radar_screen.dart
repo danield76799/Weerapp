@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -7,9 +8,11 @@ import 'package:latlong2/latlong.dart';
 
 import '../services/saved_locations_service.dart';
 
-/// Neerslagkaart met echte radar-beelden van RainViewer (gratis API, geen key).
-/// Toont de afgelopen 2 uur radar als animatie met 10-min-intervallen,
-/// als tile-layer over de kaart — geen cirkels, geen interpolatie.
+/// Neerslagkaart via de eigen DWD-radarproxy (VM 13.140.136.172:8090).
+///
+/// De proxy levert per 5 minuten één PNG (NL + omstreken, EPSG:4326-bbox
+/// uit het manifest): verleden (-2u) én nowcast (+2u). De app toont
+/// precies één overlay per moment (gaplessPlayback) — geen tile-stapel.
 class RainRadarScreen extends StatefulWidget {
   final SavedLocation location;
   const RainRadarScreen({super.key, required this.location});
@@ -20,28 +23,31 @@ class RainRadarScreen extends StatefulWidget {
 
 class _RadarFrame {
   final DateTime time;
-  final String path; // bijv. /v2/radar/1134a9702115
-  _RadarFrame({required this.time, required this.path});
+  final String path;
+  final int offsetMin;
+  Uint8List? bytes;
+  _RadarFrame({required this.time, required this.path, required this.offsetMin});
 }
 
 class _RainRadarScreenState extends State<RainRadarScreen> {
-  final MapController _mapController = MapController();
+  static const _proxyBase = 'http://13.140.136.172:8090';
   final Dio _dio = Dio();
+  final MapController _mapController = MapController();
 
   List<_RadarFrame> _frames = [];
+  List<LatLng> _boundsSWNE = const [LatLng(49, 2), LatLng(55, 14.5)];
   int _currentFrame = 0;
   Timer? _timer;
   bool _playing = true;
   bool _loading = true;
   String? _error;
-  String? _tileHost;
 
-  static const _animDuration = Duration(milliseconds: 700);
+  static const _animDuration = Duration(milliseconds: 480);
 
   @override
   void initState() {
     super.initState();
-    _fetchRadarFrames();
+    _fetchManifest();
   }
 
   @override
@@ -51,61 +57,97 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
     super.dispose();
   }
 
-  Future<void> _fetchRadarFrames() async {
+  Future<void> _fetchManifest() async {
     try {
-      final response = await _dio.get<Map<String, dynamic>>(
-        'https://api.rainviewer.com/public/weather-maps.json',
-        options: Options(receiveTimeout: const Duration(seconds: 15)),
+      final res = await _dio.get<Map<String, dynamic>>(
+        '$_proxyBase/manifest.json',
+        options: Options(receiveTimeout: const Duration(seconds: 30)),
       );
-      final data = response.data!;
-      final host = data['host'] as String? ?? 'https://tilecache.rainviewer.com';
-      final radar = data['radar'] as Map<String, dynamic>? ?? {};
-      final past = radar['past'] as List<dynamic>? ?? [];
+      final data = res.data!;
+      final rawBounds = (data['bounds'] as List).map((e) => (e as num).toDouble()).toList();
+      // bounds: [south, west, north, east]
+      _boundsSWNE = [
+        LatLng(rawBounds[0], rawBounds[1]), // sw
+        LatLng(rawBounds[2], rawBounds[3]), // ne
+      ];
 
       final frames = <_RadarFrame>[];
-      for (final item in past) {
+      for (final item in (data['frames'] as List)) {
+        final f = item as Map<String, dynamic>;
+        final offset = (f['offset'] as num).toInt();
+        // sla de allerlaatste toekomst-stap over als DWD hem (nog) niet publiceert:
+        // de proxy geeft dan 404 en de app laadt de PNG alsnog lazily.
         frames.add(_RadarFrame(
-          time: DateTime.fromMillisecondsSinceEpoch(
-            (item['time'] as int) * 1000,
-            isUtc: true,
-          ),
-          path: item['path'] as String,
+          time: DateTime.parse(f['time'] as String),
+          path: f['path'] as String,
+          offsetMin: offset,
         ));
       }
 
       if (frames.isEmpty) {
         setState(() {
-          _error = 'Geen radar-beelden beschikbaar';
+          _error = 'Geen radar-frames in manifest';
           _loading = false;
         });
         return;
       }
 
+      // Laatste verleden-frame als start
+      var startIdx = frames.lastIndexWhere((f) => f.offsetMin <= 0);
+      if (startIdx < 0) startIdx = frames.length - 1;
+
       setState(() {
-        _tileHost = host;
         _frames = frames;
-        _currentFrame = frames.length - 1; // start op het nieuwste beeld
+        _currentFrame = startIdx;
         _loading = false;
       });
       _startAnimation();
+      await _preloadNeighborhood(startIdx);
     } catch (e) {
       setState(() {
-        _error = e.toString();
+        _error = 'Proxy onbereikbaar: $e';
         _loading = false;
       });
     }
   }
 
-  String _tileUrl(_RadarFrame frame) =>
-      '$_tileHost${frame.path}/256/{z}/{x}/{y}/2/1_1.png';
+  /// Laadt frames rond het actieve frame (breder naar voren dan achteren).
+  Future<void> _preloadNeighborhood(int center) async {
+    final idxs = <int>{};
+    for (var d = 0; d <= 4; d++) {
+      idxs.add((center + d).clamp(0, _frames.length - 1));
+      idxs.add((center - d).clamp(0, _frames.length - 1));
+    }
+    for (final i in idxs) {
+      final f = _frames[i];
+      if (f.bytes != null) continue;
+      try {
+        final res = await _dio.get<List<int>>(
+          '$_proxyBase${f.path}',
+          options: Options(responseType: ResponseType.bytes),
+        );
+        if (!mounted) return;
+        setState(() => _frames[i].bytes = Uint8List.fromList(res.data!));
+      } catch (_) {
+        // 404 of netwerk — frame blijft leeg en wordt overgeslagen in de build.
+      }
+    }
+  }
 
   void _startAnimation() {
     _timer?.cancel();
-    _timer = Timer.periodic(_animDuration, (_) {
-      if (!mounted) return;
-      setState(() {
-        _currentFrame = (_currentFrame + 1) % _frames.length;
-      });
+    _timer = Timer.periodic(_animDuration, (_) async {
+      if (!mounted || _frames.isEmpty) return;
+      var next = (_currentFrame + 1) % _frames.length;
+      // sla frames zonder beeld over
+      var guard = 0;
+      while (_frames[next].bytes == null && guard < _frames.length) {
+        next = (next + 1) % _frames.length;
+        guard++;
+      }
+      if (guard >= _frames.length) return;
+      setState(() => _currentFrame = next);
+      if (_currentFrame % 3 == 0) _preloadNeighborhood(_currentFrame);
     });
   }
 
@@ -126,6 +168,7 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
       _currentFrame = index.clamp(0, _frames.length - 1);
       _playing = false;
     });
+    _preloadNeighborhood(_currentFrame);
   }
 
   String _formatClock(DateTime dt) {
@@ -136,9 +179,9 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
   String _formatRelative(DateTime dt) {
     final diff = dt.difference(DateTime.now().toUtc());
     final mins = diff.inMinutes;
-    if (mins.abs() < 5) return 'nu';
+    if (mins.abs() < 3) return 'nu';
     if (mins < 0) return '${-mins} min geleden';
-    return 'over $mins min';
+    return 'over ${((mins + 2) ~/ 5) * 5} min';
   }
 
   @override
@@ -181,7 +224,7 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
                 FilledButton(
                   onPressed: () {
                     setState(() => _loading = true);
-                    _fetchRadarFrames();
+                    _fetchManifest();
                   },
                   child: const Text('Opnieuw proberen'),
                 ),
@@ -193,7 +236,8 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
     }
 
     final frame = _frames[_currentFrame];
-    final isNewest = _currentFrame == _frames.length - 1;
+    final isNewest = frame.offsetMin <= 0 && _currentFrame == _frames.lastIndexWhere((f) => f.offsetMin <= 0);
+    final isForecast = frame.offsetMin > 0;
 
     return Scaffold(
       appBar: AppBar(
@@ -203,7 +247,7 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
             icon: const Icon(Icons.refresh),
             onPressed: () {
               setState(() => _loading = true);
-              _fetchRadarFrames();
+              _fetchManifest();
             },
             tooltip: 'Vernieuwen',
           ),
@@ -232,17 +276,17 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
                       urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                       userAgentPackageName: 'com.danield.weerapp',
                     ),
-                    // Echte radar-tiles — elke frame is een eigen layer.
-                    // RainViewer's gratis tiles stoppen bij zoom 7 (was 10 in
-                    // jul 2026); boven native zoom schaalt flutter_map de
-                    // tiles op i.p.v. de "Zoom Level Not Supported"-tegel.
-                    TileLayer(
-                      key: ValueKey(frame.path),
-                      urlTemplate: _tileUrl(frame),
-                      userAgentPackageName: 'com.danield.weerapp',
-                      tileProvider: NetworkTileProvider(),
-                      maxNativeZoom: 7,
-                    ),
+                    if (frame.bytes != null)
+                      OverlayImageLayer(
+                        overlayImages: [
+                          OverlayImage(
+                            key: ValueKey(frame.path),
+                            imageProvider: MemoryImage(frame.bytes!),
+                            bounds: LatLngBounds(_boundsSWNE[0], _boundsSWNE[1]),
+                            gaplessPlayback: true,
+                          ),
+                        ],
+                      ),
                     MarkerLayer(
                       markers: [
                         Marker(
@@ -262,7 +306,6 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
                     ),
                   ],
                 ),
-                // Tijd-label
                 Positioned(
                   top: 12,
                   left: 12,
@@ -278,9 +321,17 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            isNewest ? Icons.my_location : Icons.history,
+                            isForecast
+                                ? Icons.online_prediction
+                                : isNewest
+                                    ? Icons.my_location
+                                    : Icons.history,
                             size: 16,
-                            color: isNewest ? const Color(0xFF4CAF50) : theme.colorScheme.primary,
+                            color: isForecast
+                                ? const Color(0xFFB388FF)
+                                : isNewest
+                                    ? const Color(0xFF4CAF50)
+                                    : theme.colorScheme.primary,
                           ),
                           const SizedBox(width: 8),
                           Text(
@@ -295,7 +346,6 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
               ],
             ),
           ),
-          // Bediening — vaste footer onder de kaart, geen overflow.
           SafeArea(
             top: false,
             child: Container(
@@ -342,10 +392,10 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
                                       ),
                                     ),
                                     Positioned(
-                                      left: (_currentFrame / (_frames.length - 1)) * barWidth,
+                                      left: 0,
                                       top: 14,
                                       bottom: 14,
-                                      right: 0,
+                                      width: (_currentFrame / (_frames.length - 1)) * barWidth,
                                       child: Container(
                                         decoration: BoxDecoration(color: theme.colorScheme.primary.withAlpha(60), borderRadius: BorderRadius.circular(2)),
                                       ),
@@ -359,7 +409,11 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
                                         width: 16,
                                         height: 16,
                                         decoration: BoxDecoration(
-                                          color: isNewest ? const Color(0xFF4CAF50) : theme.colorScheme.primary,
+                                          color: isForecast
+                                              ? const Color(0xFFB388FF)
+                                              : isNewest
+                                                  ? const Color(0xFF4CAF50)
+                                                  : theme.colorScheme.primary,
                                           shape: BoxShape.circle,
                                           border: Border.all(color: theme.colorScheme.surface, width: 2),
                                         ),
@@ -379,7 +433,7 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(_formatClock(_frames.first.time), style: TextStyle(fontSize: 10, color: theme.colorScheme.onSurface.withAlpha(120))),
-                      Text('-2u · nu', style: TextStyle(fontSize: 10, color: theme.colorScheme.onSurface.withAlpha(120))),
+                      Text('-2u · nu · +2u (DWD nowcast)', style: TextStyle(fontSize: 10, color: theme.colorScheme.onSurface.withAlpha(120))),
                     ],
                   ),
                 ],
@@ -397,11 +451,11 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
       builder: (context) => AlertDialog(
         title: const Text('Neerslagkaart'),
         content: const Text(
-          'Deze kaart toont echte radar-beelden van de afgelopen 2 uur:\n\n'
-          '• De animatie speelt alle radar-beelden van de afgelopen 2 uur achter elkaar\n'
-          '• Groene stip = jouw locatie\n'
+          'Neerslag-radar van de afgelopen 2 uur én de verwachting voor de komende 2 uur:\n\n'
+          '• Elke 5 minuten een frame (DWD radar-nowcast)\n'
+          '• Paars icoon = verwachting, groen = live-beeld\n'
           '• Sleep de balk om naar een specifiek tijdstip te gaan\n\n'
-          'Data: RainViewer (radar) + OpenStreetMap (kaart)',
+          'Data: DWD (GeoServer) via eigen proxy + OpenStreetMap (kaart)',
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Sluiten')),
