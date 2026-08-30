@@ -36,6 +36,9 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
   String? _error;
   String? _tileHost;
 
+  // Neerslagverwachting per kwartier (+2u) uit Open-Meteo.
+  List<({DateTime time, double mm})> _forecast = [];
+
   static const _animDuration = Duration(milliseconds: 700);
 
   @override
@@ -88,11 +91,44 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
         _loading = false;
       });
       _startAnimation();
+      _fetchForecast(); // asynchroon: balk verschijnt zodra klaar
     } catch (e) {
       setState(() {
         _error = e.toString();
         _loading = false;
       });
+    }
+  }
+
+  Future<void> _fetchForecast() async {
+    try {
+      final response = await _dio.get<Map<String, dynamic>>(
+        'https://api.open-meteo.com/v1/forecast',
+        queryParameters: {
+          'latitude': widget.location.lat,
+          'longitude': widget.location.lon,
+          'minutely_15': 'precipitation',
+          'forecast_minutely_15': '8',
+          'past_minutely_15': '1',
+          'timezone': 'auto',
+        },
+        options: Options(receiveTimeout: const Duration(seconds: 15)),
+      );
+      final m15 = response.data?['minutely_15'] as Map<String, dynamic>?;
+      final times = m15?['time'] as List<dynamic>? ?? [];
+      final vals = m15?['precipitation'] as List<dynamic>? ?? [];
+      // past=1 geeft één slot vóór "nu" (kwartier waar we al in zitten).
+      final now = DateTime.now();
+      final list = <({DateTime time, double mm})>[];
+      for (var i = 0; i < times.length; i++) {
+        final t = DateTime.parse(times[i] as String);
+        if (t.isBefore(now.subtract(const Duration(minutes: 20)))) continue;
+        if (list.length >= 8) break;
+        list.add((time: t, mm: (vals[i] as num?)?.toDouble() ?? 0.0));
+      }
+      if (mounted) setState(() => _forecast = list);
+    } catch (_) {
+      // Forecast is een bonus — faal stil.
     }
   }
 
@@ -394,6 +430,53 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
                       Text('-2u · nu', style: TextStyle(fontSize: 10, color: theme.colorScheme.onSurface.withAlpha(120))),
                     ],
                   ),
+                  // Neerslagverwachting +2u (Open-Meteo, per kwartier).
+                  if (_forecast.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      height: 56,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          for (final slot in _forecast)
+                            Expanded(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  if (slot.mm > 0)
+                                    Text(
+                                      slot.mm >= 1 ? slot.mm.toStringAsFixed(1) : '<0.1',
+                                      style: TextStyle(fontSize: 8, fontWeight: FontWeight.w600, color: theme.colorScheme.onSurface.withAlpha(160)),
+                                    ),
+                                  const SizedBox(height: 2),
+                                  Container(
+                                    height: 4.0 + (slot.mm.clamp(0.0, 4.0) / 4.0) * 28.0,
+                                    decoration: BoxDecoration(
+                                      color: slot.mm <= 0
+                                          ? theme.colorScheme.onSurface.withAlpha(30)
+                                          : Colors.blue.withAlpha(slot.mm < 0.5 ? 90 : slot.mm < 2.5 ? 160 : 255),
+                                      borderRadius: BorderRadius.circular(2),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    _formatClock(slot.time),
+                                    style: TextStyle(fontSize: 8, color: theme.colorScheme.onSurface.withAlpha(120)),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        'verwachting +2u · Open-Meteo',
+                        style: TextStyle(fontSize: 9, color: theme.colorScheme.onSurface.withAlpha(110)),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
