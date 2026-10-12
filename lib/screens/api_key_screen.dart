@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart' show launchUrl;
 
 import '../services/weather_service.dart';
-import 'home_screen.dart';
+import 'nimbus_home_screen.dart';
 
 class ApiKeyScreen extends StatefulWidget {
   const ApiKeyScreen({super.key});
@@ -52,7 +52,7 @@ class _ApiKeyScreenState extends State<ApiKeyScreen> {
       if (!mounted) return;
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
+        MaterialPageRoute(builder: (_) => const NimbusHomeScreen()),
       );
     } catch (e) {
       setState(() {

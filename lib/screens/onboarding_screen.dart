@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../screens/home_screen.dart';
+import '../screens/nimbus_home_screen.dart';
 
 /// Eerste keer onboarding — uitleg over swipe, instellingen en features
 class OnboardingScreen extends StatefulWidget {
@@ -53,7 +53,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     await prefs.setBool('onboarding_seen', true);
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const HomeScreen()),
+      MaterialPageRoute(builder: (_) => const NimbusHomeScreen()),
     );
   }
 
