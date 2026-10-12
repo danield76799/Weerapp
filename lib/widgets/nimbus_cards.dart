@@ -1,10 +1,24 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
 import '../models/weather.dart';
 import '../theme/nimbus_palette.dart';
 import '../utils/weather_utils.dart';
 import 'hourly_forecast_sheet.dart';
+
+/// Nederlandse dagnamen en maandnamen voor het formatteren van datums
+/// zonder Intl-locale-initialisatie (initializeDateFormatting('nl') is niet
+/// aangeroepen in deze app en DateFormat('...', 'nl') crasht daarop met een
+/// LocaleDataException).
+const _weekdagen = ['maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag', 'zondag'];
+const _maanden = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
+
+/// "EEE d MMM"-stijl dag-label, bv. "vr 10 okt".
+String _nlDagLabel(DateTime d) {
+  // DateTime.weekday: ma=1 … zo=7
+  final dag = _weekdagen[d.weekday - 1];
+  final maand = _maanden[d.month - 1];
+  return '${dag.substring(0, 3)} ${d.day} $maand';
+}
 
 /// Nimbus-stijl hero-kaart: locatie, omschrijving, groot icoon + temperatuur,
 /// detail-chips (voelt als, luchtvochtigheid, wind) en een droog/neerslag-
@@ -284,7 +298,7 @@ class NimbusHourlyRow extends StatelessWidget {
                       Text(
                         isNow
                             ? 'Nu'
-                            : DateFormat('HH:mm').format(h.time),
+                            : '${h.time.hour.toString().padLeft(2, '0')}:${h.time.minute.toString().padLeft(2, '0')}',
                         maxLines: 1,
                         style: const TextStyle(
                           fontSize: 13,
@@ -403,7 +417,7 @@ class _DayCard extends StatelessWidget {
         day.date.day == tomorrow.day) {
       return 'Morgen';
     }
-    return DateFormat('EEEE d MMM', 'nl').format(day.date);
+    return _nlDagLabel(day.date);
   }
 
   /// Zekerheids-label: hoe betrouwbaar is de verwachting? Hoe verder vooruit,
