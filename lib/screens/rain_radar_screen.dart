@@ -61,8 +61,11 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
     try {
       final res = await _dio.get<Map<String, dynamic>>(
         '$_proxyBase/manifest.json',
-        options: Options(receiveTimeout: const Duration(seconds: 30)),
-      );
+        options: Options(
+          receiveTimeout: const Duration(seconds: 8),
+          sendTimeout: const Duration(seconds: 8),
+        ),
+      ).timeout(const Duration(seconds: 10));
       final data = res.data!;
       final rawBounds = (data['bounds'] as List).map((e) => (e as num).toDouble()).toList();
       // bounds: [south, west, north, east]
@@ -104,8 +107,16 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
       _startAnimation();
       await _preloadNeighborhood(startIdx);
     } catch (e) {
+      final detail = e is DioException
+          ? (e.type == DioExceptionType.connectionTimeout ||
+                  e.type == DioExceptionType.receiveTimeout ||
+                  e.type == DioExceptionType.sendTimeout
+              ? 'tijdens het laden (timeout)'
+              : 'HTTP-fout ${e.response?.statusCode ?? '-'}')
+          : '$e';
       setState(() {
-        _error = 'Proxy onbereikbaar: $e';
+        _error = 'Radarproxy onbereikbaar $detail. '
+            'Controleer of de server draait.';
         _loading = false;
       });
     }

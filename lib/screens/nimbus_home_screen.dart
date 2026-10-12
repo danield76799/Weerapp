@@ -206,6 +206,13 @@ class _NimbusHomeScreenState extends State<NimbusHomeScreen>
     }
   }
 
+  /// Kort locatienaam in: "Bardolino, Provincia di Verona" → "Bardolino".
+  String _shortName(String name) {
+    final comma = name.indexOf(',');
+    if (comma > 0) return name.substring(0, comma).trim();
+    return name;
+  }
+
   Future<void> _renameLocation() async {
     if (_locations.isEmpty || _currentPage >= _locations.length) return;
     final loc = _locations[_currentPage];
@@ -319,14 +326,22 @@ class _NimbusHomeScreenState extends State<NimbusHomeScreen>
         elevation: 0,
         title: GestureDetector(
           onTap: _renameLocation,
-          child: Text(
-            'Nimbus',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w800,
-              color: NimbusPalette.textPrimary,
-              letterSpacing: -0.5,
-            ),
+          child: Consumer<WeatherProvider>(
+            builder: (context, provider, _) {
+              return Text(
+                provider.hasData
+                    ? _shortName(provider.data!.locationName)
+                    : 'Weer',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: NimbusPalette.textPrimary,
+                  letterSpacing: -0.3,
+                ),
+              );
+            },
           ),
         ),
         actions: [
