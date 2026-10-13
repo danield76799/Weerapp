@@ -22,6 +22,7 @@ void main() async {
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
   final weatherService = WeatherService();
+  final weatherProvider = WeatherProvider(weatherService);
 
   // Background weather-alerts: draai periodiek op de achtergrond zodat
   // regen/UV/hitte/vorst-meldingen ook binnenkomen zónder de app te openen.
@@ -40,7 +41,10 @@ void main() async {
   themeModeNotifier.value = prefs.getString('theme_mode') ?? 'system';
   accentColorNotifier.value = prefs.getInt('accent_color') ?? 0xFF49AFC2;
 
-  runApp(WeerApp(weatherService: weatherService));
+  runApp(WeerApp(
+    weatherService: weatherService,
+    weatherProvider: weatherProvider,
+  ));
 
   // Post-startup init — fire-and-forget, niet blokkeren van eerste frame.
   WeatherNotificationService(weatherService: weatherService)
@@ -51,8 +55,13 @@ void main() async {
 
 class WeerApp extends StatelessWidget {
   final WeatherService weatherService;
+  final WeatherProvider weatherProvider;
 
-  const WeerApp({super.key, required this.weatherService});
+  const WeerApp({
+    super.key,
+    required this.weatherService,
+    required this.weatherProvider,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -65,7 +74,8 @@ class WeerApp extends StatelessWidget {
             return MultiProvider(
               providers: [
                 Provider<WeatherService>.value(value: weatherService),
-                ChangeNotifierProvider(create: (_) => WeatherProvider(weatherService)),
+                ChangeNotifierProvider<WeatherProvider>.value(
+                    value: weatherProvider),
               ],
               child: MaterialApp(
                 title: 'Weer',
