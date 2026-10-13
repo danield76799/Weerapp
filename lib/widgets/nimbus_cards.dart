@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/weather.dart';
 import '../theme/nimbus_palette.dart';
 import '../utils/weather_utils.dart';
-import 'hourly_forecast_sheet.dart';
+import '../screens/hourly_detail_screen.dart';
 
 /// Nederlandse dagnamen en maandnamen voor het formatteren van datums
 /// zonder Intl-locale-initialisatie (initializeDateFormatting('nl') is niet
@@ -277,12 +277,13 @@ class NimbusHourlyRow extends StatelessWidget {
               final isNow = index == 0;
               return GestureDetector(
                 onTap: () {
-                  showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    builder: (_) => HourlyForecastSheet(
-                      date: h.time,
-                      hours: data.hourlyForDay(h.time),
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => HourlyDetailScreen(
+                        data: data,
+                        date: h.time,
+                      ),
                     ),
                   );
                 },

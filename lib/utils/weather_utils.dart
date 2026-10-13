@@ -1,6 +1,41 @@
 import 'package:flutter/material.dart';
 
 class WeatherUtils {
+  /// WMO weather code → Nederlandse beschrijving, zoals Nimbus die toont.
+  static String descriptionForWmoCode(int code) {
+    const map = {
+      0: 'Onbewolkt',
+      1: 'Voornamelijk onbewolkt',
+      2: 'Deels bewolkt',
+      3: 'Bewolkt',
+      45: 'Mist',
+      48: 'Mist met rijp',
+      51: 'Lichte motregen',
+      53: 'Motregen',
+      55: 'Zware motregen',
+      56: 'Lichte motregen (vriezend)',
+      57: 'Motregen (vriezend)',
+      61: 'Lichte regen',
+      63: 'Regen',
+      65: 'Zware regen',
+      66: 'Lichte regen (vriezend)',
+      67: 'Regen (vriezend)',
+      71: 'Lichte sneeuw',
+      73: 'Sneeuw',
+      75: 'Zware sneeuw',
+      77: 'Sneeuwkorrels',
+      80: 'Lichte regenbuien',
+      81: 'Regenbuien',
+      82: 'Zware regenbuien',
+      85: 'Lichte sneeuwbuien',
+      86: 'Zware sneeuwbuien',
+      95: 'Onweer',
+      96: 'Onweer met lichte hagel',
+      99: 'Onweer met zware hagel',
+    };
+    return map[code] ?? 'Onbekend';
+  }
+
   /// UV-index risico categorie + bijbehorende kleur
   static ({String label, Color color, String advice}) uvInfo(double uv) {
     if (uv < 0) {
