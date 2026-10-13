@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart';
 
 import 'background.dart';
-import 'screens/nimbus_home_screen.dart';
+import 'screens/home_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'services/battery_optimization_service.dart';
 import 'services/weather_notification_service.dart';
@@ -137,9 +137,9 @@ class _SplashGateState extends State<_SplashGate> {
     final seen = prefs.getBool('onboarding_seen') ?? false;
     if (!mounted) return;
     if (seen) {
-      // Already seen → show Nimbus-stijl home screen directly
+      // Already seen → show home screen directly
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const NimbusHomeScreen()),
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
       );
     } else {
       // First time → show onboarding

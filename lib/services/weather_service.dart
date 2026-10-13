@@ -20,7 +20,7 @@ class WeatherService {
   static const _cacheMaxAge = Duration(hours: 1);
   /// Verhoog dit nummer bij elke wijziging aan het data-model.
   /// Oude caches met een lager versienummer worden automatisch genegeerd.
-  static const _cacheVersion = 8;
+  static const _cacheVersion = 7;
 
   static const _archiveBaseUrl = 'https://archive-api.open-meteo.com';
   static const _forecastBaseUrl = 'https://api.open-meteo.com';
@@ -124,7 +124,6 @@ class WeatherService {
             'uv_index',
             'cloud_cover',
             'wind_direction_10m',
-            'wind_speed_10m',
             'is_day',
           ].join(','),
           'daily': [
@@ -415,7 +414,6 @@ class WeatherService {
       final hUv = hourlyJson['uv_index'] as List? ?? [];
       final hCloud = hourlyJson['cloud_cover'] as List?;
       final hWindDir = hourlyJson['wind_direction_10m'] as List?;
-      final hWindSpeed = hourlyJson['wind_speed_10m'] as List?;
       final hIsDay = hourlyJson['is_day'] as List?;
       for (var i = 0; i < hTimes.length; i++) {
         // Skip incomplete hourly data (API returns null for future unavailable hours)
@@ -435,7 +433,6 @@ class WeatherService {
           weatherCode: (hWeather[i] as num?)?.toInt() ?? 0,
           uvIndex: correctedUv,
           windDirection: ((hWindDir?[i] as num?) ?? 0).toInt(),
-          windSpeed: (hWindSpeed?[i] as num?)?.toDouble() ?? 0,
           isDay: ((hIsDay?[i] as num?) ?? 1) == 1,
         ));
       }

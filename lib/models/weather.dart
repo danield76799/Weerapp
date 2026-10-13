@@ -190,7 +190,6 @@ class HourlyForecast {
   final double uvIndex;
   final double? precipitation;
   final int windDirection;
-  final double windSpeed;
   final bool isDay;
 
   HourlyForecast({
@@ -202,7 +201,6 @@ class HourlyForecast {
     required this.uvIndex,
     this.precipitation,
     this.windDirection = 0,
-    this.windSpeed = 0,
     this.isDay = true,
   });
 }
@@ -407,7 +405,6 @@ class WeatherData {
           weatherCode: (m['weather_code'] as num).toInt(),
           uvIndex: (m['uv_index'] as num).toDouble(),
           precipitation: (m['precipitation'] as num?)?.toDouble(),
-          windSpeed: (m['wind_speed'] as num?)?.toDouble() ?? 0,
           windDirection: (m['wind_direction'] as num?)?.toInt() ?? 0,
           isDay: (m['is_day'] as num?)?.toInt() == 1,
         ));
@@ -452,7 +449,6 @@ class WeatherData {
           'uv_index': h.uvIndex,
           'precipitation': h.precipitation,
           'wind_direction': h.windDirection,
-          'wind_speed': h.windSpeed,
           'is_day': h.isDay ? 1 : 0,
         }).toList(),
         'air_quality': airQuality?.toJson(),
