@@ -403,6 +403,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   MaterialPageRoute(
                     builder: (_) => RainRadarScreen(
                       location: _locations[_currentPage],
+                      hourlyForecast: context.read<WeatherProvider>().data?.hourly,
                     ),
                   ),
                 );

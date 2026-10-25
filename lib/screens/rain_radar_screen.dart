@@ -5,14 +5,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../models/weather.dart';
 import '../services/saved_locations_service.dart';
+import '../widgets/buien_card.dart';
 
 /// Neerslagkaart met echte radar-beelden van RainViewer (gratis API, geen key).
 /// Toont de afgelopen 2 uur radar + de neerslagvoorspelling (nowcast) als
 /// animatie met 10-min-intervallen, als tile-layer over de kaart.
 class RainRadarScreen extends StatefulWidget {
   final SavedLocation location;
-  const RainRadarScreen({super.key, required this.location});
+  final List<HourlyForecast>? hourlyForecast;
+  const RainRadarScreen({
+    super.key,
+    required this.location,
+    this.hourlyForecast,
+  });
 
   @override
   State<RainRadarScreen> createState() => _RainRadarScreenState();
@@ -331,6 +338,18 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
               ],
             ),
           ),
+          // Neerslagverwachting (future) — Open-Meteo uurlijkse voorspelling.
+          // RainViewer's gratis nowcast is gestopt, dus de radar toont alleen
+          // het verleden; de toekomst komt uit Open-Meteo (geen key nodig).
+          if (widget.hourlyForecast != null && widget.hourlyForecast!.isNotEmpty)
+            Flexible(
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                  child: BuienCard(nextHours: widget.hourlyForecast!),
+                ),
+              ),
+            ),
           // Bediening — vaste footer onder de kaart, geen overflow.
           SafeArea(
             top: false,
