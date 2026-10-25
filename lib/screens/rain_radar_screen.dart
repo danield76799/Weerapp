@@ -70,14 +70,14 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
       if (!mounted) return;
 
       final now = DateTime.now();
-      final frames = <_NowcastFrame>[];
-      for (var i = 1; i <= meta.frames; i++) {
-        final bytes = await service.fetchFrame(i);
-        frames.add(_NowcastFrame(
+      // Fetch all frames concurrently (much faster than 25 sequential requests).
+      final frames = await Future.wait(List.generate(meta.frames, (i) async {
+        final bytes = await service.fetchFrame(i + 1);
+        return _NowcastFrame(
           bytes: bytes,
-          time: now.add(Duration(minutes: (i - 1) * 5)),
-        ));
-      }
+          time: now.add(Duration(minutes: i * 5)),
+        );
+      }));
 
       if (!mounted) return;
       setState(() {
