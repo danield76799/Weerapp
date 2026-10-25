@@ -1,55 +1,59 @@
 import 'dart:async';
+import 'dart:typed_data';
 
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../models/weather.dart';
+import '../services/knmi_nowcast_service.dart';
 import '../services/saved_locations_service.dart';
 import '../widgets/buien_card.dart';
 
-/// Neerslagkaart met echte radar-beelden van RainViewer (gratis API, geen key).
-/// Toont het afgelopen uur radar als animatie + de neerslagvoorspelling
-/// (komende 3 uur) als tile-layer over de kaart.
+/// Neerslagkaart met de KNMI-nowcast (toekomst-neerslag, +0 tot +120 min).
+///
+/// Haalt de 25 voorspelling-frames op van de tile-server (Route A), toont ze
+/// als animatie over de OSM-kaart met een tijdlijn-scrubber. De Open-Meteo
+/// uurlijkse verwachting (12u) blijft als extra onderaan staan.
 class RainRadarScreen extends StatefulWidget {
   final SavedLocation location;
   final List<HourlyForecast>? hourlyForecast;
+  final String serverBaseUrl;
+
   const RainRadarScreen({
     super.key,
     required this.location,
     this.hourlyForecast,
+    this.serverBaseUrl = 'http://62.169.21.47:8090',
   });
 
   @override
   State<RainRadarScreen> createState() => _RainRadarScreenState();
 }
 
-class _RadarFrame {
-  final DateTime time;
-  final String path; // bijv. /v2/radar/1134a9702115
-  _RadarFrame({required this.time, required this.path});
+class _NowcastFrame {
+  final Uint8List bytes;
+  final DateTime time; // 'nu' + (index * 5 min)
+  _NowcastFrame({required this.bytes, required this.time});
 }
 
 class _RainRadarScreenState extends State<RainRadarScreen> {
   final MapController _mapController = MapController();
-  final Dio _dio = Dio();
 
-  List<_RadarFrame> _frames = [];
+  KnmiNowcastMeta? _meta;
+  List<_NowcastFrame> _frames = [];
   int _currentFrame = 0;
-  int _nowIndex = 0; // index van het 'nu'-moment (grens verleden ↔ voorspelling)
   Timer? _timer;
   bool _playing = true;
   bool _loading = true;
   String? _error;
-  String? _tileHost;
 
   static const _animDuration = Duration(milliseconds: 400);
 
   @override
   void initState() {
     super.initState();
-    _fetchRadarFrames();
+    _fetchNowcast();
   }
 
   @override
@@ -59,54 +63,26 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
     super.dispose();
   }
 
-  Future<void> _fetchRadarFrames() async {
+  Future<void> _fetchNowcast() async {
+    final service = KnmiNowcastService(baseUrl: widget.serverBaseUrl);
     try {
-      final response = await _dio.get<Map<String, dynamic>>(
-        'https://api.rainviewer.com/public/weather-maps.json',
-        options: Options(receiveTimeout: const Duration(seconds: 15)),
-      );
-      final data = response.data!;
-      final host = data['host'] as String? ?? 'https://tilecache.rainviewer.com';
-      final radar = data['radar'] as Map<String, dynamic>? ?? {};
-      final past = radar['past'] as List<dynamic>? ?? [];
-      final nowcast = radar['nowcast'] as List<dynamic>? ?? [];
+      final meta = await service.fetchMeta();
+      if (!mounted) return;
 
-      _RadarFrame parseFrame(dynamic item) => _RadarFrame(
-            time: DateTime.fromMillisecondsSinceEpoch(
-              (item['time'] as int) * 1000,
-              isUtc: true,
-            ),
-            path: item['path'] as String,
-          );
-
-      // Alleen het afgelopen uur tonen (RainViewer levert ~2 uur terug).
-      final oneHourAgo = DateTime.now().toUtc().subtract(const Duration(hours: 1));
-      final frames = <_RadarFrame>[];
-      for (final item in past) {
-        final frame = parseFrame(item);
-        if (frame.time.isBefore(oneHourAgo)) continue;
-        frames.add(frame);
-      }
-      final nowIndex = frames.length - 1; // laatste observatie = 'nu'
-      for (final item in nowcast) {
-        frames.add(parseFrame(item));
-      }
-
-      if (frames.isEmpty) {
-        if (!mounted) return;
-        setState(() {
-          _error = 'Geen radar-beelden beschikbaar';
-          _loading = false;
-        });
-        return;
+      final now = DateTime.now();
+      final frames = <_NowcastFrame>[];
+      for (var i = 1; i <= meta.frames; i++) {
+        final bytes = await service.fetchFrame(i);
+        frames.add(_NowcastFrame(
+          bytes: bytes,
+          time: now.add(Duration(minutes: (i - 1) * 5)),
+        ));
       }
 
       if (!mounted) return;
       setState(() {
-        _tileHost = host;
+        _meta = meta;
         _frames = frames;
-        _nowIndex = nowIndex;
-        _currentFrame = nowIndex >= 0 ? nowIndex : 0; // start op 'nu'
         _loading = false;
       });
       _startAnimation();
@@ -119,13 +95,10 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
     }
   }
 
-  String _tileUrl(_RadarFrame frame) =>
-      '$_tileHost${frame.path}/256/{z}/{x}/{y}/2/1_1.png';
-
   void _startAnimation() {
     _timer?.cancel();
     _timer = Timer.periodic(_animDuration, (_) {
-      if (!mounted) return;
+      if (!mounted || _frames.isEmpty) return;
       setState(() {
         _currentFrame = (_currentFrame + 1) % _frames.length;
       });
@@ -151,34 +124,22 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
     });
   }
 
-  String _formatClock(DateTime dt) {
-    final local = dt.toLocal();
-    return '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
-  }
-
-  String _formatRelative(DateTime dt) {
-    final diff = dt.difference(DateTime.now().toUtc());
-    final mins = diff.inMinutes;
-    if (mins.abs() < 5) return 'nu';
-    if (mins < 0) return '${-mins} min geleden';
-    return 'over $mins min';
-  }
-
-  /// Voortgang (0..1) van de huidige frame over de tijdlijn.
-  /// Guard tegen delen door nul wanneer er maar één frame is.
   double get _progress {
     if (_frames.length <= 1) return 1.0;
     return _currentFrame / (_frames.length - 1);
   }
 
-  bool get _isNowFrame => _currentFrame == _nowIndex;
-  bool get _isFutureFrame => _currentFrame > _nowIndex;
+  String _formatRelative(DateTime dt) {
+    final diff = dt.difference(DateTime.now());
+    final mins = diff.inMinutes;
+    if (mins.abs() < 5) return 'nu';
+    if (mins < 0) return '${-mins} min geleden';
+    return '+$mins min';
+  }
 
-  /// Voortgang (0..1) van het 'nu'-moment over de tijdlijn.
-  double get _nowProgress {
-    if (_frames.length <= 1) return 1.0;
-    final idx = _nowIndex < 0 ? 0 : _nowIndex;
-    return idx / (_frames.length - 1);
+  String _formatClock(DateTime dt) {
+    final local = dt.toLocal();
+    return '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
   }
 
   /// Uurlijkse voorspelling voor de komende [hours] uur (vanaf het huidige uur).
@@ -189,29 +150,6 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
     return widget.hourlyForecast!
         .where((h) => !h.time.isBefore(start) && h.time.isBefore(end))
         .toList();
-  }
-
-  /// Korte samenvatting van wanneer het (weer) gaat regenen, komende 3 uur.
-  /// Retourneert null als er geen uurlijkse data beschikbaar is.
-  String? _nextRainText() {
-    final hours = _nextHours(3);
-    if (hours.isEmpty) return null;
-    final now = DateTime.now();
-    HourlyForecast? firstRain;
-    for (final h in hours) {
-      final precip = h.precipitation ?? 0;
-      if (precip > 0.05 || h.precipitationProbability > 20) {
-        firstRain = h;
-        break;
-      }
-    }
-    if (firstRain == null) return 'Droog komende 3 uur';
-    final diff = firstRain.time.difference(now).inMinutes;
-    if (diff <= 0) return 'Het regent nu';
-    if (diff < 60) return 'Regen over $diff min';
-    final hh = diff ~/ 60;
-    final mm = diff % 60;
-    return 'Regen over $hh u $mm min';
   }
 
   @override
@@ -254,7 +192,7 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
                 FilledButton(
                   onPressed: () {
                     setState(() => _loading = true);
-                    _fetchRadarFrames();
+                    _fetchNowcast();
                   },
                   child: const Text('Opnieuw proberen'),
                 ),
@@ -266,6 +204,8 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
     }
 
     final frame = _frames[_currentFrame];
+    final meta = _meta!;
+    final isNow = _currentFrame == 0;
 
     return Scaffold(
       appBar: AppBar(
@@ -275,46 +215,15 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
             icon: const Icon(Icons.refresh),
             onPressed: () {
               setState(() => _loading = true);
-              _fetchRadarFrames();
+              _fetchNowcast();
             },
             tooltip: 'Vernieuwen',
-          ),
-          IconButton(
-            icon: const Icon(Icons.info_outline),
-            onPressed: () => _showInfo(context),
-            tooltip: 'Info',
           ),
         ],
       ),
       body: Column(
         children: [
-          // Toekomst-banner — direct zichtbaar bovenaan.
-          if (widget.hourlyForecast != null && widget.hourlyForecast!.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primaryContainer.withAlpha(150),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: theme.colorScheme.primary.withAlpha(80)),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.water_drop_outlined, size: 18, color: theme.colorScheme.primary),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        _nextRainText() ?? '',
-                        style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
           Expanded(
-            flex: 3,
             child: Stack(
               children: [
                 FlutterMap(
@@ -330,16 +239,18 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
                       urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                       userAgentPackageName: 'com.danield.weerapp',
                     ),
-                    // Echte radar-tiles — elke frame is een eigen layer.
-                    // RainViewer's gratis tiles stoppen bij zoom 7 (was 10 in
-                    // jul 2026); boven native zoom schaalt flutter_map de
-                    // tiles op i.p.v. de "Zoom Level Not Supported"-tegel.
-                    TileLayer(
-                      key: ValueKey(frame.path),
-                      urlTemplate: _tileUrl(frame),
-                      userAgentPackageName: 'com.danield.weerapp',
-                      tileProvider: NetworkTileProvider(),
-                      maxNativeZoom: 7,
+                    // KNMI-nowcast overlay (toekomst-neerslag, +0..+120 min).
+                    OverlayImageLayer(
+                      overlayImages: [
+                        OverlayImage(
+                          imageProvider: MemoryImage(frame.bytes),
+                          bounds: LatLngBounds(
+                            LatLng(meta.north, meta.west),
+                            LatLng(meta.south, meta.east),
+                          ),
+                          opacity: 0.7,
+                        ),
+                      ],
                     ),
                     MarkerLayer(
                       markers: [
@@ -376,17 +287,9 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            _isFutureFrame
-                                ? Icons.trending_up
-                                : _isNowFrame
-                                    ? Icons.my_location
-                                    : Icons.history,
+                            isNow ? Icons.my_location : Icons.trending_up,
                             size: 16,
-                            color: _isFutureFrame
-                                ? const Color(0xFFFFB300)
-                                : _isNowFrame
-                                    ? const Color(0xFF4CAF50)
-                                    : theme.colorScheme.primary,
+                            color: isNow ? const Color(0xFF4CAF50) : const Color(0xFFFFB300),
                           ),
                           const SizedBox(width: 8),
                           Text(
@@ -401,37 +304,18 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
               ],
             ),
           ),
-          // Neerslagverwachting (future) — Open-Meteo uurlijkse voorspelling.
-          // RainViewer's gratis nowcast is gestopt, dus de radar toont alleen
-          // het verleden; de toekomst komt uit Open-Meteo (geen key nodig).
+          // Open-Meteo uurlijkse verwachting (12u) als extra.
           if (widget.hourlyForecast != null && widget.hourlyForecast!.isNotEmpty)
             Flexible(
               flex: 1,
               child: SingleChildScrollView(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.trending_up, size: 16, color: theme.colorScheme.primary),
-                          const SizedBox(width: 6),
-                          Text(
-                            'Verwachting komende 3 uur',
-                            style: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      BuienCard(nextHours: _nextHours(3)),
-                    ],
-                  ),
+                  child: BuienCard(nextHours: _nextHours(12)),
                 ),
               ),
             ),
-          // Bediening — vaste footer onder de kaart, geen overflow.
+          // Bediening — tijdlijn-scrubber
           SafeArea(
             top: false,
             child: Container(
@@ -486,19 +370,6 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
                                         decoration: BoxDecoration(color: theme.colorScheme.primary.withAlpha(60), borderRadius: BorderRadius.circular(2)),
                                       ),
                                     ),
-                                    // Marker van het 'nu'-moment (grens verleden ↔ voorspelling)
-                                    Positioned(
-                                      left: (_nowProgress * barWidth - 1).clamp(0.0, barWidth - 2),
-                                      top: 6,
-                                      bottom: 6,
-                                      child: Container(
-                                        width: 2,
-                                        decoration: BoxDecoration(
-                                          color: theme.colorScheme.onSurface.withAlpha(180),
-                                          borderRadius: BorderRadius.circular(1),
-                                        ),
-                                      ),
-                                    ),
                                     AnimatedPositioned(
                                       duration: const Duration(milliseconds: 300),
                                       curve: Curves.easeOut,
@@ -508,11 +379,7 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
                                         width: 16,
                                         height: 16,
                                         decoration: BoxDecoration(
-                                          color: _isFutureFrame
-                                              ? const Color(0xFFFFB300)
-                                              : _isNowFrame
-                                                  ? const Color(0xFF4CAF50)
-                                                  : theme.colorScheme.primary,
+                                          color: isNow ? const Color(0xFF4CAF50) : const Color(0xFFFFB300),
                                           shape: BoxShape.circle,
                                           border: Border.all(color: theme.colorScheme.surface, width: 2),
                                         ),
@@ -531,33 +398,14 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(_formatClock(_frames.first.time), style: TextStyle(fontSize: 10, color: theme.colorScheme.onSurface.withAlpha(120))),
-                      Text(_formatClock(_frames.last.time), style: TextStyle(fontSize: 10, color: theme.colorScheme.onSurface.withAlpha(120))),
+                      Text('nu', style: TextStyle(fontSize: 10, color: theme.colorScheme.onSurface.withAlpha(120))),
+                      Text('+2 uur', style: TextStyle(fontSize: 10, color: theme.colorScheme.onSurface.withAlpha(120))),
                     ],
                   ),
                 ],
               ),
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  void _showInfo(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Neerslagkaart'),
-        content: const Text(
-          'Deze kaart toont echte radar-beelden van het afgelopen uur + de neerslagvoorspelling voor de komende 3 uur:\n\n'
-          '• De animatie speelt verleden → nu → voorspelling\n'
-          '• Gekleurde marker = jouw locatie · witte lijn = nu · oranje = voorspelling\n'
-          '• Sleep de balk om naar een specifiek tijdstip te gaan\n\n'
-          'Data: RainViewer (radar + nowcast) + OpenStreetMap (kaart)',
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Sluiten')),
         ],
       ),
     );
