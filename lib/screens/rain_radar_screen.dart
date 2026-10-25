@@ -8,8 +8,8 @@ import 'package:latlong2/latlong.dart';
 import '../services/saved_locations_service.dart';
 
 /// Neerslagkaart met echte radar-beelden van RainViewer (gratis API, geen key).
-/// Toont de afgelopen 2 uur radar als animatie met 10-min-intervallen,
-/// als tile-layer over de kaart — geen cirkels, geen interpolatie.
+/// Toont de afgelopen 2 uur radar + de neerslagvoorspelling (nowcast) als
+/// animatie met 10-min-intervallen, als tile-layer over de kaart.
 class RainRadarScreen extends StatefulWidget {
   final SavedLocation location;
   const RainRadarScreen({super.key, required this.location});
@@ -30,6 +30,7 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
 
   List<_RadarFrame> _frames = [];
   int _currentFrame = 0;
+  int _nowIndex = 0; // index van het 'nu'-moment (grens verleden ↔ voorspelling)
   Timer? _timer;
   bool _playing = true;
   bool _loading = true;
@@ -61,16 +62,23 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
       final host = data['host'] as String? ?? 'https://tilecache.rainviewer.com';
       final radar = data['radar'] as Map<String, dynamic>? ?? {};
       final past = radar['past'] as List<dynamic>? ?? [];
+      final nowcast = radar['nowcast'] as List<dynamic>? ?? [];
+
+      _RadarFrame parseFrame(dynamic item) => _RadarFrame(
+            time: DateTime.fromMillisecondsSinceEpoch(
+              (item['time'] as int) * 1000,
+              isUtc: true,
+            ),
+            path: item['path'] as String,
+          );
 
       final frames = <_RadarFrame>[];
       for (final item in past) {
-        frames.add(_RadarFrame(
-          time: DateTime.fromMillisecondsSinceEpoch(
-            (item['time'] as int) * 1000,
-            isUtc: true,
-          ),
-          path: item['path'] as String,
-        ));
+        frames.add(parseFrame(item));
+      }
+      final nowIndex = frames.length - 1; // laatste observatie = 'nu'
+      for (final item in nowcast) {
+        frames.add(parseFrame(item));
       }
 
       if (frames.isEmpty) {
@@ -86,7 +94,8 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
       setState(() {
         _tileHost = host;
         _frames = frames;
-        _currentFrame = frames.length - 1; // start op het nieuwste beeld
+        _nowIndex = nowIndex;
+        _currentFrame = nowIndex >= 0 ? nowIndex : 0; // start op 'nu'
         _loading = false;
       });
       _startAnimation();
@@ -151,6 +160,16 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
     return _currentFrame / (_frames.length - 1);
   }
 
+  bool get _isNowFrame => _currentFrame == _nowIndex;
+  bool get _isFutureFrame => _currentFrame > _nowIndex;
+
+  /// Voortgang (0..1) van het 'nu'-moment over de tijdlijn.
+  double get _nowProgress {
+    if (_frames.length <= 1) return 1.0;
+    final idx = _nowIndex < 0 ? 0 : _nowIndex;
+    return idx / (_frames.length - 1);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -203,7 +222,6 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
     }
 
     final frame = _frames[_currentFrame];
-    final isNewest = _currentFrame == _frames.length - 1;
 
     return Scaffold(
       appBar: AppBar(
@@ -288,9 +306,17 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            isNewest ? Icons.my_location : Icons.history,
+                            _isFutureFrame
+                                ? Icons.trending_up
+                                : _isNowFrame
+                                    ? Icons.my_location
+                                    : Icons.history,
                             size: 16,
-                            color: isNewest ? const Color(0xFF4CAF50) : theme.colorScheme.primary,
+                            color: _isFutureFrame
+                                ? const Color(0xFFFFB300)
+                                : _isNowFrame
+                                    ? const Color(0xFF4CAF50)
+                                    : theme.colorScheme.primary,
                           ),
                           const SizedBox(width: 8),
                           Text(
@@ -360,6 +386,19 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
                                         decoration: BoxDecoration(color: theme.colorScheme.primary.withAlpha(60), borderRadius: BorderRadius.circular(2)),
                                       ),
                                     ),
+                                    // Marker van het 'nu'-moment (grens verleden ↔ voorspelling)
+                                    Positioned(
+                                      left: (_nowProgress * barWidth - 1).clamp(0.0, barWidth - 2),
+                                      top: 6,
+                                      bottom: 6,
+                                      child: Container(
+                                        width: 2,
+                                        decoration: BoxDecoration(
+                                          color: theme.colorScheme.onSurface.withAlpha(180),
+                                          borderRadius: BorderRadius.circular(1),
+                                        ),
+                                      ),
+                                    ),
                                     AnimatedPositioned(
                                       duration: const Duration(milliseconds: 300),
                                       curve: Curves.easeOut,
@@ -369,7 +408,11 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
                                         width: 16,
                                         height: 16,
                                         decoration: BoxDecoration(
-                                          color: isNewest ? const Color(0xFF4CAF50) : theme.colorScheme.primary,
+                                          color: _isFutureFrame
+                                              ? const Color(0xFFFFB300)
+                                              : _isNowFrame
+                                                  ? const Color(0xFF4CAF50)
+                                                  : theme.colorScheme.primary,
                                           shape: BoxShape.circle,
                                           border: Border.all(color: theme.colorScheme.surface, width: 2),
                                         ),
@@ -407,11 +450,11 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
       builder: (context) => AlertDialog(
         title: const Text('Neerslagkaart'),
         content: const Text(
-          'Deze kaart toont echte radar-beelden van de afgelopen 2 uur:\n\n'
-          '• De animatie speelt alle radar-beelden van de afgelopen 2 uur achter elkaar\n'
-          '• Gekleurde marker = jouw locatie · groene stip = meest recente beeld\n'
+          'Deze kaart toont echte radar-beelden van de afgelopen 2 uur + de neerslagvoorspelling:\n\n'
+          '• De animatie speelt verleden → nu → voorspelling\n'
+          '• Gekleurde marker = jouw locatie · witte lijn = nu · oranje = voorspelling\n'
           '• Sleep de balk om naar een specifiek tijdstip te gaan\n\n'
-          'Data: RainViewer (radar) + OpenStreetMap (kaart)',
+          'Data: RainViewer (radar + nowcast) + OpenStreetMap (kaart)',
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Sluiten')),
