@@ -191,6 +191,29 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
         .toList();
   }
 
+  /// Korte samenvatting van wanneer het (weer) gaat regenen, komende 3 uur.
+  /// Retourneert null als er geen uurlijkse data beschikbaar is.
+  String? _nextRainText() {
+    final hours = _nextHours(3);
+    if (hours.isEmpty) return null;
+    final now = DateTime.now();
+    HourlyForecast? firstRain;
+    for (final h in hours) {
+      final precip = h.precipitation ?? 0;
+      if (precip > 0.05 || h.precipitationProbability > 20) {
+        firstRain = h;
+        break;
+      }
+    }
+    if (firstRain == null) return 'Droog komende 3 uur';
+    final diff = firstRain.time.difference(now).inMinutes;
+    if (diff <= 0) return 'Het regent nu';
+    if (diff < 60) return 'Regen over $diff min';
+    final hh = diff ~/ 60;
+    final mm = diff % 60;
+    return 'Regen over $hh u $mm min';
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -265,6 +288,31 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
       ),
       body: Column(
         children: [
+          // Toekomst-banner — direct zichtbaar bovenaan.
+          if (widget.hourlyForecast != null && widget.hourlyForecast!.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer.withAlpha(150),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: theme.colorScheme.primary.withAlpha(80)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.water_drop_outlined, size: 18, color: theme.colorScheme.primary),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _nextRainText() ?? '',
+                        style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           Expanded(
             flex: 3,
             child: Stack(
