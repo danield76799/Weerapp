@@ -139,7 +139,7 @@ class WeerApp extends StatelessWidget {
         backgroundColor: colorScheme.surface,
         elevation: 0,
         scrolledUnderElevation: 1,
-        centerTittle: false,
+        centerTitle: false,
       ),
     );
   }

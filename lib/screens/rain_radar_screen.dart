@@ -74,6 +74,7 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
       }
 
       if (frames.isEmpty) {
+        if (!mounted) return;
         setState(() {
           _error = 'Geen radar-beelden beschikbaar';
           _loading = false;
@@ -81,6 +82,7 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
         return;
       }
 
+      if (!mounted) return;
       setState(() {
         _tileHost = host;
         _frames = frames;
@@ -89,6 +91,7 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
       });
       _startAnimation();
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e.toString();
         _loading = false;
@@ -139,6 +142,13 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
     if (mins.abs() < 5) return 'nu';
     if (mins < 0) return '${-mins} min geleden';
     return 'over $mins min';
+  }
+
+  /// Voortgang (0..1) van de huidige frame over de tijdlijn.
+  /// Guard tegen delen door nul wanneer er maar één frame is.
+  double get _progress {
+    if (_frames.length <= 1) return 1.0;
+    return _currentFrame / (_frames.length - 1);
   }
 
   @override
@@ -342,7 +352,7 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
                                       ),
                                     ),
                                     Positioned(
-                                      left: (_currentFrame / (_frames.length - 1)) * barWidth,
+                                      left: _progress * barWidth,
                                       top: 14,
                                       bottom: 14,
                                       right: 0,
@@ -353,7 +363,7 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
                                     AnimatedPositioned(
                                       duration: const Duration(milliseconds: 300),
                                       curve: Curves.easeOut,
-                                      left: ((_currentFrame / (_frames.length - 1)) * barWidth - 8).clamp(0.0, barWidth - 16),
+                                      left: (_progress * barWidth - 8).clamp(0.0, barWidth - 16),
                                       top: 8,
                                       child: Container(
                                         width: 16,
@@ -379,7 +389,7 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(_formatClock(_frames.first.time), style: TextStyle(fontSize: 10, color: theme.colorScheme.onSurface.withAlpha(120))),
-                      Text('-2u · nu', style: TextStyle(fontSize: 10, color: theme.colorScheme.onSurface.withAlpha(120))),
+                      Text(_formatClock(_frames.last.time), style: TextStyle(fontSize: 10, color: theme.colorScheme.onSurface.withAlpha(120))),
                     ],
                   ),
                 ],
@@ -399,7 +409,7 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
         content: const Text(
           'Deze kaart toont echte radar-beelden van de afgelopen 2 uur:\n\n'
           '• De animatie speelt alle radar-beelden van de afgelopen 2 uur achter elkaar\n'
-          '• Groene stip = jouw locatie\n'
+          '• Gekleurde marker = jouw locatie · groene stip = meest recente beeld\n'
           '• Sleep de balk om naar een specifiek tijdstip te gaan\n\n'
           'Data: RainViewer (radar) + OpenStreetMap (kaart)',
         ),
