@@ -44,7 +44,7 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
   String? _error;
   String? _tileHost;
 
-  static const _animDuration = Duration(milliseconds: 700);
+  static const _animDuration = Duration(milliseconds: 400);
 
   @override
   void initState() {
@@ -252,6 +252,7 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
       body: Column(
         children: [
           Expanded(
+            flex: 3,
             child: Stack(
               children: [
                 FlutterMap(
@@ -343,10 +344,28 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
           // het verleden; de toekomst komt uit Open-Meteo (geen key nodig).
           if (widget.hourlyForecast != null && widget.hourlyForecast!.isNotEmpty)
             Flexible(
+              flex: 1,
               child: SingleChildScrollView(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-                  child: BuienCard(nextHours: widget.hourlyForecast!),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.trending_up, size: 16, color: theme.colorScheme.primary),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Verwachting komende uren',
+                            style: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      BuienCard(nextHours: widget.hourlyForecast!),
+                    ],
+                  ),
                 ),
               ),
             ),
