@@ -10,8 +10,8 @@ import '../services/saved_locations_service.dart';
 import '../widgets/buien_card.dart';
 
 /// Neerslagkaart met echte radar-beelden van RainViewer (gratis API, geen key).
-/// Toont de afgelopen 2 uur radar + de neerslagvoorspelling (nowcast) als
-/// animatie met 10-min-intervallen, als tile-layer over de kaart.
+/// Toont het afgelopen uur radar als animatie + de neerslagvoorspelling
+/// (komende 3 uur) als tile-layer over de kaart.
 class RainRadarScreen extends StatefulWidget {
   final SavedLocation location;
   final List<HourlyForecast>? hourlyForecast;
@@ -79,9 +79,13 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
             path: item['path'] as String,
           );
 
+      // Alleen het afgelopen uur tonen (RainViewer levert ~2 uur terug).
+      final oneHourAgo = DateTime.now().toUtc().subtract(const Duration(hours: 1));
       final frames = <_RadarFrame>[];
       for (final item in past) {
-        frames.add(parseFrame(item));
+        final frame = parseFrame(item);
+        if (frame.time.isBefore(oneHourAgo)) continue;
+        frames.add(frame);
       }
       final nowIndex = frames.length - 1; // laatste observatie = 'nu'
       for (final item in nowcast) {
@@ -175,6 +179,16 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
     if (_frames.length <= 1) return 1.0;
     final idx = _nowIndex < 0 ? 0 : _nowIndex;
     return idx / (_frames.length - 1);
+  }
+
+  /// Uurlijkse voorspelling voor de komende [hours] uur (vanaf het huidige uur).
+  List<HourlyForecast> _nextHours(int hours) {
+    final now = DateTime.now();
+    final start = DateTime(now.year, now.month, now.day, now.hour);
+    final end = start.add(Duration(hours: hours));
+    return widget.hourlyForecast!
+        .where((h) => !h.time.isBefore(start) && h.time.isBefore(end))
+        .toList();
   }
 
   @override
@@ -357,13 +371,13 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
                           Icon(Icons.trending_up, size: 16, color: theme.colorScheme.primary),
                           const SizedBox(width: 6),
                           Text(
-                            'Verwachting komende uren',
+                            'Verwachting komende 3 uur',
                             style: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
                           ),
                         ],
                       ),
                       const SizedBox(height: 8),
-                      BuienCard(nextHours: widget.hourlyForecast!),
+                      BuienCard(nextHours: _nextHours(3)),
                     ],
                   ),
                 ),
@@ -488,7 +502,7 @@ class _RainRadarScreenState extends State<RainRadarScreen> {
       builder: (context) => AlertDialog(
         title: const Text('Neerslagkaart'),
         content: const Text(
-          'Deze kaart toont echte radar-beelden van de afgelopen 2 uur + de neerslagvoorspelling:\n\n'
+          'Deze kaart toont echte radar-beelden van het afgelopen uur + de neerslagvoorspelling voor de komende 3 uur:\n\n'
           '• De animatie speelt verleden → nu → voorspelling\n'
           '• Gekleurde marker = jouw locatie · witte lijn = nu · oranje = voorspelling\n'
           '• Sleep de balk om naar een specifiek tijdstip te gaan\n\n'
