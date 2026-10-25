@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'package:workmanager/workmanager.dart';
 
@@ -12,6 +13,7 @@ import 'services/battery_optimization_service.dart';
 import 'services/weather_notification_service.dart';
 import 'services/weather_provider.dart';
 import 'services/weather_service.dart';
+import 'services/widget_service.dart';
 
 // Global notifiers voor thema changes
 final ValueNotifier<String> themeModeNotifier = ValueNotifier<String>('system');
@@ -112,17 +114,32 @@ class WeerApp extends StatelessWidget {
       useMaterial3: true,
       colorScheme: brightness == Brightness.dark
           ? colorScheme.copyWith(
-              surface: const Color(0xFF0E1116),
+              surface: const Color(0xFF121212),
               surfaceContainerHigh: const Color(0xFF1A1F2B),
               surfaceContainer: const Color(0xFF151A24),
               surfaceContainerLow: const Color(0xFF11151D),
             )
           : colorScheme,
+      textTheme: brightness == Brightness.light
+          ? GoogleFonts.interTextTheme(
+              ThemeData.light().textTheme.copyWith(
+                displayLarge: GoogleFonts.lora(fontSize: 32, fontWeight: FontWeight.bold),
+                headlineMedium: GoogleFonts.lora(fontSize: 24, fontWeight: FontWeight.bold),
+                titleLarge: GoogleFonts.lora(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+            )
+          : GoogleFonts.interTextTheme(
+              ThemeData.dark().textTheme.copyWith(
+                displayLarge: GoogleFonts.lora(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white),
+                headlineMedium: GoogleFonts.lora(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
+                titleLarge: GoogleFonts.lora(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+              ),
+            ),
       appBarTheme: AppBarTheme(
         backgroundColor: colorScheme.surface,
         elevation: 0,
         scrolledUnderElevation: 1,
-        centerTitle: false,
+        centerTittle: false,
       ),
     );
   }
@@ -147,12 +164,10 @@ class _SplashGateState extends State<_SplashGate> {
     final seen = prefs.getBool('onboarding_seen') ?? false;
     if (!mounted) return;
     if (seen) {
-      // Already seen → show home screen directly
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const HomeScreen()),
       );
     } else {
-      // First time → show onboarding
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const OnboardingScreen()),
       );

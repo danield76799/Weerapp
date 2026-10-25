@@ -1,8 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'package:google_fonts/google_fonts.dart';
 
 import '../services/location_service.dart';
 import '../services/saved_locations_service.dart';
@@ -71,7 +74,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       _showAirQuality = prefs.getBool('show_air_quality') ?? true;
       _autoRefresh = prefs.getBool('auto_refresh') ?? true;
     });
-    // Restart timer if auto-refresh setting changed
     if (_autoRefresh) {
       _startAutoRefresh();
     } else {
@@ -80,11 +82,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _openSettings() async {
+    HapticFeedback.lightImpact();
     await Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const SettingsScreen()),
     );
-    // Reload settings when returning
     _loadSettings();
   }
 
@@ -113,12 +115,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _bootstrap() async {
-    // Load saved locations
     final locations = await _savedLocations.getLocations();
     if (!mounted) return;
 
     if (locations.isEmpty) {
-      // No saved locations — try GPS
       await _useCurrentLocation();
       return;
     }
@@ -128,7 +128,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       _loading = false;
     });
 
-    // Load weather for first location
     final loc = locations.first;
     await _loadLocation(loc.lat, loc.lon, loc.name, isCurrentLocation: loc.isCurrentLocation);
     _startAutoRefresh();
@@ -138,7 +137,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     try {
       final loc = await _locationService.getCurrentLocation();
       if (!mounted) return;
-      // Save as a location
       final saved = SavedLocation(lat: loc.lat, lon: loc.lon, name: loc.name, isCurrentLocation: true);
       await _savedLocations.addLocation(saved);
       final locations = await _savedLocations.getLocations();
@@ -165,15 +163,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final provider = context.read<WeatherProvider>();
     final service = context.read<WeatherService>();
     await provider.loadWeather(lat: lat, lon: lon, locationName: name);
-    // Update widget from current location, not from selected manual location
     if (provider.hasData && isCurrentLocation) {
       WidgetService.updateWeather(provider.data!);
     }
     if (provider.hasData && isCurrentLocation) {
       try {
-        _notifService ??= WeatherNotificationService(
-          weatherService: service,
-        );
+        _notifService ??= WeatherNotificationService(weatherService: service);
         await _notifService!.checkThresholds(provider.data!);
         await _notifService!.sendMorningBriefingIfDue(provider.data!);
       } catch (_) {}
@@ -190,9 +185,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     double lon = loc.lon;
     String name = loc.name;
 
-    // Als isCurrentLocation, haal verse GPS-coördinaten op
-    // Maar doe dit maximaal elke 30 minuten — de 10-min timer draait wel,
-    // maar GPS is te zwaar voor elke tick. De weather data wordt wel ververst.
     if (loc.isCurrentLocation) {
       final lastGpsKey = 'last_gps_refresh_${loc.lat}_${loc.lon}';
       try {
@@ -206,7 +198,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           lon = gps.lon;
           name = gps.name;
           await prefs.setInt(lastGpsKey, now);
-          // Update opgeslagen locatie met nieuwe GPS-positie
           final updated = SavedLocation(
             lat: lat, lon: lon, name: name,
             sortOrder: loc.sortOrder, isCurrentLocation: true,
@@ -215,15 +206,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           final locations = await _savedLocations.getLocations();
           if (mounted) setState(() => _locations = locations);
         }
-      } catch (_) {
-        // GPS faalt — gebruik oude coördinaten
-      }
+      } catch (_) {}
     }
 
     await provider.silentRefresh(lat, lon, name);
     if (provider.hasData && loc.isCurrentLocation) {
       WidgetService.updateWeather(provider.data!);
-      // Update naam als API andere naam retourneert dan GPS
       if (loc.isCurrentLocation) {
         final weatherName = provider.data!.locationName;
         if (weatherName.isNotEmpty && weatherName != name) {
@@ -244,15 +232,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _onPageChanged(int page) async {
+    HapticFeedback.selectionClick();
     setState(() => _currentPage = page);
     if (page < _locations.length) {
       final loc = _locations[page];
-      // Gebruik memory cache voor snelle switch — geen GPS bij swipen
       await _loadLocation(loc.lat, loc.lon, loc.name, isCurrentLocation: loc.isCurrentLocation);
     }
   }
 
   Future<void> _openSearch() async {
+    HapticFeedback.lightImpact();
     final result = await Navigator.push<Map<String, dynamic>>(
       context,
       MaterialPageRoute(builder: (_) => const LocationSearchScreen()),
@@ -261,12 +250,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       final lat = result['lat'] as double;
       final lon = result['lon'] as double;
       final name = result['name'] as String;
-      // Save location
       await _savedLocations.addLocation(SavedLocation(lat: lat, lon: lon, name: name));
       final locations = await _savedLocations.getLocations();
       if (!mounted) return;
       setState(() => _locations = locations);
-      // Navigate to the new location (last page)
       final newIndex = locations.length - 1;
       if (_pageController != null) {
         _pageController!.animateToPage(
@@ -280,7 +267,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
-  /// Kort locatienaam in: "Bardolino, Provincia di Verona" → "Bardolino"
   String _shortName(String name) {
     final comma = name.indexOf(',');
     if (comma > 0) return name.substring(0, comma).trim();
@@ -317,13 +303,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     controller.dispose();
 
     if (newName != null && newName.isNotEmpty && newName != loc.name) {
-      // Remove old, add with new name
       await _savedLocations.removeLocation(loc.lat, loc.lon);
       await _savedLocations.addLocation(SavedLocation(lat: loc.lat, lon: loc.lon, name: newName, isCurrentLocation: loc.isCurrentLocation));
       final locations = await _savedLocations.getLocations();
       if (!mounted) return;
       setState(() => _locations = locations);
-      // Reload weather with new name
       await _loadLocation(loc.lat, loc.lon, newName, isCurrentLocation: loc.isCurrentLocation);
     }
   }
@@ -335,7 +319,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       context: context,
       builder: (context) => AlertDialog(
         title: Text('${loc.name} verwijderen?'),
-        content: Text('Deze locatie wordt verwijderd uit je opgeslagen plaatsen.'),
+        content: const Text('Deze locatie wordt verwijderd uit je opgeslagen plaatsen.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Annuleren')),
           TextButton(
@@ -441,111 +425,125 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ),
         ],
       ),
-      body: Consumer<WeatherProvider>(
-        builder: (context, provider, _) {
-          if (_locations.isEmpty) {
-            return _ErrorState(
-              message: 'Geen locaties. Tik op + om er toe te voegen.',
-              onRetry: _openSearch,
-            );
-          }
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: TextField(
+              decoration: InputDecoration(
+                hintText: 'Zoek nieuwe locatie...',
+                prefixIcon: Icon(Icons.search, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                filled: true,
+                fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(vertical: 0),
+              ),
+              onSubmitted: (_) => _openSearch(),
+              onTap: _openSearch,
+            ),
+          ),
+          Expanded(
+            child: Consumer<WeatherProvider>(
+              builder: (context, provider, _) {
+                if (_locations.isEmpty) {
+                  return _ErrorState(
+                    message: 'Geen locaties. Tik op + om er toe te voegen.',
+                    onRetry: _openSearch,
+                  );
+                }
 
-          // No weather data yet — show loading or retry
-          if (!provider.hasData) {
-            if (provider.status == WeatherStatus.error) {
-              return _ErrorState(
-                message: provider.errorMessage ?? 'Onbekende fout',
-                onRetry: () {
-                  final loc = _locations[_currentPage.clamp(0, _locations.length - 1)];
-                  _loadLocation(loc.lat, loc.lon, loc.name, isCurrentLocation: loc.isCurrentLocation);
-                },
-              );
-            }
-            return const Center(child: CircularProgressIndicator());
-          }
+                if (!provider.hasData) {
+                  if (provider.status == WeatherStatus.error) {
+                    return _ErrorState(
+                      message: provider.errorMessage ?? 'Onbekende fout',
+                      onRetry: () {
+                        final loc = _locations[_currentPage.clamp(0, _locations.length - 1)];
+                        _loadLocation(loc.lat, loc.lon, loc.name, isCurrentLocation: loc.isCurrentLocation);
+                      },
+                    );
+                  }
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-          return PageView.builder(
-            controller: _pageController,
-            itemCount: _locations.length,
-            onPageChanged: _onPageChanged,
-            itemBuilder: (context, index) {
-              final loc = _locations[index];
-              // Only show weather for current page
-              if (index != _currentPage) {
-                return const SizedBox.shrink();
-              }
+                return PageView.builder(
+                  controller: _pageController,
+                  itemCount: _locations.length,
+                  onPageChanged: _onPageChanged,
+                  itemBuilder: (context, index) {
+                    final loc = _locations[index];
+                    if (index != _currentPage) {
+                      return const SizedBox.shrink();
+                    }
 
-              final data = provider.data!;
-              return RefreshIndicator(
-                onRefresh: () => provider.refresh(loc.lat, loc.lon, loc.name),
-                child: ListView(
-                  padding: EdgeInsets.only(
-                    top: 16,
-                    bottom: MediaQuery.viewPaddingOf(context).bottom + 16,
-                    left: 16,
-                    right: 16,
-                  ),
-                  children: [
-                    CurrentWeatherCard(
-                      current: data.current,
-                      locationName: data.locationName,
-                      sunrise: data.daily.isNotEmpty ? data.daily.first.sunrise : null,
-                      sunset: data.daily.isNotEmpty ? data.daily.first.sunset : null,
-                    ),
-                    if (provider.lastRefresh != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 6, bottom: 4),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.update, size: 16),
-                            const SizedBox(width: 4),
-                            Text(
-                              'Bijgewerkt om ${provider.lastRefresh!.hour.toString().padLeft(2, '0')}:${provider.lastRefresh!.minute.toString().padLeft(2, '0')}',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: Theme.of(context).colorScheme.onSurface.withAlpha(120),
+                    final data = provider.data!;
+                    return RefreshIndicator(
+                      onRefresh: () => provider.refresh(loc.lat, loc.lon, loc.name),
+                      child: ListView(
+                        padding: EdgeInsets.only(
+                          top: 16,
+                          bottom: MediaQuery.viewPaddingOf(context).bottom + 16,
+                          left: 16,
+                          right: 16,
+                        ),
+                        children: [
+                          CurrentWeatherCard(
+                            current: data.current,
+                            locationName: data.locationName,
+                            sunrise: data.daily.isNotEmpty ? data.daily.first.sunrise : null,
+                            sunset: data.daily.isNotEmpty ? data.daily.first.sunset : null,
+                          ),
+                          if (provider.lastRefresh != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 6, bottom: 4),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.update, size: 16),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Bijgewerkt om ${provider.lastRefresh!.hour.toString().padLeft(2, '0')}:${provider.lastRefresh!.minute.toString().padLeft(2, '0')}',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Theme.of(context).colorScheme.onSurface.withAlpha(120),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                          ],
-                        ),
+                          if (_showBuien) BuienCard(nextHours: data.hourly),
+                          if (_showDetails && data.daily.isNotEmpty) DetailsCard(current: data.current, today: data.daily.first),
+                          if (_showAirQuality && data.airQuality != null) AirQualityCard(airQuality: data.airQuality!, pollen: data.pollen),
+                          if (_showJas) JasAdviceCard(current: data.current, nextHours: data.hourly),
+                          if (_showZonnebrand) ZonnebrandCard(current: data.current),
+                          WeatherHistoryCard(pastDaily: data.pastDaily, daily: data.daily),
+                          const SizedBox(height: 8),
+                          DailyForecastList(
+                            days: data.daily,
+                            hourly: data.hourly,
+                            locationName: data.locationName,
+                          ),
+                          if (data.pastDaily.isNotEmpty)
+                            WeatherComparisonCard(
+                              pastDaily: data.pastDaily,
+                              daily: data.daily,
+                            ),
+                        ],
                       ),
-                    if (_showBuien) BuienCard(nextHours: data.hourly),
-                    if (_showDetails && data.daily.isNotEmpty) DetailsCard(current: data.current, today: data.daily.first),
-                    if (_showAirQuality && data.airQuality != null) AirQualityCard(airQuality: data.airQuality!, pollen: data.pollen),
-                    if (_showJas) JasAdviceCard(current: data.current, nextHours: data.hourly),
-                    if (_showZonnebrand) ZonnebrandCard(current: data.current),
-                    WeatherHistoryCard(pastDaily: data.pastDaily, daily: data.daily),
-                    const SizedBox(height: 8),
-                    DailyForecastList(
-                      days: data.daily,
-                      hourly: data.hourly,
-                      locationName: data.locationName,
-                    ),
-                    if (data.pastDaily.isNotEmpty)
-                      WeatherComparisonCard(
-                        pastDaily: data.pastDaily,
-                        daily: data.daily,
-                      ),
-                  ],
-                ),
-              );
-            },
-          );
-        },
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
-}
 
-class _ErrorState extends StatelessWidget {
-  final String message;
-  final VoidCallback? onRetry;
-
-  const _ErrorState({required this.message, this.onRetry});
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _ErrorState({required String message, VoidCallback? onRetry}) {
     return Scaffold(
       body: Center(
         child: Padding(
