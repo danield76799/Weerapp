@@ -5,8 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:google_fonts/google_fonts.dart';
-
 import '../services/location_service.dart';
 import '../services/saved_locations_service.dart';
 import '../services/weather_notification_service.dart';
@@ -449,7 +447,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             child: Consumer<WeatherProvider>(
               builder: (context, provider, _) {
                 if (_locations.isEmpty) {
-                  return _ErrorState(
+                  return _errorState(
                     message: 'Geen locaties. Tik op + om er toe te voegen.',
                     onRetry: _openSearch,
                   );
@@ -457,7 +455,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
                 if (!provider.hasData) {
                   if (provider.status == WeatherStatus.error) {
-                    return _ErrorState(
+                    return _errorState(
                       message: provider.errorMessage ?? 'Onbekende fout',
                       onRetry: () {
                         final loc = _locations[_currentPage.clamp(0, _locations.length - 1)];
@@ -543,7 +541,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
-  Widget _ErrorState({required String message, VoidCallback? onRetry}) {
+  Widget _errorState({required String message, VoidCallback? onRetry}) {
     return Scaffold(
       body: Center(
         child: Padding(

@@ -13,7 +13,6 @@ import 'services/battery_optimization_service.dart';
 import 'services/weather_notification_service.dart';
 import 'services/weather_provider.dart';
 import 'services/weather_service.dart';
-import 'services/widget_service.dart';
 
 // Global notifiers voor thema changes
 final ValueNotifier<String> themeModeNotifier = ValueNotifier<String>('system');
