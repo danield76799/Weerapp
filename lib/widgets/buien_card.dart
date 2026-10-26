@@ -100,25 +100,33 @@ class BuienCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 14),
-          // 12 bars, één per uur
+          // 12 bars, één per uur, met een compacte schaal links
           SizedBox(
             height: 120,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                for (var i = 0; i < next12h.length; i++)
-                  _HourBar(
-                    hour: next12h[i],
-                    maxPrecip: maxPrecip,
-                    color: color,
-                    isFirstRain: next12h[i].time == firstRain?.time,
-                    showHourLabel: i % 2 == 0, // 00, 02, 04, ...
-                    theme: theme,
+                _PrecipScale(maxPrecip: maxPrecip, theme: theme),
+                Expanded(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      for (var i = 0; i < next12h.length; i++)
+                        _HourBar(
+                          hour: next12h[i],
+                          maxPrecip: maxPrecip,
+                          color: color,
+                          isFirstRain: next12h[i].time == firstRain?.time,
+                          showHourLabel: i % 2 == 0, // 00, 02, 04, ...
+                          theme: theme,
+                        ),
+                    ],
                   ),
+                ),
               ],
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           // Legenda
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -134,6 +142,42 @@ class BuienCard extends StatelessWidget {
               ),
             ],
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Compacte schaal links van het regendiagram: de piek bovenaan en 0
+/// onderaan, zodat de balken een betekenis hebben.
+class _PrecipScale extends StatelessWidget {
+  final double maxPrecip;
+  final ThemeData theme;
+
+  const _PrecipScale({required this.maxPrecip, required this.theme});
+
+  @override
+  Widget build(BuildContext context) {
+    final labelStyle = TextStyle(
+      fontSize: 9,
+      height: 1.0,
+      color: theme.colorScheme.onSurface.withAlpha(120),
+    );
+    return SizedBox(
+      width: 26,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          // Ruimte voor het mm-label boven de hoogste balk.
+          const SizedBox(height: 15),
+          Text(
+            maxPrecip > 0 ? maxPrecip.toStringAsFixed(1) : '0',
+            style: labelStyle,
+          ),
+          const Spacer(),
+          Text('0', style: labelStyle),
+          // Ruimte voor het uur-label onder de balken.
+          const SizedBox(height: 14),
         ],
       ),
     );
