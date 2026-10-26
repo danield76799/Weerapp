@@ -124,6 +124,7 @@ class _HourlyForecastSheetState extends State<HourlyForecastSheet> {
                       'NU',
                       style: TextStyle(
                         fontSize: 10,
+                        height: 1.0,
                         fontWeight: FontWeight.w700,
                         color: theme.colorScheme.primary,
                       ),
@@ -176,6 +177,7 @@ class _HourlyForecastSheetState extends State<HourlyForecastSheet> {
                             isCurrentHour ? 'NU' : '${h.time.hour.toString().padLeft(2, '0')}:00',
                             style: TextStyle(
                               fontSize: 12,
+                              height: 1.0,
                               fontWeight: isCurrentHour ? FontWeight.w700 : FontWeight.w500,
                               color: isCurrentHour
                                   ? theme.colorScheme.primary
@@ -199,6 +201,7 @@ class _HourlyForecastSheetState extends State<HourlyForecastSheet> {
                             '${h.temperature.toStringAsFixed(0)}°',
                             style: TextStyle(
                               fontSize: 17,
+                              height: 1.0,
                               fontWeight: FontWeight.w600,
                               color: tempColor,
                             ),
@@ -215,6 +218,7 @@ class _HourlyForecastSheetState extends State<HourlyForecastSheet> {
                                   '${h.apparentTemperature.toStringAsFixed(0)}°',
                                   style: TextStyle(
                                     fontSize: 11,
+                                    height: 1.0,
                                     color: theme.colorScheme.onSurface.withAlpha(180),
                                   ),
                                 )
@@ -252,6 +256,7 @@ class _HourlyForecastSheetState extends State<HourlyForecastSheet> {
                                       '${h.precipitationProbability}%',
                                       style: TextStyle(
                                         fontSize: 11,
+                                        height: 1.0,
                                         color: theme.colorScheme.onSurface.withAlpha(200),
                                       ),
                                     ),

@@ -164,7 +164,7 @@ class _HourBar extends StatelessWidget {
     final isRain = precip > 0.05 || prob > 20;
 
     final barHeight = maxPrecip > 0
-        ? ((precip / maxPrecip) * 86).clamp(3.0, 86.0)
+        ? ((precip / maxPrecip) * 84).clamp(3.0, 84.0)
         : 3.0;
 
     return Expanded(
@@ -173,23 +173,30 @@ class _HourBar extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            // mm-label boven de bar (alleen bij regen, leesbaar formaat)
-            if (isRain && precip >= 0.3)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 2),
-                child: Text(
-                  precip.toStringAsFixed(1),
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: isFirstRain ? FontWeight.w700 : FontWeight.w400,
-                    color: isFirstRain
-                        ? color
-                        : theme.colorScheme.onSurface.withAlpha(160),
-                  ),
-                ),
-              )
-            else
-              const SizedBox(height: 14),
+            // mm-label boven de bar (alleen bij regen, leesbaar formaat).
+            // Vaste hoogte + height: 1.0, anders erft de tekst de
+            // regelhoogte uit het thema en loopt de kolom over.
+            SizedBox(
+              height: 14,
+              child: isRain && precip >= 0.3
+                  ? Padding(
+                      padding: const EdgeInsets.only(bottom: 1),
+                      child: Text(
+                        precip.toStringAsFixed(1),
+                        style: TextStyle(
+                          fontSize: 10,
+                          height: 1.0,
+                          fontWeight: isFirstRain
+                              ? FontWeight.w700
+                              : FontWeight.w400,
+                          color: isFirstRain
+                              ? color
+                              : theme.colorScheme.onSurface.withAlpha(160),
+                        ),
+                      ),
+                    )
+                  : const SizedBox.shrink(),
+            ),
             // De bar
             Container(
               width: double.infinity,
@@ -219,6 +226,7 @@ class _HourBar extends StatelessWidget {
                       hour.time.hour.toString().padLeft(2, '0'),
                       style: TextStyle(
                         fontSize: 10,
+                        height: 1.0,
                         fontWeight: isFirstRain ? FontWeight.w700 : FontWeight.w400,
                         color: isFirstRain
                             ? color
