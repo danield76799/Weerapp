@@ -44,11 +44,6 @@ class WeatherService {
           receiveTimeout: const Duration(seconds: 8),
         ));
 
-  // API key methods — kept for compatibility but not used with Open-Meteo
-  Future<bool> setApiKey(String key) async => true;
-  Future<String?> getApiKey() async => 'open-meteo';
-  Future<bool> hasApiKey() async => true;
-
   Future<SharedPreferences> get _preferences async {
     return _prefs ??= await SharedPreferences.getInstance();
   }

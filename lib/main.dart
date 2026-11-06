@@ -25,19 +25,6 @@ void main() async {
   final weatherService = WeatherService();
   final weatherProvider = WeatherProvider(weatherService);
 
-  // Background weather-alerts: draai periodiek op de achtergrond zodat
-  // regen/UV/hitte/vorst-meldingen ook binnenkomen zónder de app te openen.
-  await Workmanager().initialize(callbackDispatcher);
-  await Workmanager().registerPeriodicTask(
-    BackgroundTaskNames.weatherAlerts,
-    BackgroundTaskNames.weatherAlerts,
-    frequency: const Duration(minutes: 15),
-    constraints: Constraints(
-      networkType: NetworkType.connected,
-    ),
-    existingWorkPolicy: ExistingPeriodicWorkPolicy.replace,
-  );
-
   final prefs = await SharedPreferences.getInstance();
   themeModeNotifier.value = prefs.getString('theme_mode') ?? 'system';
   accentColorNotifier.value = prefs.getInt('accent_color') ?? 0xFF49AFC2;
@@ -47,7 +34,24 @@ void main() async {
     weatherProvider: weatherProvider,
   ));
 
-  // Post-startup init — fire-and-forget, niet blokkeren van eerste frame.
+  // Post-startup init — fire-and-forget, niet blokkeren van het eerste frame.
+  WidgetsBinding.instance.addPostFrameCallback((_) async {
+    try {
+      await Workmanager().initialize(callbackDispatcher);
+      await Workmanager().registerPeriodicTask(
+        BackgroundTaskNames.weatherAlerts,
+        BackgroundTaskNames.weatherAlerts,
+        frequency: const Duration(minutes: 15),
+        constraints: Constraints(
+          networkType: NetworkType.connected,
+        ),
+        existingWorkPolicy: ExistingPeriodicWorkPolicy.replace,
+      );
+    } catch (e) {
+      debugPrint('Workmanager init failed: $e');
+    }
+  });
+
   WeatherNotificationService(weatherService: weatherService)
       .initialize()
       .catchError((_) {});

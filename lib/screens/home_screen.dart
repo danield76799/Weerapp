@@ -390,11 +390,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             tooltip: 'Locatie toevoegen',
           ),
           IconButton(
-            icon: const Icon(Icons.my_location),
-            onPressed: _useCurrentLocation,
-            tooltip: 'Mijn locatie',
-          ),
-          IconButton(
             icon: const Icon(Icons.radar),
             onPressed: () {
               if (_locations.isNotEmpty && _currentPage < _locations.length) {
@@ -416,32 +411,78 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             onPressed: _openSettings,
             tooltip: 'Instellingen',
           ),
-          if (_locations.length > 1)
-            IconButton(
-              icon: const Icon(Icons.delete_outline),
-              onPressed: _removeCurrentLocation,
-              tooltip: 'Locatie verwijderen',
-            ),
+          PopupMenuButton<String>(
+            tooltip: 'Meer',
+            onSelected: (value) {
+              switch (value) {
+                case 'current':
+                  _useCurrentLocation();
+                case 'delete':
+                  _removeCurrentLocation();
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'current',
+                child: Row(
+                  children: [
+                    Icon(Icons.my_location),
+                    SizedBox(width: 12),
+                    Text('Mijn locatie gebruiken'),
+                  ],
+                ),
+              ),
+              if (_locations.length > 1)
+                const PopupMenuItem(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete_outline),
+                      SizedBox(width: 12),
+                      Text('Locatie verwijderen'),
+                    ],
+                  ),
+                ),
+            ],
+          ),
         ],
       ),
       body: Column(
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: 'Zoek nieuwe locatie...',
-                prefixIcon: Icon(Icons.search, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                filled: true,
-                fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide.none,
+            child: Semantics(
+              button: true,
+              label: 'Zoek nieuwe locatie',
+              child: Material(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(16),
+                clipBehavior: Clip.antiAlias,
+                child: InkWell(
+                  onTap: _openSearch,
+                  child: SizedBox(
+                    height: 48,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.search,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            'Zoek nieuwe locatie...',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
-                contentPadding: const EdgeInsets.symmetric(vertical: 0),
               ),
-              onSubmitted: (_) => _openSearch(),
-              onTap: _openSearch,
             ),
           ),
           Expanded(
@@ -474,7 +515,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   itemBuilder: (context, index) {
                     final loc = _locations[index];
                     if (index != _currentPage) {
-                      return const SizedBox.shrink();
+                      return const Center(child: CircularProgressIndicator());
                     }
 
                     final data = provider.data!;
@@ -500,10 +541,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(Icons.update, size: 16),
+                                  Icon(
+                                    provider.isFromCache
+                                        ? Icons.cloud_off_outlined
+                                        : Icons.update,
+                                    size: 16,
+                                  ),
                                   const SizedBox(width: 4),
                                   Text(
-                                    'Bijgewerkt om ${provider.lastRefresh!.hour.toString().padLeft(2, '0')}:${provider.lastRefresh!.minute.toString().padLeft(2, '0')}',
+                                    provider.isFromCache
+                                        ? 'Offline — bijgewerkt om ${provider.lastRefresh!.hour.toString().padLeft(2, '0')}:${provider.lastRefresh!.minute.toString().padLeft(2, '0')}'
+                                        : 'Bijgewerkt om ${provider.lastRefresh!.hour.toString().padLeft(2, '0')}:${provider.lastRefresh!.minute.toString().padLeft(2, '0')}',
                                     style: TextStyle(
                                       fontSize: 11,
                                       color: Theme.of(context).colorScheme.onSurface.withAlpha(120),
