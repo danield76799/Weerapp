@@ -138,8 +138,20 @@ class WeerApp extends StatelessWidget {
                 titleLarge: GoogleFonts.lora(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
               ),
             ),
+      scaffoldBackgroundColor: brightness == Brightness.dark
+          ? const Color(0xFF10151D)
+          : const Color(0xFFF1F4FA),
+      cardTheme: CardThemeData(
+        elevation: 0,
+        margin: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: colorScheme.outlineVariant.withValues(alpha: 0.6)),
+        ),
+      ),
       appBarTheme: AppBarTheme(
         backgroundColor: colorScheme.surface,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 1,
         centerTitle: false,

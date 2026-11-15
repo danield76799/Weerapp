@@ -208,25 +208,22 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
 
     await provider.silentRefresh(lat, lon, name);
-    if (provider.hasData && loc.isCurrentLocation) {
-      WidgetService.updateWeather(provider.data!);
-      if (loc.isCurrentLocation) {
-        final weatherName = provider.data!.locationName;
-        if (weatherName.isNotEmpty && weatherName != name) {
-          final updated = SavedLocation(
-            lat: lat, lon: lon, name: weatherName,
-            sortOrder: loc.sortOrder, isCurrentLocation: true,
-          );
-          await _savedLocations.addLocation(updated);
-          final locations = await _savedLocations.getLocations();
-          if (mounted) setState(() => _locations = locations);
-        }
-        try {
-          _notifService ??= WeatherNotificationService(weatherService: service);
-          await _notifService!.checkThresholds(provider.data!);
-        } catch (_) {}
-      }
+    if (!provider.hasData || !loc.isCurrentLocation) return;
+    WidgetService.updateWeather(provider.data!);
+    final weatherName = provider.data!.locationName;
+    if (weatherName.isNotEmpty && weatherName != name) {
+      final updated = SavedLocation(
+        lat: lat, lon: lon, name: weatherName,
+        sortOrder: loc.sortOrder, isCurrentLocation: true,
+      );
+      await _savedLocations.addLocation(updated);
+      final locations = await _savedLocations.getLocations();
+      if (mounted) setState(() => _locations = locations);
     }
+    try {
+      _notifService ??= WeatherNotificationService(weatherService: service);
+      await _notifService!.checkThresholds(provider.data!);
+    } catch (_) {}
   }
 
   Future<void> _onPageChanged(int page) async {
@@ -456,7 +453,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               label: 'Zoek nieuwe locatie',
               child: Material(
                 color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(
+                    color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.7),
+                  ),
+                ),
                 clipBehavior: Clip.antiAlias,
                 child: InkWell(
                   onTap: _openSearch,
@@ -485,6 +487,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               ),
             ),
           ),
+          if (_locations.length > 1)
+            Padding(
+              padding: const EdgeInsets.only(top: 2, bottom: 2),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(_locations.length, (i) => _PageDot(
+                      active: i == _currentPage,
+                    )),
+              ),
+            ),
           Expanded(
             child: Consumer<WeatherProvider>(
               builder: (context, provider, _) {
@@ -616,6 +628,30 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Klein pagina-stipje voor de PageView-locaties; actieve pagina is breder.
+class _PageDot extends StatelessWidget {
+  final bool active;
+  const _PageDot({required this.active});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = active
+        ? Theme.of(context).colorScheme.primary
+        : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.25);
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeInOut,
+      width: active ? 18 : 6,
+      height: 6,
+      margin: const EdgeInsets.symmetric(horizontal: 3, vertical: 4),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(3),
       ),
     );
   }
